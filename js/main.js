@@ -399,9 +399,40 @@ function cloudDemandTick(D){
   let dcOutageCount=0;
   for(const dc of G.dcs){if(dc.outage&&dc.outage.active)dcOutageCount++;}
   const slaOK=dcOutageCount===0;
+  // Track cumulative outage-days in current month (for monthly SLA credit reconciliation)
+  if(!slaOK)G.cloudOutageDaysM=(G.cloudOutageDaysM||0)+D;
+
   // Check DC has required SLA equipment
   let slaEqMet=true;
   if(sla.reqEq.length>0){slaEqMet=anyDCHasEq(sla.reqEq);}
+
+  // ==== Globální boosty & odpory ====
+  // Marketing upgrady ovlivňují i cloud růst (stejně jako ISP zákazníky)
+  let mktBoost=1.0;
+  if(G.upgrades.includes('marketing1'))mktBoost+=0.15;
+  if(G.upgrades.includes('marketing2'))mktBoost+=0.25;
+  if(G.upgrades.includes('marketing3'))mktBoost+=0.30;
+  if(G.upgrades.includes('brand1'))mktBoost+=0.08;
+  if(G.upgrades.includes('brand2'))mktBoost+=0.05;
+  // Dev tým přidá organický růst cloudu (lepší produkt = lepší reference)
+  const devCount=(typeof getStaffEffect==='function')?getStaffEffect('dev'):0;
+  const devBoost=1+Math.min(0.40,devCount*0.025);
+  // Support tým sníží churn a zvýší satisfaction
+  const supCount=(typeof getStaffEffect==='function')?getStaffEffect('support'):0;
+  const supChurnRed=Math.min(0.35,supCount*0.03);
+  const supSatBonus=Math.min(3.0,supCount*0.15); // bonus per day
+
+  // Konkurenční tlak (jen pokud hráč má zapnuté AI competitory)
+  let compPressure=1.0;
+  if(G.competitorsEnabled&&G.competitors&&G.competitors.length){
+    // Více a silnější AI = větší tlak (míň volného cloud trhu)
+    const compTotal=G.competitors.reduce((s,c)=>s+(c.customers||0),0);
+    compPressure=Math.max(0.55,1.0-compTotal/200000); // při 200k AI zákaznících -45%
+  }
+
+  // Reputace ovlivňuje růstový koeficient (0-100, neutral=60)
+  const rep=G.cloudReputation||60;
+  const repFactor=Math.max(0.35,Math.min(1.25,0.35+rep/80));
 
   // Price attractiveness
   const priceMult=G.cloudPriceMult||1.0;
@@ -410,70 +441,87 @@ function cloudDemandTick(D){
     if(!G.cloudCustomers[seg.id])G.cloudCustomers[seg.id]={count:0,satisfaction:50,lastGrowth:0};
     const cs=G.cloudCustomers[seg.id];
 
-    // Max potential customers based on capacity and year progression
+    // Max potential customers based on capacity and year progression × konkurenční tlak
     const yearProgress=Math.max(0,G.date.y-2008);
-    const marketSize=Math.floor(5+yearProgress*3+totalCPU*0.3+totalStorage*2);
+    let marketSize=Math.floor((5+yearProgress*3+totalCPU*0.3+totalStorage*2)*compPressure);
+    if(marketSize<1)marketSize=1;
 
     // SLA attractiveness for this segment
     const prefSLA=SLA_TIERS.findIndex(s=>s.id===seg.slaPref);
     const curSLA=SLA_TIERS.findIndex(s=>s.id===G.cloudSLA);
     let slaFactor=1.0;
-    if(curSLA>=prefSLA)slaFactor=1.0+0.1*(curSLA-prefSLA); // bonus for exceeding expectations
-    else slaFactor=Math.max(0.2,1.0-0.3*(prefSLA-curSLA));  // penalty for below expectations
+    if(curSLA>=prefSLA)slaFactor=1.0+0.1*(curSLA-prefSLA);
+    else slaFactor=Math.max(0.2,1.0-0.3*(prefSLA-curSLA));
     if(!slaEqMet)slaFactor*=0.5;
 
     // Price sensitivity
     let priceFactor=1.0;
     const effPrice=priceMult*sla.priceMult;
-    if(effPrice<0.8)priceFactor=1.4;       // very cheap → attracts
-    else if(effPrice<0.95)priceFactor=1.15;  // slight discount
-    else if(effPrice<1.15)priceFactor=1.0;   // fair
-    else if(effPrice<1.4)priceFactor=0.6;    // expensive
-    else if(effPrice<1.8)priceFactor=0.25;   // very expensive
-    else priceFactor=0.05;                    // absurd
-    // Adjust by segment price sensitivity
+    if(effPrice<0.8)priceFactor=1.4;
+    else if(effPrice<0.95)priceFactor=1.15;
+    else if(effPrice<1.15)priceFactor=1.0;
+    else if(effPrice<1.4)priceFactor=0.6;
+    else if(effPrice<1.8)priceFactor=0.25;
+    else priceFactor=0.05;
     priceFactor=Math.pow(priceFactor,seg.priceSens);
 
-    // Capacity factor — hard to grow if already near full
+    // Capacity factor — hard to grow if already near full; >85% means "waitlist" (nulový růst)
     let capFactor=1.0;
     if(overallUtil>0.6)capFactor=1.0-(overallUtil-0.6)*1.5;
-    capFactor=Math.max(0.05,capFactor);
+    if(overallUtil>0.85)capFactor*=0.2; // ostrá brzda na plné kapacitě
+    if(overallUtil>0.95)capFactor=0;    // plně zahlceno — žádní noví
+    capFactor=Math.max(0,capFactor);
 
-    // Growth
-    if(cs.count<marketSize){
+    // Growth — nově s marketing/dev/rep faktory
+    if(cs.count<marketSize&&capFactor>0){
       const freeSlots=marketSize-cs.count;
-      const growthRate=seg.growthBase*slaFactor*priceFactor*capFactor*(0.5+cs.satisfaction/200);
+      const growthRate=seg.growthBase*slaFactor*priceFactor*capFactor
+        *(0.5+cs.satisfaction/200)*mktBoost*devBoost*repFactor;
       const dailyNew=growthRate*freeSlots*D;
       const toAdd=Math.floor(dailyNew)+(Math.random()<(dailyNew%1)?1:0);
       if(toAdd>0){cs.count=Math.min(marketSize,cs.count+toAdd);cs.lastGrowth=toAdd;}
     }
 
-    // Churn
+    // Churn — Support tým redukce, špatná reputace přidává
     if(cs.count>0){
       let churnRate=seg.churnBase*D;
-      // Price churn
       if(effPrice>1.2)churnRate+=.02*(effPrice-1.2)*D*seg.priceSens;
       if(effPrice>1.6)churnRate+=.05*(effPrice-1.0)*D*seg.priceSens;
-      // SLA violation churn
       if(!slaOK)churnRate+=.08*D;
       if(!slaEqMet)churnRate+=.03*D;
-      // Overload churn
       if(overallUtil>0.9)churnRate+=.06*(overallUtil-0.9)*10*D;
-      // Low satisfaction churn
       if(cs.satisfaction<30)churnRate+=.04*D;
       if(cs.satisfaction<15)churnRate+=.10*D;
+      // Reputace < 40 = churn +3%/den, < 20 = +8%/den (spirála smrti)
+      if(rep<40)churnRate+=(40-rep)/40*0.03*D;
+      if(rep<20)churnRate+=(20-rep)/20*0.05*D;
+      // Support redukce
+      churnRate*=(1-supChurnRed);
+      // brand2 redukce (už existující loyalty upgrade)
+      if(G.upgrades.includes('brand2'))churnRate*=0.75;
       const toRemove=Math.floor(cs.count*churnRate)+(Math.random()<(cs.count*churnRate%1)?1:0);
       if(toRemove>0){cs.count=Math.max(0,cs.count-toRemove);}
     }
 
     // Satisfaction
-    let satDelta=0.5*D; // base growth
+    let satDelta=0.5*D+supSatBonus*D;
     if(!slaOK)satDelta-=8*D;
     if(!slaEqMet)satDelta-=2*D;
     if(overallUtil>0.85)satDelta-=(overallUtil-0.85)*20*D;
     if(effPrice>1.3)satDelta-=(effPrice-1.3)*5*D;
     if(effPrice<0.9)satDelta+=(0.9-effPrice)*3*D;
+    // Reputace přidává/odebírá malý drift
+    satDelta+=(rep-60)/60*0.5*D;
     cs.satisfaction=Math.min(100,Math.max(0,cs.satisfaction+satDelta));
+  }
+
+  // Reputační denní drift — zlepšuje se pomalu při stabilním provozu, hroutí se rychle při výpadku
+  if(slaOK&&slaEqMet){
+    G.cloudReputation=Math.min(100,(G.cloudReputation||60)+0.12*D);
+  } else if(!slaOK){
+    G.cloudReputation=Math.max(0,(G.cloudReputation||60)-2.5*D);
+  } else if(!slaEqMet){
+    G.cloudReputation=Math.max(0,(G.cloudReputation||60)-0.4*D);
   }
 }
 
@@ -525,48 +573,77 @@ function monthUp(){
     }
   }
 
-  let exp=0;
+  // Provozní náklady HW jsou ovlivněny componentInflation (roste zlomkem CPI).
+  // Sčítáme surově a na konci vynásobíme jedním multiplikátorem, ať se to
+  // projeví konzistentně napříč všemi kategoriemi techniky.
+  let hwExp=0;
   for(const dc of G.dcs){
-    exp+=DC_T[dc.type].mCost;
-    for(const eq of(dc.eq||[]))exp+=EQ[eq].mCost;
-    for(const bwu of(dc.bwUpgrades||[]))exp+=bwu.mCost;
+    hwExp+=DC_T[dc.type].mCost;
+    for(const eq of(dc.eq||[]))hwExp+=EQ[eq].mCost;
+    for(const bwu of(dc.bwUpgrades||[]))hwExp+=bwu.mCost;
   }
-  for(const cb of G.cables)exp+=CAB_T[cb.t].mCost;
-  exp+=cust*25;
+  for(const cb of G.cables)hwExp+=CAB_T[cb.t].mCost;
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const b=G.map[y][x].bld;
-    if(b&&b.connected&&b.connType&&CONN_T[b.connType])exp+=CONN_T[b.connType].mCost;
+    if(b&&b.connected&&b.connType&&CONN_T[b.connType])hwExp+=CONN_T[b.connType].mCost;
   }
   for(const sid of(G.services||[])){
     const svc=SERVICES.find(s=>s.id===sid);
-    if(svc)exp+=svc.mCost;
+    if(svc)hwExp+=svc.mCost;
   }
   for(const ap of G.wifiAPs){
     const wt=WIFI_T[ap.type];
-    exp+=wt.mCost;
+    hwExp+=wt.mCost;
   }
   // IP block costs
-  for(const blk of(G.ipBlocks||[]))exp+=blk.mCost;
-  // Cloud revenue — from actual cloud customers, not just flat instance pricing
+  for(const blk of(G.ipBlocks||[]))hwExp+=blk.mCost;
+  let exp=inflComponentCost(hwExp);
+  // Per-customer servisní náklady (25 Kč/zák.) = support/billing/SG&A.
+  // Rostou se salaryInflation — je to primárně lidský náklad (call centrum, fakturace, NOC).
+  exp+=inflSalaryCost(cust*25);
+  // Cloud revenue — from actual cloud customers (real customers × demand mix × inflation × reputation)
   const cloudRev=calcCloudRevenue();
   inc+=cloudRev;
-  // SLA penalty — if outage happened and SLA guarantees were broken
+  // Cloud operational cost — per-instance mCost × inflace − dev automatizace
+  const cloudOp=(typeof calcCloudOpCost==='function')?calcCloudOpCost():0;
+  exp+=cloudOp;
+
+  // SLA credit — real refund based on actual outage days in the month and contracted uptime
   const slaTier=SLA_TIERS.find(s=>s.id===G.cloudSLA)||SLA_TIERS[0];
-  if(slaTier.penaltyPct>0){
-    let outageActive=false;
-    for(const dc of G.dcs){if(dc.outage&&dc.outage.active)outageActive=true;}
-    if(outageActive)exp+=Math.round(cloudRev*slaTier.penaltyPct); // SLA penalty
+  if(slaTier.penaltyPct>0&&cloudRev>0){
+    const outageDays=G.cloudOutageDaysM||0;
+    const allowedDays=(1-slaTier.uptime)*30; // "měsíční povolený downtime" dle uptime cíle
+    const excess=Math.max(0,outageDays-allowedDays);
+    if(excess>0){
+      // Credit = (nadměrný downtime / 30 dnů) × tier multiplier × cloudRev
+      // Cap na penaltyPct × 3 (enterprise tier může jít i na 150% při dlouhém výpadku)
+      const creditPct=Math.min(slaTier.penaltyPct*3, (excess/30)*slaTier.penaltyPct*10);
+      const credit=Math.round(cloudRev*creditPct);
+      exp+=credit;
+      G.cloudSLACreditM=credit;
+      if(credit>0)notify(`⚠️ SLA credit ${fmtKc(credit)} vrácen cloudovým zákazníkům (${outageDays.toFixed(1)} dní výpadku vs. ${allowedDays.toFixed(1)} povoleno)`,'bad');
+      // Reputace trpí proporcionálně (excess dny × tier závažnost)
+      G.cloudReputation=Math.max(0,(G.cloudReputation||60)-excess*slaTier.penaltyPct*15);
+    } else {
+      G.cloudSLACreditM=0;
+    }
+  } else {
+    G.cloudSLACreditM=0;
   }
-  // Employee salaries
-  for(const em of(G.employees||[])){const st=STAFF_T[em.type];if(st)exp+=st.cost*em.count;}
-  // Tower costs
-  for(const tw of(G.towers||[])){const tt=TOWER_T[tw.type];if(tt)exp+=tt.mCost;}
-  // Junction (field load-balancer) costs
+  // Reset měsíčního počítadla výpadků pro příští měsíc
+  G.cloudOutageDaysM=0;
+  // Employee salaries — zvlášť scaled přes salaryInflation
+  let salExp=0;
+  for(const em of(G.employees||[])){const st=STAFF_T[em.type];if(st)salExp+=st.cost*em.count;}
+  exp+=inflSalaryCost(salExp);
+  // Tower + junction + IXP maintenance jsou HW → componentInflation
+  let hwExtra=0;
+  for(const tw of(G.towers||[])){const tt=TOWER_T[tw.type];if(tt)hwExtra+=tt.mCost;}
   if(typeof JUNCTION_T!=='undefined'){
-    for(const j of(G.junctions||[])){const jt=JUNCTION_T[j.type];if(jt)exp+=jt.mCost;}
+    for(const j of(G.junctions||[])){const jt=JUNCTION_T[j.type];if(jt)hwExtra+=jt.mCost;}
   }
-  // IXP costs
-  if(G.hasIXP)exp+=IXP.mCost;
+  if(G.hasIXP)hwExtra+=IXP.mCost;
+  exp+=inflComponentCost(hwExtra);
   // Dark fiber revenue
   if(G.darkFiber&&G.darkFiber.length)inc+=G.darkFiber.length*DARK_FIBER.revenuePerSeg;
 

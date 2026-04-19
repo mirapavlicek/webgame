@@ -157,6 +157,7 @@ function syncTariffDist(b){
 }
 
 // Get revenue from a building (sum of tariff prices × customer counts)
+// Tariff prices are nominal — reálně se aplikuje G.tariffInflation (valorizační doložka).
 function calcBldRevenue(b){
   if(!b||!b.connected)return 0;
   let rev=0;
@@ -168,7 +169,8 @@ function calcBldRevenue(b){
   } else if(b.tariff!==null&&G.tariffs[b.tariff]){
     rev=G.tariffs[b.tariff].price*b.customers;
   }
-  return rev;
+  const tInfl=(G&&G.tariffInflation)||1;
+  return rev*tInfl;
 }
 
 // Check if a DC or connected DCs have equipment
@@ -465,14 +467,15 @@ function buildDCLinks(){
   }
 }
 
-// Find multiple paths between two DCs via BFS (up to 4 diverse paths)
+// Find multiple paths between two DCs via BFS (up to 4 diverse paths).
+// Uses cable-aware BFS — only steps through segments that actually have a cable.
 function findAllDCPaths(x1,y1,x2,y2){
   const results=[];
   const usedSegs=new Set();
   for(let attempt=0;attempt<4;attempt++){
-    const path=bfsPathAvoid(x1,y1,x2,y2,usedSegs);
+    const path=bfsCablePath(x1,y1,x2,y2,usedSegs);
     if(!path)break;
-    // Bottleneck = min segment capacity along path
+    // Bottleneck = min segment capacity along path (all segments here have a cable by construction)
     let minCap=Infinity;
     for(let pi=0;pi<path.length-1;pi++){
       const key=segKey(path[pi][0],path[pi][1],path[pi+1][0],path[pi+1][1]);
@@ -481,12 +484,65 @@ function findAllDCPaths(x1,y1,x2,y2){
     }
     if(minCap<=0)break;
     results.push({path,cap:minCap});
-    // Mark segments as used so next BFS finds a different route
     for(let pi=0;pi<path.length-1;pi++){
       usedSegs.add(segKey(path[pi][0],path[pi][1],path[pi+1][0],path[pi+1][1]));
     }
   }
   return results;
+}
+
+// Cable-aware BFS: only traverses tile-to-tile segments that have a cable with max>0.
+// Accepts DC tiles as endpoints (start + dest), otherwise requires segment cable presence.
+function bfsCablePath(sx,sy,ex,ey,avoidSegs){
+  if(sx===ex&&sy===ey)return[[sx,sy]];
+  const visited=Array.from({length:MAP},()=>new Array(MAP).fill(false));
+  const prev=Array.from({length:MAP},()=>new Array(MAP).fill(null));
+  const queue=[[sx,sy]];visited[sy][sx]=true;
+  while(queue.length){
+    const[cx,cy]=queue.shift();
+    if(cx===ex&&cy===ey){
+      const path=[];let px=ex,py=ey;
+      while(px!==null){path.unshift([px,py]);const pr=prev[py][px];if(!pr)break;px=pr[0];py=pr[1];}
+      return path;
+    }
+    for(const[nx,ny]of nb(cx,cy)){
+      if(nx<0||nx>=MAP||ny<0||ny>=MAP||visited[ny][nx])continue;
+      const sk=segKey(cx,cy,nx,ny);
+      // Must have a cable on this segment
+      const seg=segLoads[sk];
+      if(!seg||seg.max<=0)continue;
+      if(avoidSegs.has(sk)&&queue.length<MAP*MAP*.5)continue;
+      visited[ny][nx]=true;
+      prev[ny][nx]=[cx,cy];
+      queue.push([nx,ny]);
+    }
+  }
+  if(avoidSegs.size>0)return bfsCablePath(sx,sy,ex,ey,new Set());
+  return null;
+}
+
+// Diagnose why two DCs don't have a BGP-eligible link.
+// Returns: 'linked' | 'noRoadPath' | 'cableGap' | 'sameDC'
+function diagDCPath(i,j){
+  if(i===j)return{status:'sameDC'};
+  const dca=G.dcs[i],dcb=G.dcs[j];
+  if(!dca||!dcb)return{status:'sameDC'};
+  // Already linked?
+  const linked=(G.dcLinks||[]).some(l=>(l.dc1===i&&l.dc2===j)||(l.dc1===j&&l.dc2===i));
+  if(linked)return{status:'linked'};
+  // Ignoring cable presence, does a road path exist at all?
+  const roadPath=bfsPathAvoid(dca.x,dca.y,dcb.x,dcb.y,new Set());
+  if(!roadPath)return{status:'noRoadPath'};
+  // Road path found but no cable coverage → find first missing segment for hint
+  for(let pi=0;pi<roadPath.length-1;pi++){
+    const key=segKey(roadPath[pi][0],roadPath[pi][1],roadPath[pi+1][0],roadPath[pi+1][1]);
+    const seg=segLoads[key];
+    if(!seg||seg.max<=0){
+      return{status:'cableGap',at:[roadPath[pi],roadPath[pi+1]]};
+    }
+  }
+  // Road+cables exist but bottleneck was 0 somehow — fall through
+  return{status:'cableGap'};
 }
 
 // BFS pathfinding that avoids (deprioritizes) certain segments

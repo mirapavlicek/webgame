@@ -26,7 +26,10 @@ function createGame(nm){
     cloudInstances:[], // active cloud instances [{type,dcIdx,count}]
     cloudSLA:'sla_basic', // current SLA tier
     cloudCustomers:{},  // {segment_id: {count, satisfaction, lastGrowth}}
-    cloudPriceMult:1.0, // player pricing multiplier (0.5 - 2.0)
+    cloudPriceMult:1.0, // player pricing multiplier (0.5 - 3.0)
+    cloudReputation:60, // 0-100 — průměr nedávných SLA výsledků + recenze; ovlivňuje růst a ztráty
+    cloudSLACreditM:0,  // kumulovaný SLA credit dluh v aktuálním měsíci (Kč) — odečte se na konci měsíce
+    cloudOutageDaysM:0, // dny výpadku v aktuálním měsíci pro přesný výpočet SLA creditu
     employees:[],      // hired staff [{type,count}]
     towers:[],         // placed 5G/LTE towers [{x,y,type,dcIdx}]
     bgpPeerings:[],    // manual BGP peerings [{dc1,dc2,allocBW,active}]
@@ -59,7 +62,10 @@ function createGame(nm){
     competitorAnnouncements:[], // [{aiIdx,type:'expansion'|'pricing'|'tech',endMonth}]
     takeoverOffers:[],     // [{aiIdx,price,expiresY,expiresM}]
     cartelRisk:0,          // 0-100, investigation trigger above 60
-    inflation:1.0,         // multiplier on baseline prices/costs
+    inflation:1.0,         // multiplier on baseline prices/costs (raw CPI index)
+    salaryInflation:1.0,   // aplikováno na mzdy (roste 0.2–0.4× inflace/rok)
+    componentInflation:1.0,// aplikováno na pořizovací + údržbové ceny HW (0.2–0.4× inflace/rok)
+    tariffInflation:1.0,   // aplikováno na tarify (koncové ceny) a cloud — zpravidla 0.5–0.7× CPI
     heatmapMode:null,      // null | 'coverage' | 'utilization' | 'satisfaction'
     spriteCacheEnabled:true, // použít pre-renderované sprite budov (rychlejší render)
   };
@@ -137,6 +143,20 @@ function handleLoad(e){
       if(!G.takeoverOffers)G.takeoverOffers=[];
       if(G.cartelRisk===undefined)G.cartelRisk=0;
       if(G.inflation===undefined)G.inflation=1.0;
+      if(G.salaryInflation===undefined)G.salaryInflation=1.0;
+      if(G.componentInflation===undefined)G.componentInflation=1.0;
+      if(G.tariffInflation===undefined)G.tariffInflation=1.0;
+      // AI konkurence — per-competitor migrace nových polí
+      if(Array.isArray(G.competitors)){
+        for(const ai of G.competitors){
+          if(ai.tariffInflation===undefined)ai.tariffInflation=1.0;
+          if(ai.targetMargin===undefined)ai.targetMargin=ai.strategy==='premium'?0.28:ai.strategy==='budget'?0.10:0.18;
+          if(ai.lastMonthMargin===undefined)ai.lastMonthMargin=ai.targetMargin;
+        }
+      }
+      if(G.cloudReputation===undefined)G.cloudReputation=60;
+      if(G.cloudSLACreditM===undefined)G.cloudSLACreditM=0;
+      if(G.cloudOutageDaysM===undefined)G.cloudOutageDaysM=0;
       if(!G.cableCuts)G.cableCuts=[];
       if(!G.investigations)G.investigations=[];
       if(!G.investigationHistory)G.investigationHistory=[];
@@ -224,10 +244,44 @@ function startNewGame(){
   const compCb=document.getElementById('inputCompetitors');
   if(compCb&&compCb.checked){
     G.competitorsEnabled=true;
-    G.competitors=AI_NAMES.slice(0,3).map((name,i)=>({
-      name,color:AI_COLORS[i],cash:300000,dcs:[],cables:[],customers:0,satisfaction:50,
-      tariffIdx:0,aggression:.3+Math.random()*.4
-    }));
+    G.competitors=AI_NAMES.slice(0,3).map((name,i)=>{
+      const strat=Math.random()<0.3?'premium':Math.random()<0.6?'budget':'balanced';
+      const targetMargin=strat==='premium'?0.28:strat==='budget'?0.10:0.18;
+      return{
+        name,color:AI_COLORS[i],cash:300000,dcs:[],cables:[],customers:0,satisfaction:50,
+        tariffIdx:0,aggression:.3+Math.random()*.4,
+        strategy:strat,avgPrice:500,pricingMood:0,
+        tariffInflation:1.0,targetMargin,lastMonthMargin:targetMargin,
+      };
+    });
+  }
+  // ====== HACK: "MíraNet" = 500 000 000 Kč startovní hotovost ======
+  if(nm.trim()==='MíraNet'){
+    G.cash=500000000;
+    setTimeout(()=>{try{notify('🔓 HACK AKTIVOVÁN — startovní hotovost 500 000 000 Kč','good');}catch(e){}},300);
+  }
+  // ====== HARD režim: 500 000 Kč hotovosti + 500 000 Kč úvěr na krku ======
+  const hardCb=document.getElementById('inputHard');
+  if(hardCb&&hardCb.checked){
+    const amt=500000, apr=0.10, n=60;
+    const mr=apr/12;
+    const pay=Math.round(amt*(mr*Math.pow(1+mr,n))/(Math.pow(1+mr,n)-1));
+    G.loans.push({
+      id:'L'+Date.now().toString(36),
+      product:'hard-start',
+      principal:amt,
+      remaining:amt,
+      monthlyPayment:pay,
+      apr,
+      termMonths:n,
+      remainingMonths:n,
+      startY:G.date.y,startM:G.date.m,
+      defaultCount:0,
+    });
+    // HARD má přednost před MíraNet cheatem → pokud oba, dluh zůstane, ale cash přebije hack
+    if(nm.trim()!=='MíraNet')G.cash=500000;
+    setTimeout(()=>{try{notify(`💀 HARD REŽIM — úvěr ${fmtKc(amt)} (splátka ${fmtKc(pay)}/měs, ${n} měs)`,'warn');}catch(e){}},600);
+    if(typeof updateCreditRating==='function')try{updateCreditRating();}catch(e){}
   }
   document.getElementById('newGameModal').style.display='none';
   document.getElementById('companyName').textContent=nm;

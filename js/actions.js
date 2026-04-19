@@ -145,15 +145,18 @@ function placeDC(x,y,type){
   if(G.map[y][x].type!=='grass'){notify('❌ DC jen na trávu!','bad');return;}
   if(G.map[y][x].bld){notify('❌ Obsazeno!','bad');return;}
   if(G.dcs.some(d=>d.x===x&&d.y===y)){notify('❌ Již stojí DC!','bad');return;}
-  const dt=DC_T[type];if(G.cash<dt.cost){notify(`❌ Chybí ${fmt(dt.cost-G.cash)}!`,'bad');return;}
-  G.dcs.push({x,y,type,eq:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=dt.cost;
+  const dt=DC_T[type];
+  const cost=inflComponentCost(dt.cost);
+  if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
+  G.dcs.push({x,y,type,eq:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
   markCapDirty();
   notify(`✅ ${dt.name} postaveno! (základ ${fmtBW(dt.baseBW)})`,'good');updUI();
 }
 
 function buyBW(dcIdx,bwIdx){
   const dc=G.dcs[dcIdx];if(!dc)return;const bwu=BW_UPGRADES[bwIdx];
-  if(G.cash<bwu.cost){notify(`❌ Chybí ${fmt(bwu.cost-G.cash)}!`,'bad');return;}
+  const cost=inflComponentCost(bwu.cost);
+  if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
   if(!dcHasRouter(dc)){notify('❌ DC potřebuje Router pro transit!','bad');return;}
   // BW upgrade needs a free port (uplink)
   const netCap=getDCNetCapacity(dcIdx);
@@ -161,7 +164,7 @@ function buyBW(dcIdx,bwIdx){
     notify(`❌ Žádný volný port pro uplink! ${netCap.usedPorts}/${netCap.totalPorts} (potřeba Switch)`,'bad');return;
   }
   if(!dc.bwUpgrades)dc.bwUpgrades=[];
-  dc.bwUpgrades.push({bw:bwu.bw,mCost:bwu.mCost});G.cash-=bwu.cost;
+  dc.bwUpgrades.push({bw:bwu.bw,mCost:bwu.mCost});G.cash-=cost;
   markCapDirty();
   notify(`✅ +${fmtBW(bwu.bw)} bandwidth (zabírá 1 port)`,'good');updUI();buildBWList();
 }
@@ -255,7 +258,8 @@ function placeJunction(x,y,type){
   if((G.junctions||[]).some(j=>j.x===x&&j.y===y)){notify('❌ Zde již stojí junction!','bad');return;}
   const jt=(typeof JUNCTION_T!=='undefined')?JUNCTION_T[type]:null;
   if(!jt){notify('❌ Neznámý typ junction!','bad');return;}
-  if(G.cash<jt.cost){notify(`❌ Chybí ${fmt(jt.cost-G.cash)}!`,'bad');return;}
+  const jCost=inflComponentCost(jt.cost);
+  if(G.cash<jCost){notify(`❌ Chybí ${fmt(jCost-G.cash)}!`,'bad');return;}
   // Require at least 2 cables incident to this tile (or 1 + adjacent DC) — otherwise junction useless
   const segKeysHere=Object.keys(segLoads||{}).filter(k=>{
     const p=k.split(',').map(Number);
@@ -264,7 +268,7 @@ function placeJunction(x,y,type){
   // Allow placement even without cables — player may place first, then wire later
   if(!G.junctions)G.junctions=[];
   G.junctions.push({x,y,type,active:true});
-  G.cash-=jt.cost;
+  G.cash-=jCost;
   markCapDirty();
   notify(`✅ ${jt.icon} ${jt.name} postaven na [${x},${y}]`,'good');updUI();
 }
@@ -295,7 +299,7 @@ function placeCable(x1,y1,x2,y2,type){
     ns++;
   }
   if(ns===0){notify('❌ Žádné segmenty k položení!','bad');return;}
-  const totalCost=(ns-upgN)*ct.cost+upgCost;
+  const totalCost=inflComponentCost((ns-upgN)*ct.cost+upgCost);
   if(G.cash<totalCost){notify(`❌ Chybí ${fmt(totalCost-G.cash)}!`,'bad');return;}
   // Always add cables (stacking = multiple same-type cables on one segment = higher capacity)
   for(const s of segs){
@@ -319,18 +323,20 @@ function connectBld(x,y,connType){
     if(ct&&oldCt&&ct.maxBW<=oldCt.maxBW){notify('❌ Nová přípojka musí být rychlejší!','bad');return;}
     if(!ct){notify('❌ Neznámý typ přípojky!','bad');return;}
     if(ct.minTech>G.tech){notify(`❌ Potřeba technologie ${TECHS[ct.minTech].name}!`,'bad');return;}
-    if(G.cash<ct.cost){notify(`❌ Chybí ${fmt(ct.cost-G.cash)}!`,'bad');return;}
+    const cCost=inflComponentCost(ct.cost);
+    if(G.cash<cCost){notify(`❌ Chybí ${fmt(cCost-G.cash)}!`,'bad');return;}
     const cn=G.conns.find(c=>c.bx===x&&c.by===y);
     if(cn){const dc=G.dcs[cn.di];if(dc){const m=getMissingEq(dc,ct.reqEq);if(m.length){notify(`❌ DC potřebuje: ${m.join(', ')}!`,'bad');return;}}}
     const oldConnType=b.connType;
-    b.connType=connType;G.cash-=ct.cost;
+    b.connType=connType;G.cash-=cCost;
     // Trigger upgrade wave — existing customers consider switching to better tariffs
     const upgraded=triggerTariffUpgradeWave(b,x,y,ct.maxBW,oldConnType,connType);
     notify(`⬆️ Upgrade na ${ct.name} (max ${fmtBW(ct.maxBW)})${upgraded>0?' · '+upgraded+' zákazníků přešlo na lepší tarif':''}`,'good');updUI();return;
   }
   const ct=CONN_T[connType];if(!ct){notify('❌ Vyber typ přípojky!','bad');return;}
   if(ct.minTech>G.tech){notify(`❌ Potřeba technologie ${TECHS[ct.minTech].name}!`,'bad');return;}
-  if(G.cash<ct.cost){notify(`❌ Chybí ${fmt(ct.cost-G.cash)}!`,'bad');return;}
+  const cCost2=inflComponentCost(ct.cost);
+  if(G.cash<cCost2){notify(`❌ Chybí ${fmt(cCost2-G.cash)}!`,'bad');return;}
 
   let di=-1;
   if(connType==='conn_wifi'){
@@ -354,7 +360,7 @@ function connectBld(x,y,connType){
     notify(`❌ Žádné volné porty! ${netCap.usedPorts}/${netCap.totalPorts} (potřeba Switch)`,'bad');return;
   }
   const dl=dcLoads[di];if(dl&&dl.ratio>1.2){notify('⚠️ DC extrémně přetížené!','bad');return;}
-  G.conns.push({bx:x,by:y,di});b.connected=true;b.connType=connType;b.dcIdx=di;G.cash-=ct.cost;
+  G.conns.push({bx:x,by:y,di});b.connected=true;b.connType=connType;b.dcIdx=di;G.cash-=cCost2;
   // Initialize tariff distribution — no customers yet, they'll join via growth
   b.tariffDist={};b.customers=0;b.tariff=null;b.sat=50;if(!b.svcSubs)b.svcSubs={};
   markCapDirty();
@@ -499,13 +505,24 @@ function triggerTariffUpgradeWave(b,bx,by,newMaxBW,oldConnType,newConnType){
 
 function placeEq(dcIdx,eqType){
   const dc=G.dcs[dcIdx];if(!dc)return;const eq=EQ[eqType];if(!eq){notify('❌ Neznámé vybavení!','bad');return;}
-  if(G.cash<eq.cost){notify(`❌ Chybí ${fmtKc(eq.cost-G.cash)}!`,'bad');return;}
+  const eqCost=inflComponentCost(eq.cost);
+  if(G.cash<eqCost){notify(`❌ Chybí ${fmtKc(eqCost-G.cash)}!`,'bad');return;}
   const dt=DC_T[dc.type];if(!dc.eq)dc.eq=[];
+  // Hard cap na chlazení dle velikosti DC — brání nekonečnému stackování
+  // a tím nekontrolovanému růstu slotů v malém DC.
+  if(eqType==='eq_cooling'){
+    const coolCount=dc.eq.filter(e=>e==='eq_cooling').length;
+    const maxCool=dt.maxCooling||1;
+    if(coolCount>=maxCool){
+      notify(`❌ Max ${maxCool}× chlazení v ${dt.name}! Upgraduj DC.`,'bad');
+      return;
+    }
+  }
   // Calculate max slots including cooling bonus
   let maxSlots=dt.slots;
   for(const e of dc.eq){if(EQ[e]&&EQ[e].eff==='cooling')maxSlots+=EQ[e].val;}
   if(dc.eq.length>=maxSlots){notify(`❌ DC plné! ${dc.eq.length}/${maxSlots} slotů`,'bad');return;}
-  dc.eq.push(eqType);G.cash-=eq.cost;
+  dc.eq.push(eqType);G.cash-=eqCost;
   markCapDirty();
   notify(`✅ ${eq.name} instalováno`,'good');updUI();
 }
@@ -540,11 +557,12 @@ function buyTechUpgrade(){
 
 function buyIPBlock(blockIdx){
   const blk=IP_BLOCKS[blockIdx];if(!blk){notify('❌ Neznámý blok!','bad');return;}
-  if(G.cash<blk.cost){notify(`❌ Chybí ${fmt(blk.cost-G.cash)}!`,'bad');return;}
+  const blkCost=inflComponentCost(blk.cost);
+  if(G.cash<blkCost){notify(`❌ Chybí ${fmt(blkCost-G.cash)}!`,'bad');return;}
   if(!anyDCHasEq(['eq_bgprouter'])){notify('❌ Potřeba BGP router v DC!','bad');return;}
   if(!G.ipBlocks)G.ipBlocks=[];
   G.ipBlocks.push({ips:blk.ips,mCost:blk.mCost,name:blk.name});
-  G.cash-=blk.cost;
+  G.cash-=blkCost;
   const totalIPs=G.ipBlocks.reduce((s,b)=>s+b.ips,0);
   notify(`✅ ${blk.name} zakoupen! (celkem ${fmt(totalIPs)} IP)`,'good');updUI();
 }
@@ -643,9 +661,9 @@ function deprovisionCloud(dcIdx,typeKey){
 }
 
 // ====== CLOUD REVENUE CALCULATION ======
+// Zohledňuje: segment demand mix · SLA tier · playerův price multiplier · inflation · reputaci (discount když je špatná).
 function calcCloudRevenue(){
   if(!G.cloudInstances||!G.cloudInstances.length)return 0;
-  // Total cloud customers across all segments
   let totalCloudCust=0;
   for(const seg of CLOUD_SEGMENTS){
     const cs=G.cloudCustomers?.[seg.id];
@@ -655,26 +673,63 @@ function calcCloudRevenue(){
 
   const priceMult=G.cloudPriceMult||1.0;
   const sla=SLA_TIERS.find(s=>s.id===G.cloudSLA)||SLA_TIERS[0];
+  // Cloud list-price drift: primárně valorizace pro zákazníka (tariffInflation — 0.5–0.7× CPI),
+  // sekundárně backstop přes componentInflation (kdyby hráč dlouhodobě neaktualizoval tariffs).
+  const tInfl=(G&&G.tariffInflation)||1.0;
+  const cInfl=(G&&G.componentInflation)||1.0;
+  const infl=Math.max(tInfl,cInfl*0.9); // nikdy pod 90 % HW inflace — list price musí krýt náklady
+  // Špatná reputace = zákazníci platí míň (discount), dobrá = full price
+  // 60 = neutrální, 90 = +5%, 30 = -10%, 0 = -20%
+  const rep=G.cloudReputation||60;
+  const repAdj=1+Math.max(-0.20,Math.min(0.05,(rep-60)/400));
   let rev=0;
 
-  // Each cloud customer "uses" a weighted mix of products based on segment demand
   for(const seg of CLOUD_SEGMENTS){
     const cs=G.cloudCustomers?.[seg.id];
     if(!cs||cs.count<=0)continue;
-
-    // Revenue per customer = weighted average of products they'd use × pricing
     let segRevPerCust=0;
     for(const key in CLOUD_PRICING){
       const cp=CLOUD_PRICING[key];
       const cat=cp.cat||'vps';
       const demandWeight=seg.demand[cat]||0;
-      if(demandWeight>0){
-        segRevPerCust+=cp.price*demandWeight;
-      }
+      if(demandWeight>0)segRevPerCust+=cp.price*demandWeight;
     }
-    rev+=cs.count*segRevPerCust*priceMult*sla.priceMult;
+    rev+=cs.count*segRevPerCust*priceMult*sla.priceMult*infl*repAdj;
   }
   return Math.round(rev);
+}
+
+// Operational cost of running the cloud platform (power, SW licence, backup, peering).
+// Per-instance mCost × inflation · sníženo dev staff automatizací (až -30%) a upgrady (auto1).
+function calcCloudOpCost(){
+  if(!G.cloudInstances||!G.cloudInstances.length)return 0;
+  let base=0;
+  for(const ci of G.cloudInstances){
+    const cp=CLOUD_PRICING[ci.type];
+    if(!cp)continue;
+    base+=(cp.mCost||0)*ci.count;
+  }
+  if(base<=0)return 0;
+  // Dev team automatizace: každý dev snižuje cloud ops náklady o 2%, cap -30%
+  let discount=0;
+  try{
+    const devs=(typeof getStaffEffect==='function')?getStaffEffect('dev'):0;
+    discount=Math.min(0.30,devs*0.02);
+    // XP/level dev týmu přidá další slevu (levelovaný tým efektivnější)
+    const det=G.staffDetail?.dev;
+    if(det&&det.level>1)discount=Math.min(0.40,discount+(det.level-1)*0.01);
+  }catch(e){}
+  // Automation upgrade přispěje dalších 10%
+  if(G.upgrades&&G.upgrades.includes('auto1'))discount=Math.min(0.50,discount+0.10);
+  const infl=(G&&G.componentInflation)||1.0;
+  return Math.round(base*infl*(1-discount));
+}
+
+// For UI: how many Kč/měs by dev tým potenciálně ušetřil pokud by ISP najal dalšího seniora dev
+function calcCloudMargin(){
+  const rev=calcCloudRevenue();
+  const cost=calcCloudOpCost();
+  return{rev,cost,profit:rev-cost,marginPct:rev>0?Math.round((rev-cost)/rev*100):0};
 }
 
 function getCloudBWUsage(){
@@ -751,7 +806,8 @@ function placeTower(x,y,type){
     if(!onRoadOrDC){notify('❌ Věž jen na silnici/DC!','bad');return;}
   }
   if(G.towers.some(t=>t.x===x&&t.y===y)){notify('❌ Zde už stojí věž!','bad');return;}
-  if(G.cash<tt.cost){notify(`❌ Chybí ${fmt(tt.cost-G.cash)} Kč!`,'bad');return;}
+  const twCost=inflComponentCost(tt.cost);
+  if(G.cash<twCost){notify(`❌ Chybí ${fmt(twCost-G.cash)} Kč!`,'bad');return;}
   // 5G NSA requires LTE anchor tower in range
   if(tt.reqAnchor==='4G'){
     const hasAnchor=G.towers.some(t=>{
@@ -770,7 +826,7 @@ function placeTower(x,y,type){
     notify(`❌ Žádný volný port v DC! ${netCap.usedPorts}/${netCap.totalPorts} (potřeba Switch)`,'bad');return;
   }
   G.towers.push({x,y,type,dcIdx:di,clients:0});
-  G.cash-=tt.cost;
+  G.cash-=twCost;
   markCapDirty();
   notify(`✅ ${tt.icon} ${tt.name} (${tt.band||''}) · dosah ${tt.range} · max ${fmtBW(tt.maxBW)}`,'good');updUI();
 }
@@ -793,9 +849,10 @@ function getTowerClients(twIdx){
 // ====== IXP ======
 function buyIXP(){
   if(G.hasIXP){notify('❌ Již připojeno k IXP!','bad');return;}
-  if(G.cash<IXP.cost){notify(`❌ Chybí ${fmt(IXP.cost-G.cash)} Kč!`,'bad');return;}
+  const ixpCost=inflComponentCost(IXP.cost);
+  if(G.cash<ixpCost){notify(`❌ Chybí ${fmt(ixpCost-G.cash)} Kč!`,'bad');return;}
   if(!anyDCHasEq(['eq_bgprouter'])){notify('❌ Potřeba BGP router v DC!','bad');return;}
-  G.hasIXP=true;G.cash-=IXP.cost;
+  G.hasIXP=true;G.cash-=ixpCost;
   notify(`✅ ${IXP.name} peering aktivní! (+${fmtBW(IXP.bwBonus)} BW)`,'good');updUI();
 }
 
@@ -1072,11 +1129,17 @@ function updateCompanyRating(){
 function aiCompetitorTick(){
   if(!G.competitorsEnabled||!G.competitors)return;
 
-  // Compute player's average tariff price for competitive pricing
-  let playerAvgPrice=500;
+  // Globální inflační indexy (AI čte stejné jako hráč, reaguje ale přes vlastní ai.tariffInflation).
+  const cInfl=(G&&G.componentInflation)||1.0;
+  const sInfl=(G&&G.salaryInflation)||1.0;
+  const tInfl=(G&&G.tariffInflation)||1.0;
+
+  // Compute player's EFFECTIVE average tariff price (po valorizaci = to, co reálně zákazník platí).
+  // AI se rozhoduje podle koncové ceny, ne podle nominálu z UI.
+  let playerAvgPrice=500*tInfl;
   if(G.tariffs&&G.tariffs.filter(t=>t.active).length>0){
     const active=G.tariffs.filter(t=>t.active);
-    playerAvgPrice=active.reduce((s,t)=>s+t.price,0)/active.length;
+    playerAvgPrice=(active.reduce((s,t)=>s+t.price,0)/active.length)*tInfl;
   }
   const totalPlayerCust=Math.max(1,G.stats.cust||0);
   const totalPop=getTotalPop();
@@ -1086,54 +1149,90 @@ function aiCompetitorTick(){
     if(!ai.strategy)ai.strategy=Math.random()<0.3?'premium':Math.random()<0.6?'budget':'balanced';
     if(ai.avgPrice===undefined)ai.avgPrice=500;
     if(ai.pricingMood===undefined)ai.pricingMood=0; // -1=lowering, 0=neutral, 1=raising
+    if(ai.tariffInflation===undefined)ai.tariffInflation=1.0;
+    if(ai.targetMargin===undefined)ai.targetMargin=ai.strategy==='premium'?0.28:ai.strategy==='budget'?0.10:0.18;
+    if(ai.lastMonthMargin===undefined)ai.lastMonthMargin=ai.targetMargin;
 
-    // Each AI adjusts pricing strategy based on market position
-    if(ai.strategy==='budget')ai.avgPrice=Math.max(250,playerAvgPrice*0.82);
-    else if(ai.strategy==='premium')ai.avgPrice=Math.min(1500,playerAvgPrice*1.25);
-    else ai.avgPrice=playerAvgPrice*(0.95+Math.random()*0.1);
+    // === PRICING — marginal cost + target margin model, s anchor na koncovou cenu trhu ===
+    // Marginal cost per customer na provoz AI je ovlivněn inflací mezd + HW (~ 60/40 mix).
+    const aiMarginalCost=(20*sInfl+18*cInfl)*(ai.strategy==='premium'?1.2:ai.strategy==='budget'?0.85:1.0);
+    // Strategy anchor vůči hráči (hráč je market-reference)
+    const strategyAnchor=ai.strategy==='budget'?playerAvgPrice*0.82:
+                         ai.strategy==='premium'?playerAvgPrice*1.25:
+                         playerAvgPrice*(0.95+Math.random()*0.10);
+    // Margin-based floor: ceně minimálně dost, aby pokryla náklad + cílovou marži
+    const marginFloor=aiMarginalCost/(1-ai.targetMargin);
+    // Valorizovaný anchor: AI si promítá vlastní tariffInflation do svých cen
+    let desiredPrice=Math.max(strategyAnchor,marginFloor)*ai.tariffInflation;
 
-    // Revenue per customer proportional to price
+    // === pricingMood: reakce na marži minulého měsíce ===
+    if(ai.lastMonthMargin<ai.targetMargin*0.7)ai.pricingMood=1;       // zvedat — marže pod očekáváním
+    else if(ai.lastMonthMargin>ai.targetMargin*1.4)ai.pricingMood=-1; // srazit — přeceněno, riskujeme odchod
+    else ai.pricingMood=0;
+    // Small monthly adjustment per mood (±3%)
+    if(ai.pricingMood===1)desiredPrice*=1.03;
+    else if(ai.pricingMood===-1)desiredPrice*=0.97;
+
+    // Tvrdé stropy a podlahy škálované inflací
+    const absMax=1500*tInfl, absMin=150*sInfl;
+    ai.avgPrice=Math.max(absMin,Math.min(absMax,Math.round(desiredPrice)));
+
+    // === REVENUE a MARŽE ===
     const revPerCust=Math.round(ai.avgPrice*0.85);
-    ai.cash+=Math.round(ai.customers*revPerCust);
+    const monthlyRev=ai.customers*revPerCust;
+    ai.cash+=monthlyRev;
 
-    // Build first DC if broke
-    if(ai.dcs.length===0&&ai.cash>100000){
+    // === EXPANSION — kapacita řízená poptávkou, ne náhodou ===
+    const perDcCapacity=ai.strategy==='premium'?300:ai.strategy==='budget'?280:250;
+    const currentCapacity=ai.dcs.length*perDcCapacity;
+    const capacityPressure=ai.customers/Math.max(1,currentCapacity); // >0.85 = potřebuje DC
+
+    // První DC s inflačně-škálovaným nákladem
+    const firstDcCost=Math.round(100000*cInfl);
+    if(ai.dcs.length===0&&ai.cash>firstDcCost){
       ai.dcs.push({bw:500,eq:['eq_router','eq_server']});
-      ai.cash-=100000;
+      ai.cash-=firstDcCost;
     }
 
-    // Expansion: price-adjusted threshold
-    const expansionThresh=ai.strategy==='premium'?400000:250000;
-    if(ai.cash>expansionThresh&&ai.dcs.length<6&&Math.random()<ai.aggression*.12){
-      const bwSize=ai.strategy==='premium'?2000:1000;
-      const eqCount=ai.strategy==='premium'?['eq_router','eq_server','eq_firewall_pro','eq_backup']:['eq_router','eq_server','eq_firewall'];
-      ai.dcs.push({bw:bwSize,eq:eqCount});
-      ai.cash-=bwSize===2000?350000:250000;
+    // Expanze: trigger je kombinace tlaku kapacity + hotovosti
+    const smallDcCost=Math.round(250000*cInfl);
+    const bigDcCost=Math.round(350000*cInfl);
+    const wantDc=capacityPressure>0.80 || (ai.dcs.length<3 && ai.cash>smallDcCost*1.5);
+    const expansionRoll=Math.random()<(capacityPressure>0.85?0.45:0.12)*ai.aggression;
+    if(wantDc&&expansionRoll&&ai.dcs.length<8){
+      const goBig=ai.strategy==='premium'&&ai.cash>bigDcCost;
+      const cost=goBig?bigDcCost:smallDcCost;
+      if(ai.cash>cost){
+        const bwSize=goBig?2000:1000;
+        const eqSet=goBig?['eq_router','eq_server','eq_firewall_pro','eq_backup']:['eq_router','eq_server','eq_firewall'];
+        ai.dcs.push({bw:bwSize,eq:eqSet});
+        ai.cash-=cost;
+      }
     }
 
-    // Customer growth — depends on market share, pricing vs player, market size
+    // === CUSTOMER GROWTH ===
     const playerShare=totalPlayerCust/Math.max(1,totalPlayerCust+ai.customers);
     const priceAdvantage=playerAvgPrice/Math.max(1,ai.avgPrice); // >1 means AI cheaper
-    const capacity=ai.dcs.length*(ai.strategy==='premium'?300:250);
+    const capacity=ai.dcs.length*perDcCapacity;
     const freeMarket=Math.max(0,marketCap-totalPlayerCust-ai.customers);
     if(ai.customers<capacity&&freeMarket>0){
       let growthBase=ai.aggression*4*(1+ai.dcs.length*0.5);
-      // Cheaper than player → steal customers faster
       if(priceAdvantage>1.1)growthBase*=1.5;
       if(priceAdvantage>1.25)growthBase*=1.8;
-      // Player is dominant → harder to grow
       if(playerShare>0.7)growthBase*=0.6;
+      // Kapacitní brzda: nad 85% vlastní kapacity AI taky brzdí (nezvládá onboarding)
+      if(capacityPressure>0.85)growthBase*=0.3;
       const growth=Math.max(0,Math.floor(growthBase));
       ai.customers=Math.min(capacity,ai.customers+Math.min(growth,freeMarket));
     }
 
-    // Price competition: AI cheaper → churn for player
+    // === PRICE COMPETITION — AI cheaper → churn for player ===
     if(ai.avgPrice<playerAvgPrice*0.9){
-      const diff=playerAvgPrice/ai.avgPrice-1; // 0..1
+      const diff=playerAvgPrice/ai.avgPrice-1;
       const churnPct=Math.min(0.02,diff*0.04*ai.aggression);
       if(Math.random()<0.4)churn(churnPct);
       if(Math.random()<.08){
-        notify(`📉 ${ai.name} snížil ceny — odcházejí zákazníci!`,'bad');
+        notify(`📉 ${ai.name} snížil ceny (${fmtKc(ai.avgPrice)}/měs) — odcházejí zákazníci!`,'bad');
       }
     }
     // Player much cheaper → AI loses customers
@@ -1145,19 +1244,29 @@ function aiCompetitorTick(){
     // Natural churn
     ai.customers=Math.max(0,ai.customers-Math.floor(ai.customers*0.003));
 
-    // Expenses
-    ai.cash-=ai.dcs.length*6000+ai.customers*28;
+    // === EXPENSES — všechny položky škálované inflací ===
+    const dcUpkeep=Math.round(6000*cInfl)*ai.dcs.length;   // údržba HW, energie
+    const custSupport=Math.round(28*sInfl)*ai.customers;   // lidský náklad
+    const monthlyExp=dcUpkeep+custSupport;
+    ai.cash-=monthlyExp;
 
-    // AI goes bankrupt → remove 1 DC
-    if(ai.cash<-80000&&ai.dcs.length>1){
+    // Uložit marži pro pricing feedback loop příštího měsíce
+    if(monthlyRev>0)ai.lastMonthMargin=(monthlyRev-monthlyExp)/monthlyRev;
+
+    // === BANKRUPTCY — thresholds škálované inflací ===
+    const softBankThresh=Math.round(-80000*cInfl);
+    const softRecover=Math.round(50000*cInfl);
+    const hardBankThresh=Math.round(-250000*cInfl);
+
+    if(ai.cash<softBankThresh&&ai.dcs.length>1){
       ai.dcs.pop();
-      ai.cash+=50000;
+      ai.cash+=softRecover;
       ai.customers=Math.floor(ai.customers*0.7);
       notify(`📉 ${ai.name} zavřel DC — finanční potíže`,'good');
     }
 
     // === Full bankruptcy — AI vanishes and customers redistribute ===
-    if(ai.cash<-250000&&ai.dcs.length<=1){
+    if(ai.cash<hardBankThresh&&ai.dcs.length<=1){
       ai.bankrupt=true;
       notify(`💀 ${ai.name} ZBANKROTOVAL! Zákazníci migrují na trh`,'good');
       // Redistribute their customers back to open market — boost demand
@@ -1209,10 +1318,11 @@ function aiCompetitorTick(){
       // Check if already has a pending offer
       const hasOffer=(G.takeoverOffers||[]).some(o=>o.aiIdx===i);
       if(hasOffer)continue;
-      // Weakness: low cash, few customers
-      const weak=ai.cash<100000&&ai.customers<300;
+      // Weakness: low cash, few customers — thresholds škálují s inflací
+      const weak=ai.cash<Math.round(100000*cInfl)&&ai.customers<300;
       if(weak&&Math.random()<0.15){
-        const price=Math.round((ai.customers*4000+ai.dcs.length*200000)*1.2);
+        // Akviziční cena = zákazníci × 4000 (valorizováno tariffInflation) + DC × 200000 (HW infl)
+        const price=Math.round((ai.customers*4000*tInfl+ai.dcs.length*200000*cInfl)*1.2);
         if(!G.takeoverOffers)G.takeoverOffers=[];
         G.takeoverOffers.push({
           aiIdx:i,price,
@@ -1237,9 +1347,12 @@ function aiCompetitorTick(){
     const active=G.competitors.filter(ai=>!ai.bankrupt);
     if(active.length>=2){
       const avgCompPrice=active.reduce((s,a)=>s+(a.avgPrice||500),0)/active.length;
-      const playerPriceHigh=playerAvgPrice>500;
-      const compPriceHigh=avgCompPrice>500;
-      if(playerPriceHigh&&compPriceHigh&&Math.abs(playerAvgPrice-avgCompPrice)<50){
+      // Referenční hranice pro "drahou" cenu škáluje s inflací tarifů (500 Kč v nominálu startu).
+      const highRef=500*tInfl;
+      const alignRef=50*tInfl;
+      const playerPriceHigh=playerAvgPrice>highRef;
+      const compPriceHigh=avgCompPrice>highRef;
+      if(playerPriceHigh&&compPriceHigh&&Math.abs(playerAvgPrice-avgCompPrice)<alignRef){
         G.cartelRisk=Math.min(100,(G.cartelRisk||0)+3);
       } else {
         G.cartelRisk=Math.max(0,(G.cartelRisk||0)-2);

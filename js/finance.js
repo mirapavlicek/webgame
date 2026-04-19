@@ -201,8 +201,57 @@ function yearlyInflationTick(){
   // Czech inflation mean ~3% with variance
   const inflRate=0.02+Math.random()*0.04; // 2-6%
   G.inflation=(G.inflation||1.0)*(1+inflRate);
-  // Apply light drift to tariff prices and monthly costs (flavor + pressure to raise prices)
-  notify(`📈 Inflace ${(inflRate*100).toFixed(1)}% — náklady rostou`,'warn');
+  // Propagace inflace do konkrétních nákladů:
+  //   — mzdy a pořízení/údržba HW reagují jen zlomkem CPI (0.2–0.4),
+  //     protože dodavatelé/zaměstnanci přenášejí cenový tlak postupně.
+  //   — koncové tarify (a cloud) reagují silněji (0.5–0.7 × CPI) —
+  //     ISP mají v smlouvách valorizační doložky a přenášejí zdražení
+  //     energie/HW/podpory do ceny pro B2C/B2B zákazníka.
+  const salaryFactor=0.2+Math.random()*0.2;    // 20–40 %
+  const componentFactor=0.2+Math.random()*0.2; // 20–40 %
+  const tariffFactor=0.5+Math.random()*0.2;    // 50–70 %
+  G.salaryInflation=(G.salaryInflation||1.0)*(1+inflRate*salaryFactor);
+  G.componentInflation=(G.componentInflation||1.0)*(1+inflRate*componentFactor);
+  G.tariffInflation=(G.tariffInflation||1.0)*(1+inflRate*tariffFactor);
+  // Konkurenti také zdražují — s vlastním šumem ±15 % přenosu (někdo agresivní, někdo opatrný).
+  if(Array.isArray(G.competitors)){
+    for(const ai of G.competitors){
+      if(ai.bankrupt)continue;
+      const aiAdj=0.85+Math.random()*0.30;
+      ai.tariffInflation=(ai.tariffInflation||1.0)*(1+inflRate*tariffFactor*aiAdj);
+    }
+  }
+  const wagePct=(inflRate*salaryFactor*100).toFixed(1);
+  const hwPct=(inflRate*componentFactor*100).toFixed(1);
+  const tarPct=(inflRate*tariffFactor*100).toFixed(1);
+  notify(`📈 Inflace ${(inflRate*100).toFixed(1)}% — mzdy +${wagePct}%, HW +${hwPct}%, tarify +${tarPct}%`,'warn');
+}
+
+// ===== Inflační helpery =====
+// Pořizovací / provozní cena HW — componentInflation
+function inflComponentCost(n){return Math.round((n||0)*(G&&G.componentInflation||1));}
+// Měsíční mzda — salaryInflation
+function inflSalaryCost(n){return Math.round((n||0)*(G&&G.salaryInflation||1));}
+// Koncová cena tarifu / cloudu — tariffInflation (valorizační doložka)
+function inflTariffPrice(n){return (n||0)*(G&&G.tariffInflation||1);}
+
+// UI helper: cena s inflačním příznakem.
+// Pokud inflace < 0.5 %, vrací čistou částku; jinak přidá šipku s procentem
+// a tooltipem obsahujícím základní (pořizovací katalogovou) cenu.
+function fmtCostInfl(n){
+  const infl=(G&&G.componentInflation)||1;
+  const actual=Math.round((n||0)*infl);
+  if(infl<=1.005)return fmtKc(actual);
+  const pct=Math.round((infl-1)*100);
+  return `${fmtKc(actual)} <span style="color:#f59e0b;font-size:85%" title="Základ ${fmtKc(n)} · inflace +${pct}%">↑${pct}%</span>`;
+}
+// Stejný helper, ale bez HTML — pro popisky v build paletě (tam je plain text).
+function fmtCostInflPlain(n){
+  const infl=(G&&G.componentInflation)||1;
+  const actual=Math.round((n||0)*infl);
+  if(infl<=1.005)return fmtKc(actual);
+  const pct=Math.round((infl-1)*100);
+  return `${fmtKc(actual)} (↑${pct}%)`;
 }
 
 // Helper: get all loan data for UI

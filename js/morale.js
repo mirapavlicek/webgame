@@ -45,30 +45,46 @@ function ensureStaffDetail(type){
   return G.staffDetail[type];
 }
 
+// Compute the morale threshold for a team: load at/below this = stable morale.
+// Školicí rozpočet na hlavu posouvá práh nahoru — proškolení lidé snesou víc.
+function getMoraleThreshold(){
+  const base=1.2;
+  if(!G||!G.employees)return base;
+  const totalStaff=G.employees.reduce((s,e)=>s+e.count,0);
+  if(totalStaff<=0||!G.trainingBudgetM)return base;
+  const perHead=G.trainingBudgetM/totalStaff;
+  // +0.1 prahu za každých 1 000 Kč/hlavu školení, max +0.8
+  const boost=Math.min(0.8,(perHead/1000)*0.1);
+  return base+boost;
+}
+
 // Monthly morale & XP tick
 function staffMonthlyTick(){
   if(!G.employees)return;
   let quitting=[];
+  const threshold=getMoraleThreshold();
+  // Udržuji si poslední hodnotu pro UI (tooltip v seznamu zaměstnanců).
+  G._moraleThreshold=threshold;
   for(const em of G.employees){
     const det=ensureStaffDetail(em.type);
     const load=calcStaffLoad(em.type);
-    // Morale shift:
-    //   load<0.5: +6 (easy work)
-    //   load<1.0: +2
-    //   load<1.5: 0
-    //   load<2.5: -4
-    //   load>=2.5: -8 (severe burnout)
+    // Symetrický model kolem prahu:
+    //   load << threshold: morálka roste (nedočerpaná kapacita, lidi mají vzduch)
+    //   load <= threshold: neklesá (stabilní, ideální zóna)
+    //   load  > threshold: klesá tím víc, čím dál je od prahu
     let d=0;
-    if(load<0.5)d+=6;
-    else if(load<1.0)d+=2;
-    else if(load<1.5)d=0;
-    else if(load<2.5)d-=4;
-    else d-=8;
-    // Training budget effect
+    if(load<threshold*0.5)      d=+5;   // hluboko pod — rychlý růst
+    else if(load<threshold*0.8) d=+3;   // pohodlné — mírný růst
+    else if(load<=threshold)    d=0;    // optimum — stabilní
+    else if(load<=threshold*1.5)d=-3;   // lehké přetížení
+    else if(load<=threshold*2.5)d=-6;   // silné přetížení
+    else                        d=-10;  // burnout
+    // Drobná odměna za každý rok školení rozpočtu (nad rámec prahu) — učení ≠ jen tolerance,
+    // ale i skutečné zlepšení morálky (loajalita).
     if(G.trainingBudgetM>0){
       const perHead=G.trainingBudgetM/Math.max(1,G.employees.reduce((s,e)=>s+e.count,0));
-      if(perHead>2000)d+=4;
-      else if(perHead>500)d+=2;
+      if(perHead>=3000)d+=2;
+      else if(perHead>=1000)d+=1;
     }
     // Dev bonus staff
     const devCount=getStaffCount('dev');
@@ -137,10 +153,18 @@ function setTrainingBudget(amount){
 function getStaffSummary(){
   const out=[];
   if(!G.employees)return out;
+  const threshold=getMoraleThreshold();
   for(const em of G.employees){
     const det=ensureStaffDetail(em.type);
     const load=calcStaffLoad(em.type);
     const st=STAFF_T[em.type]||{name:em.type,icon:'👤'};
+    // Ikonka stavu je relativní k prahu — po zvýšení školení
+    // najednou dosud "kritické" zátěže spadnou do zóny OK.
+    let status;
+    if(load<=threshold*0.8)status='✓';
+    else if(load<=threshold)status='•';
+    else if(load<=threshold*1.5)status='⚠️';
+    else status='🔥';
     out.push({
       type:em.type,
       name:st.name,
@@ -151,7 +175,8 @@ function getStaffSummary(){
       xp:det.xp,
       xpNext:det.level*50,
       load,
-      loadStatus:load<0.8?'✓':load<1.5?'⚠️':'🔥',
+      threshold,
+      loadStatus:status,
       multiplier:getStaffMoraleMultiplier(em.type),
     });
   }

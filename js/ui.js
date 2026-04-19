@@ -48,10 +48,44 @@ function updStats(){
 }
 
 // Full UI update — called monthly + on player actions (rebuilds all lists)
+// Přepočítá popisky cen v levé stavební paletě podle aktuální componentInflation.
+// Původní popisky jsou zadrátované v index.html, takže si je při prvním běhu
+// odložíme do data-atributů a potom jen překreslíme cenovou část.
+function refreshBuildPaletteCosts(){
+  const infl=(G&&G.componentInflation)||1;
+  const showPct=infl>1.005;
+  const pct=Math.round((infl-1)*100);
+  const toolToCost={};
+  // Sesbíráme základní ceny z konstant
+  for(const k in (typeof DC_T!=='undefined'?DC_T:{}))toolToCost[k]=DC_T[k].cost;
+  for(const k in (typeof CAB_T!=='undefined'?CAB_T:{}))toolToCost[k]=CAB_T[k].cost;
+  for(const k in (typeof TOWER_T!=='undefined'?TOWER_T:{}))toolToCost[k]=TOWER_T[k].cost;
+  if(typeof JUNCTION_T!=='undefined')for(const k in JUNCTION_T)toolToCost[k]=JUNCTION_T[k].cost;
+  if(typeof CONN_T!=='undefined')for(const k in CONN_T)toolToCost[k]=CONN_T[k].cost;
+  const btns=document.querySelectorAll('button.bb[data-tool]');
+  btns.forEach(btn=>{
+    const tool=btn.getAttribute('data-tool');
+    const base=toolToCost[tool];
+    if(!base)return;
+    const cs=btn.querySelector('.cs');
+    if(!cs)return;
+    // Při prvním průchodu uložíme původní text (s jednotkami typu "/seg · kap. …")
+    if(!cs.dataset.orig)cs.dataset.orig=cs.textContent;
+    const orig=cs.dataset.orig;
+    // Najdeme první výskyt "… Kč" v původním textu a nahradíme aktuální cenou.
+    const m=orig.match(/^([\s\S]*?)(\d[\d\s\u00a0]*Kč)([\s\S]*)$/);
+    if(!m){return;}
+    const actual=Math.round(base*infl);
+    const newPrice=fmtKc(actual)+(showPct?` (↑${pct}%)`:'');
+    cs.textContent=m[1]+newPrice+m[3];
+  });
+}
+
 function updUI(){
   if(!G)return;
   updDate();
   calcCapacityIfDirty();
+  refreshBuildPaletteCosts();
 
   // Stats
   updStats();
@@ -64,6 +98,17 @@ function updUI(){
 
   document.getElementById('sTech').textContent=TECHS[G.tech].name;
   document.getElementById('sSpd').textContent=fmtBW(TECHS[G.tech].speed);
+
+  // Inflation row — zobrazuje kumulativní % nárůst proti výchozímu 1.0.
+  // Při čerstvé hře je to 0 %, po letech roste.
+  const infEl=document.getElementById('sInfl');
+  if(infEl){
+    const cpi=((G.inflation||1)-1)*100;
+    const sal=((G.salaryInflation||1)-1)*100;
+    const hw=((G.componentInflation||1)-1)*100;
+    const tar=((G.tariffInflation||1)-1)*100;
+    infEl.textContent=`CPI +${cpi.toFixed(1)}% (mzdy +${sal.toFixed(1)}% · HW +${hw.toFixed(1)}% · tarify +${tar.toFixed(1)}%)`;
+  }
 
   // Tech upgrade button
   const upCostEl=document.getElementById('upCost');
@@ -214,7 +259,7 @@ function buildBWList(){
       h+=`<div style="font-size:9px;font-weight:600;color:#f59e0b;margin:8px 0 4px">Koupit bandwidth:</div>`;
       for(let bi=0;bi<BW_UPGRADES.length;bi++){
         const bwu=BW_UPGRADES[bi];
-        h+=`<button onclick="event.stopPropagation();buyBW(${di},${bi})" style="display:block;width:100%;padding:3px 6px;margin:2px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:9px;text-align:left" onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#21262d'">${bwu.name} · <span style="color:#f59e0b">${fmtKc(bwu.cost)}</span> · <span style="color:#8b949e">${fmtKc(bwu.mCost)}/m</span></button>`;
+        h+=`<button onclick="event.stopPropagation();buyBW(${di},${bi})" style="display:block;width:100%;padding:3px 6px;margin:2px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:9px;text-align:left" onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#21262d'">${bwu.name} · <span style="color:#f59e0b">${fmtCostInfl(bwu.cost)}</span> · <span style="color:#8b949e">${fmtKc(inflComponentCost(bwu.mCost))}/m</span></button>`;
       }
 
       // Quick-install equipment
@@ -222,7 +267,7 @@ function buildBWList(){
       for(const eqKey in EQ){
         const eq=EQ[eqKey];
         const canFit=eqs.length<maxSlots;
-        h+=`<button onclick="event.stopPropagation();placeEq(${di},'${eqKey}');selDC=${di};updUI()" style="display:block;width:100%;padding:3px 6px;margin:2px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:${canFit?'#e0e0e0':'#484f58'};cursor:${canFit?'pointer':'default'};font-size:9px;text-align:left" ${canFit?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>${eq.icon} ${eq.name} · <span style="color:#f59e0b">${fmtKc(eq.cost)}</span> · <span style="color:#8b949e">${fmtKc(eq.mCost)}/m</span></button>`;
+        h+=`<button onclick="event.stopPropagation();placeEq(${di},'${eqKey}');selDC=${di};updUI()" style="display:block;width:100%;padding:3px 6px;margin:2px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:${canFit?'#e0e0e0':'#484f58'};cursor:${canFit?'pointer':'default'};font-size:9px;text-align:left" ${canFit?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>${eq.icon} ${eq.name} · <span style="color:#f59e0b">${fmtCostInfl(eq.cost)}</span> · <span style="color:#8b949e">${fmtKc(inflComponentCost(eq.mCost))}/m</span></button>`;
       }
 
       h+='</div>';
@@ -271,6 +316,14 @@ function buildBWList(){
 function buildTariffTable(){
   const tbody=document.getElementById('tariffBody');tbody.innerHTML='';
   let lastCat='';
+  // Valorizace — informační ukazatel pro hráče, že inflace už promítá do fakturace
+  const tInfl=(G&&G.tariffInflation)||1;
+  const inflPct=Math.round((tInfl-1)*100);
+  if(inflPct>=1){
+    const hdr=document.createElement('tr');
+    hdr.innerHTML=`<td colspan="5" style="padding:4px 4px;font-size:9px;color:#f59e0b;background:#1a1410;border-bottom:1px solid #30363d">📈 Valorizační doložka: +${inflPct}% k nominálním cenám níže (automaticky se účtuje zákazníkům). Když tarify aktualizuješ nahoru, valorizace se přenese i na novou hodnotu.</td>`;
+    tbody.appendChild(hdr);
+  }
   for(let ti=0;ti<G.tariffs.length;ti++){
     const t=G.tariffs[ti];
     // Category headers
@@ -285,7 +338,9 @@ function buildTariffTable(){
     const canUse=G.tech>=t.minTech;
     const hasEq=anyDCHasEq(t.reqEq);
     const rp=refPrice(t.speed,t.share);
-    const priceRatio=t.price/rp;
+    // Referenční cena je v "real terms" — srovnáváme s efektivní (po valorizaci) cenou
+    const effPrice=t.price*tInfl;
+    const priceRatio=effPrice/rp;
     const priceClr=priceRatio>1.3?'#f85149':priceRatio>1.1?'#f59e0b':priceRatio<.8?'#3fb950':'#8b949e';
 
     const tr=document.createElement('tr');
@@ -320,7 +375,9 @@ function buildTariffTable(){
     else if(priceRatio>1.25)priceLabel='<span style="color:#f59e0b"> ⚠️ Nadprůměrná cena</span>';
     else if(priceRatio<0.75)priceLabel='<span style="color:#3fb950"> 🔥 Výprodej!</span>';
     else if(priceRatio<0.9)priceLabel='<span style="color:#3fb950"> ✓ Konkurenční cena</span>';
-    const custInfo=custCount>0?`${custCount} zákazníků · ${fmtKc(custCount*t.price)}/měs · `:'';
+    const effRev=Math.round(custCount*t.price*tInfl);
+    const inflTag=inflPct>=1?` <span style="color:#f59e0b" title="Nominál ${fmtKc(t.price)} × valorizace ${inflPct}%">↑${inflPct}%</span>`:'';
+    const custInfo=custCount>0?`${custCount} zákazníků · ${fmtKc(effRev)}/měs${inflTag} · `:'';
     const descInfo=t.desc?` · <span style="color:#6e7681">${t.desc}</span>`:'';
     stRow.innerHTML=`<td colspan="5" style="padding:1px 4px;font-size:8px;color:#8b949e;border-bottom:1px solid #161b22">└ ${custInfo}ref: ${fmtKc(rp)} (${Math.round(priceRatio*100)}%)${priceLabel}${descInfo}</td>`;
     tbody.appendChild(stRow);
@@ -338,10 +395,11 @@ function buildTariffTable(){
     }
     if(c>0){totalRev+=c*t.price;totalCust+=c;}
   }
+  const totalEff=Math.round(totalRev*tInfl);
   tStat+=`<div class="sr"><span class="l">Celkem zákazníků</span><span class="v hl">${fmt(totalCust)}</span></div>`;
-  tStat+=`<div class="sr"><span class="l">Příjmy z tarifů</span><span class="v pos">${fmtKc(totalRev)}/měs</span></div>`;
+  tStat+=`<div class="sr"><span class="l">Příjmy z tarifů</span><span class="v pos">${fmtKc(totalEff)}/měs${inflPct>=1?` <span style="color:#f59e0b;font-size:85%" title="Nominál ${fmtKc(totalRev)}, valorizace +${inflPct}%">↑${inflPct}%</span>`:''}</span></div>`;
   // Average revenue per customer
-  if(totalCust>0)tStat+=`<div class="sr"><span class="l">Prům. na zákazníka</span><span class="v">${fmtKc(Math.round(totalRev/totalCust))}/měs</span></div>`;
+  if(totalCust>0)tStat+=`<div class="sr"><span class="l">Prům. na zákazníka</span><span class="v">${fmtKc(Math.round(totalEff/totalCust))}/měs</span></div>`;
   statsEl.innerHTML=tStat;
 }
 
@@ -555,11 +613,37 @@ function buildCloudTab(){
   if(segCount>0)avgCloudSat=Math.round(avgCloudSat/segCount);
   const curSLA=SLA_TIERS.find(s=>s.id===G.cloudSLA)||SLA_TIERS[0];
 
+  const cloudOp=(typeof calcCloudOpCost==='function')?calcCloudOpCost():0;
+  const cloudProfit=cloudRev-cloudOp;
+  const marginPct=cloudRev>0?Math.round(cloudProfit/cloudRev*100):0;
+  const rep=Math.round(G.cloudReputation||60);
+  const repClr=rep>=70?'#3fb950':rep>=45?'#f59e0b':'#f85149';
+  const repLbl=rep>=85?'výborná':rep>=65?'dobrá':rep>=45?'průměrná':rep>=25?'slabá':'špatná';
+
   oh+=`<div class="sr"><span class="l">Cloud zákazníci</span><span class="v hl">${fmt(totalCloudCust)}</span></div>`;
   oh+=`<div class="sr"><span class="l">Cloud příjmy</span><span class="v pos">${fmtKc(cloudRev)}/měs</span></div>`;
+  oh+=`<div class="sr" title="Provoz cloudu: per-instance mCost × inflace − automatizace (dev tým + upgrady)"><span class="l">Provozní náklady</span><span class="v neg">-${fmtKc(cloudOp)}/měs</span></div>`;
+  oh+=`<div class="sr" title="Čistý měsíční zisk z cloud byznysu"><span class="l">Cloud marže</span><span class="v ${cloudProfit>0?'pos':'neg'}">${fmtKc(cloudProfit)} (${marginPct}%)</span></div>`;
+  oh+=`<div class="sr" title="Reputace 0–100. Vliv na růst, churn, elasticitu ceny. Klesá výpadky, roste stabilním provozem."><span class="l">Reputace</span><span class="v" style="color:${repClr}">${rep} · ${repLbl}</span></div>`;
   oh+=`<div class="sr"><span class="l">Průměr. spokojenost</span><span class="v ${avgCloudSat>60?'pos':avgCloudSat>30?'warn':'neg'}">${avgCloudSat}%</span></div>`;
   oh+=`<div class="sr"><span class="l">SLA úroveň</span><span class="v hl">${curSLA.name}</span></div>`;
   oh+=`<div class="sr"><span class="l">Cenový koeficient</span><span class="v">${(G.cloudPriceMult||1).toFixed(2)}×</span></div>`;
+  // Waitlist warning — kapacita skoro plná
+  let cU=0,cT=0,sU=0,sT=0;
+  for(let di=0;di<G.dcs.length;di++){
+    const c=getDCCompute(di);cU+=c.usedCPU;cT+=c.vCPU;
+    const s=getDCStorage(di);sU+=s.used;sT+=s.total;
+  }
+  const util=Math.max(cT>0?cU/cT:0,sT>0?sU/sT:0);
+  if(util>0.85){
+    oh+=`<div class="sr" style="color:#f85149" title="Zákazníci odcházejí kvůli plné kapacitě. Přidej instance/HW."><span class="l">⚠️ Kapacita</span><span class="v neg">${Math.round(util*100)}% — waitlist aktivní</span></div>`;
+  } else if(util>0.7){
+    oh+=`<div class="sr" style="color:#f59e0b"><span class="l">Kapacita</span><span class="v warn">${Math.round(util*100)}%</span></div>`;
+  }
+  // SLA credit last month
+  if((G.cloudSLACreditM||0)>0){
+    oh+=`<div class="sr" title="Kredit vrácený zákazníkům za překročený downtime minulý měsíc"><span class="l">Min. SLA credit</span><span class="v neg">-${fmtKc(G.cloudSLACreditM)}</span></div>`;
+  }
   // Cloud BW usage
   let cloudBW=0;
   for(let di=0;di<G.dcs.length;di++)cloudBW+=getCloudBWForDC(di);
@@ -647,7 +731,7 @@ function buildCloudTab(){
   let bh='';
   for(let bi=0;bi<IP_BLOCKS.length;bi++){
     const blk=IP_BLOCKS[bi];
-    bh+=`<button onclick="event.stopPropagation();buyIPBlock(${bi})" style="display:block;width:100%;padding:4px 8px;margin:2px 0;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:${hasBGP?'#e0e0e0':'#484f58'};cursor:${hasBGP?'pointer':'default'};font-size:9px;text-align:left" ${hasBGP?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>${blk.icon} ${blk.name} · <span style="color:#f59e0b">${fmtKc(blk.cost)}</span> · <span style="color:#8b949e">${fmtKc(blk.mCost)}/m</span>${!hasBGP?' 🔒':''}</button>`;
+    bh+=`<button onclick="event.stopPropagation();buyIPBlock(${bi})" style="display:block;width:100%;padding:4px 8px;margin:2px 0;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:${hasBGP?'#e0e0e0':'#484f58'};cursor:${hasBGP?'pointer':'default'};font-size:9px;text-align:left" ${hasBGP?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>${blk.icon} ${blk.name} · <span style="color:#f59e0b">${fmtCostInfl(blk.cost)}</span> · <span style="color:#8b949e">${fmtKc(inflComponentCost(blk.mCost))}/m</span>${!hasBGP?' 🔒':''}</button>`;
   }
   ipList.innerHTML=bh;
 
@@ -1180,7 +1264,7 @@ function buildIXPStatus(){
     el.innerHTML=`<div style="background:#0a1a0a;border:1px solid #3fb950;border-radius:5px;padding:6px 8px;font-size:9px"><div style="font-weight:600;color:#3fb950">✅ ${IXP.name} aktivní</div><div style="color:#8b949e;margin-top:2px">+${fmtBW(IXP.bwBonus)} BW bonus · ${fmtKc(IXP.mCost)}/měs</div></div>`;
   } else {
     const hasBGP=anyDCHasEq(['eq_bgprouter']);
-    el.innerHTML=`<button onclick="buyIXP()" style="display:block;width:100%;padding:6px 8px;background:#0d1117;border:1px solid ${hasBGP?'#7c3aed':'#21262d'};border-radius:5px;color:${hasBGP?'#e0e0e0':'#484f58'};cursor:${hasBGP?'pointer':'default'};font-size:10px;text-align:left" ${hasBGP?'':'disabled'}>🔗 ${IXP.name} · <span style="color:#f59e0b">${fmtKc(IXP.cost)}</span> · <span style="color:#8b949e">${fmtKc(IXP.mCost)}/m</span>${!hasBGP?' 🔒 (BGP router)':''}</button>`;
+    el.innerHTML=`<button onclick="buyIXP()" style="display:block;width:100%;padding:6px 8px;background:#0d1117;border:1px solid ${hasBGP?'#7c3aed':'#21262d'};border-radius:5px;color:${hasBGP?'#e0e0e0':'#484f58'};cursor:${hasBGP?'pointer':'default'};font-size:10px;text-align:left" ${hasBGP?'':'disabled'}>🔗 ${IXP.name} · <span style="color:#f59e0b">${fmtCostInfl(IXP.cost)}</span> · <span style="color:#8b949e">${fmtKc(inflComponentCost(IXP.mCost))}/m</span>${!hasBGP?' 🔒 (BGP router)':''}</button>`;
   }
 }
 
@@ -1400,7 +1484,7 @@ function renderDCModal(){
   rh+=`</div><div style="padding:0 6px 6px;display:flex;flex-wrap:wrap;gap:3px">`;
   for(let bi=0;bi<BW_UPGRADES.length;bi++){
     const bwu=BW_UPGRADES[bi];
-    rh+=`<button onclick="event.stopPropagation();buyBW(${dcModalIdx},${bi});renderDCModal()" style="padding:3px 8px;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:8px;transition:.15s" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#21262d'">+${fmtBW(bwu.bw)} · ${fmtKc(bwu.cost)}</button>`;
+    rh+=`<button onclick="event.stopPropagation();buyBW(${dcModalIdx},${bi});renderDCModal()" style="padding:3px 8px;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:8px;transition:.15s" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#21262d'">+${fmtBW(bwu.bw)} · ${fmtCostInfl(bwu.cost)}</button>`;
   }
   rh+=`</div></div>`;
 
@@ -1435,22 +1519,46 @@ function renderDCModal(){
     rh+=`<div class="rack-header"><span style="color:#a78bfa">🔀 BGP Peering & Směrování</span>${hasBGP?`<span style="font-size:8px">Kapacita: ${fmtBW(bgpTotal)}</span>`:''}</div>`;
     rh+=`<div style="padding:6px">`;
 
-    // Physical links overview
-    if(links.length){
-      rh+=`<div style="font-size:9px;color:#8b949e;margin-bottom:6px">📡 Fyzická propojení:</div>`;
-      for(const l of links){
-        const oi=l.dc1===dcModalIdx?l.dc2:l.dc1;
+    // Physical links overview + diagnostic for unlinked BGP-capable DCs
+    {
+      rh+=`<div style="font-size:9px;color:#8b949e;margin-bottom:6px">📡 Ostatní DC:</div>`;
+      let shownAny=false;
+      for(let oi=0;oi<G.dcs.length;oi++){
+        if(oi===dcModalIdx)continue;
         const odc=G.dcs[oi];
-        const oBGP=odc&&(odc.eq||[]).some(e=>EQ[e]&&EQ[e].bgpCap);
-        const pathCount=l.paths?l.paths.length:1;
-        rh+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:#161b22;border:1px solid #21262d;border-radius:4px;margin-bottom:3px;font-size:9px">`;
-        rh+=`<span>🔗 DC#${oi+1} · ${fmtBW(l.capacity)} · ${pathCount} ${pathCount>1?'tras':'trasa'}${oBGP?' · <span style="color:#3fb950">BGP✓</span>':''}</span>`;
-        // Create peering button (if both have BGP and no peering exists)
+        const oBGP=(odc.eq||[]).some(e=>EQ[e]&&EQ[e].bgpCap);
+        const link=links.find(l=>l.dc1===oi||l.dc2===oi);
         const peerExists=myPeerings.some(p=>(p.dc1===oi||p.dc2===oi));
-        if(hasBGP&&oBGP&&!peerExists){
-          rh+=`<button onclick="event.stopPropagation();createBGPPeering(${dcModalIdx},${oi});renderDCModal()" style="padding:2px 6px;background:#1a1040;border:1px solid #a78bfa;border-radius:3px;color:#a78bfa;cursor:pointer;font-size:8px" title="Vytvořit BGP peering">+ BGP</button>`;
+        shownAny=true;
+        if(link){
+          const pathCount=link.paths?link.paths.length:1;
+          rh+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:#161b22;border:1px solid #21262d;border-radius:4px;margin-bottom:3px;font-size:9px">`;
+          rh+=`<span>🔗 DC#${oi+1} · ${fmtBW(link.capacity)} · ${pathCount} ${pathCount>1?'tras':'trasa'}${oBGP?' · <span style="color:#3fb950">BGP✓</span>':'<span style="color:#f59e0b"> · bez BGP</span>'}</span>`;
+          if(hasBGP&&oBGP&&!peerExists){
+            rh+=`<button onclick="event.stopPropagation();createBGPPeering(${dcModalIdx},${oi});renderDCModal()" style="padding:2px 6px;background:#1a1040;border:1px solid #a78bfa;border-radius:3px;color:#a78bfa;cursor:pointer;font-size:8px" title="Vytvořit BGP peering">+ BGP</button>`;
+          }
+          rh+=`</div>`;
+        } else {
+          // Not linked — diagnose and show hint
+          const diag=(typeof diagDCPath==='function')?diagDCPath(dcModalIdx,oi):{status:'noRoadPath'};
+          let hint='';
+          if(diag.status==='noRoadPath'){
+            hint='není silniční trasa mezi DC (polož silnice nebo junctiony)';
+          } else if(diag.status==='cableGap'){
+            if(diag.at){
+              const a=diag.at[0],b=diag.at[1];
+              hint=`chybí kabel na segmentu (${a[0]},${a[1]})↔(${b[0]},${b[1]})`;
+            } else {
+              hint='silnice ano, ale někde v trase chybí kabel';
+            }
+          }
+          rh+=`<div style="padding:3px 6px;background:#161b22;border:1px solid #30363d;border-radius:4px;margin-bottom:3px;font-size:9px;color:#8b949e">`;
+          rh+=`⚠️ DC#${oi+1}${oBGP?' (BGP✓)':' (bez BGP)'} — <span style="color:#f59e0b">${hint}</span>`;
+          rh+=`</div>`;
         }
-        rh+=`</div>`;
+      }
+      if(!shownAny){
+        rh+=`<div style="font-size:9px;color:#484f58;font-style:italic">Žádná další DC na mapě.</div>`;
       }
     }
 
@@ -1496,6 +1604,8 @@ function renderDCModal(){
       }
     } else if(hasBGP&&links.length){
       rh+=`<div style="font-size:9px;color:#484f58;font-style:italic;margin-top:4px">Žádné BGP peerings — klikni "+ BGP" u propojeného DC</div>`;
+    } else if(hasBGP&&!links.length){
+      rh+=`<div style="font-size:9px;color:#f59e0b;font-style:italic;margin-top:4px">⚠️ BGP router je připraven, ale toto DC není fyzicky propojeno s žádným jiným DC. Nataž kabel (přes junction nebo přímo) mezi tímto DC a DC s BGP routerem — pak se objeví tlačítko "+ BGP".</div>`;
     } else if(!hasBGP){
       rh+=`<div style="font-size:9px;color:#484f58;font-style:italic;margin-top:4px">Potřebuješ BGP router pro sdílení bandwidth</div>`;
     }
@@ -1575,19 +1685,32 @@ function renderDCModal(){
   };
 
   const canFit=eqs.length<maxSlots;
+  const dcType=G.dcs[dcModalIdx]?.type;
+  const dcTypeInfo=DC_T[dcType]||{};
+  const maxCool=dcTypeInfo.maxCooling||1;
+  const coolCount=eqs.filter(e=>e==='eq_cooling').length;
   for(const catKey in eqCats){
     const cat=eqCats[catKey];
     sh+=`<div style="font-size:8px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:8px 0 3px;font-weight:700">${cat.name}</div>`;
     for(const eqKey of cat.items){
       const eq=EQ[eqKey];if(!eq)continue;
-      const affordable=G.cash>=eq.cost;
-      const enabled=canFit&&affordable;
+      // Inflace se musí počítat s aktuálním stavem G.componentInflation,
+      // aby cena v shopu odpovídala skutečně strhnuté částce v placeEq().
+      const eqCurCost=inflComponentCost(eq.cost);
+      const affordable=G.cash>=eqCurCost;
+      // Cooling má speciální hard-cap podle DC velikosti
+      const isCoolingAtMax=eqKey==='eq_cooling'&&coolCount>=maxCool;
+      const enabled=canFit&&affordable&&!isCoolingAtMax;
       const count=eqs.filter(e=>e===eqKey).length;
       sh+=`<div class="eq-shop-item${enabled?'':' disabled'}" ${enabled?`onclick="event.stopPropagation();placeEq(${dcModalIdx},'${eqKey}');renderDCModal()"`:''}>`
       sh+=`<span class="eq-icon">${eq.icon}</span>`;
       sh+=`<div class="eq-info">`;
-      sh+=`<div class="eq-name">${eq.name}${count>0?` <span style="color:#3fb950">(${count}×)</span>`:''}</div>`;
-      sh+=`<div class="eq-cost">${fmtKc(eq.cost)} · ${fmtKc(eq.mCost)}/m</div>`;
+      // U chlazení ukazuj X/Y místo jen Nx — aby bylo vidět, kolik jich jde max
+      const countBadge=eqKey==='eq_cooling'
+        ? ` <span style="color:${coolCount>=maxCool?'#f85149':'#3fb950'}">(${coolCount}/${maxCool})</span>`
+        : (count>0?` <span style="color:#3fb950">(${count}×)</span>`:'');
+      sh+=`<div class="eq-name">${eq.name}${countBadge}</div>`;
+      sh+=`<div class="eq-cost">${fmtCostInfl(eq.cost)} · ${fmtKc(inflComponentCost(eq.mCost))}/m</div>`;
       let specTxt='';
       if(eq.storageTB)specTxt+=`💿${eq.storageTB}TB `;
       if(eq.vCPU)specTxt+=`☁️${eq.vCPU}vCPU/${eq.ramGB}GB `;

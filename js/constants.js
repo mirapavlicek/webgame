@@ -127,9 +127,11 @@ const DEF_TARIFFS=[
 ];
 
 const DC_T={
-  dc_small:{name:'Malé DC',cost:80000,mCost:5000,slots:4,baseBW:100,color:'#f59e0b',h:22},
-  dc_medium:{name:'Střední DC',cost:250000,mCost:15000,slots:12,baseBW:1000,color:'#f97316',h:32},
-  dc_large:{name:'Velké DC',cost:800000,mCost:40000,slots:32,baseBW:10000,color:'#ef4444',h:42},
+  // maxCooling — kolik `eq_cooling` jednotek lze max. nainstalovat (každá dává +4 sloty).
+  // Limit brání nekonečnému růstu malých DC přes cooling stacking.
+  dc_small:{name:'Malé DC',cost:80000,mCost:5000,slots:4,baseBW:100,color:'#f59e0b',h:22,maxCooling:1},
+  dc_medium:{name:'Střední DC',cost:250000,mCost:15000,slots:12,baseBW:1000,color:'#f97316',h:32,maxCooling:2},
+  dc_large:{name:'Velké DC',cost:800000,mCost:40000,slots:32,baseBW:10000,color:'#ef4444',h:42,maxCooling:4},
 };
 
 const BW_UPGRADES=[
@@ -252,22 +254,25 @@ const IP_BLOCKS=[
 ];
 
 // Cloud resource pricing (per unit per month)
+// price  = co zaplatí zákazník (list price za jedno "právo" obsluhovat jeden segment typ-zákazník)
+// mCost  = co to stojí ISP měsíčně (power, chlazení, SW licence, opotřebení, bandwidth peering)
+//          ~18-22% z price je realistický poměr v on-prem/colo modelu
 const CLOUD_PRICING={
-  vps_small:{name:'VPS Small',vCPU:1,ramGB:2,storageTB:0.05,price:299,icon:'💻',cat:'vps',bwMbps:10},
-  vps_medium:{name:'VPS Medium',vCPU:2,ramGB:4,storageTB:0.1,price:599,icon:'🖥️',cat:'vps',bwMbps:25},
-  vps_large:{name:'VPS Large',vCPU:4,ramGB:8,storageTB:0.25,price:1199,icon:'🖥️',cat:'vps',bwMbps:50},
-  vps_xlarge:{name:'VPS XLarge',vCPU:8,ramGB:16,storageTB:0.5,price:2399,icon:'⚡',cat:'vps',bwMbps:100},
-  vps_gpu:{name:'GPU VPS',vCPU:8,ramGB:32,storageTB:0.5,price:5999,icon:'🎮',cat:'vps',bwMbps:100,reqEq:['eq_cloudnode_big'],desc:'GPU pro AI/ML, rendering'},
-  k8s_small:{name:'K8s Cluster S',vCPU:4,ramGB:8,storageTB:0.1,price:1499,icon:'🐳',cat:'k8s',bwMbps:50,reqEq:['eq_cloudnode'],desc:'Managed Kubernetes – 3 nody'},
-  k8s_large:{name:'K8s Cluster L',vCPU:16,ramGB:64,storageTB:0.5,price:5999,icon:'🐳',cat:'k8s',bwMbps:200,reqEq:['eq_cloudnode_big'],desc:'Managed Kubernetes – 9 nodů'},
-  dbaas_pg:{name:'PostgreSQL DB',vCPU:2,ramGB:4,storageTB:0.1,price:899,icon:'🗃️',cat:'db',bwMbps:15,reqEq:['eq_server'],desc:'Managed databáze s replikací'},
-  dbaas_pg_ha:{name:'PostgreSQL HA',vCPU:4,ramGB:16,storageTB:0.5,price:2999,icon:'🗃️',cat:'db',bwMbps:30,reqEq:['eq_server','eq_backup'],desc:'HA cluster s failoverem'},
-  s3_100:{name:'Object Storage 100GB',storageTB:0.1,price:49,icon:'📁',cat:'s3',bwMbps:5,desc:'S3-kompatibilní úložiště'},
-  s3_1t:{name:'Object Storage 1TB',storageTB:1,price:349,icon:'📁',cat:'s3',bwMbps:20},
-  s3_10t:{name:'Object Storage 10TB',storageTB:10,price:2499,icon:'📁',cat:'s3',bwMbps:80},
-  storage_basic:{name:'Block Storage 1TB',storageTB:1,price:199,icon:'💿',cat:'block',bwMbps:10},
-  storage_premium:{name:'Block SSD 5TB',storageTB:5,price:799,icon:'🗄️',cat:'block',bwMbps:30},
-  storage_enterprise:{name:'Block NVMe 20TB',storageTB:20,price:2499,icon:'📦',cat:'block',bwMbps:80},
+  vps_small:{name:'VPS Small',vCPU:1,ramGB:2,storageTB:0.05,price:299,mCost:60,icon:'💻',cat:'vps',bwMbps:10},
+  vps_medium:{name:'VPS Medium',vCPU:2,ramGB:4,storageTB:0.1,price:599,mCost:115,icon:'🖥️',cat:'vps',bwMbps:25},
+  vps_large:{name:'VPS Large',vCPU:4,ramGB:8,storageTB:0.25,price:1199,mCost:230,icon:'🖥️',cat:'vps',bwMbps:50},
+  vps_xlarge:{name:'VPS XLarge',vCPU:8,ramGB:16,storageTB:0.5,price:2399,mCost:450,icon:'⚡',cat:'vps',bwMbps:100},
+  vps_gpu:{name:'GPU VPS',vCPU:8,ramGB:32,storageTB:0.5,price:5999,mCost:1900,icon:'🎮',cat:'vps',bwMbps:100,reqEq:['eq_cloudnode_big'],desc:'GPU pro AI/ML, rendering. Vyšší marže ale drahý power.'},
+  k8s_small:{name:'K8s Cluster S',vCPU:4,ramGB:8,storageTB:0.1,price:1499,mCost:300,icon:'🐳',cat:'k8s',bwMbps:50,reqEq:['eq_cloudnode'],desc:'Managed Kubernetes – 3 nody'},
+  k8s_large:{name:'K8s Cluster L',vCPU:16,ramGB:64,storageTB:0.5,price:5999,mCost:1250,icon:'🐳',cat:'k8s',bwMbps:200,reqEq:['eq_cloudnode_big'],desc:'Managed Kubernetes – 9 nodů'},
+  dbaas_pg:{name:'PostgreSQL DB',vCPU:2,ramGB:4,storageTB:0.1,price:899,mCost:170,icon:'🗃️',cat:'db',bwMbps:15,reqEq:['eq_server'],desc:'Managed databáze s replikací'},
+  dbaas_pg_ha:{name:'PostgreSQL HA',vCPU:4,ramGB:16,storageTB:0.5,price:2999,mCost:650,icon:'🗃️',cat:'db',bwMbps:30,reqEq:['eq_server','eq_backup'],desc:'HA cluster s failoverem'},
+  s3_100:{name:'Object Storage 100GB',storageTB:0.1,price:49,mCost:8,icon:'📁',cat:'s3',bwMbps:5,desc:'S3-kompatibilní úložiště'},
+  s3_1t:{name:'Object Storage 1TB',storageTB:1,price:349,mCost:65,icon:'📁',cat:'s3',bwMbps:20},
+  s3_10t:{name:'Object Storage 10TB',storageTB:10,price:2499,mCost:520,icon:'📁',cat:'s3',bwMbps:80},
+  storage_basic:{name:'Block Storage 1TB',storageTB:1,price:199,mCost:35,icon:'💿',cat:'block',bwMbps:10},
+  storage_premium:{name:'Block SSD 5TB',storageTB:5,price:799,mCost:160,icon:'🗄️',cat:'block',bwMbps:30},
+  storage_enterprise:{name:'Block NVMe 20TB',storageTB:20,price:2499,mCost:540,icon:'📦',cat:'block',bwMbps:80},
 };
 
 // SLA tiers for cloud products
