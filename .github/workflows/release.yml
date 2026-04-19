@@ -35,10 +35,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -66,6 +66,17 @@ jobs:
           if (Test-Path 'vendor/fetch.ps1') {
             powershell -ExecutionPolicy Bypass -File vendor/fetch.ps1
           }
+
+      - name: Generate Tauri icons (icon.icns + icon.ico)
+        run: npx tauri icon src-tauri/icons/icon.png
+
+      - name: Verify icons generated
+        shell: bash
+        run: |
+          echo "== src-tauri/icons/ =="
+          ls -la src-tauri/icons/
+          test -f src-tauri/icons/icon.icns && echo "OK icon.icns" || echo "MISSING icon.icns"
+          test -f src-tauri/icons/icon.ico && echo "OK icon.ico" || echo "MISSING icon.ico"
 
       - name: Build Tauri app
         run: npx tauri build ${{ matrix.tauri-args }}
