@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Základní capability pro hlavní okno NetTycoon",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

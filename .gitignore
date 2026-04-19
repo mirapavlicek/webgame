@@ -1,0 +1,27 @@
+# ====== Tauri / Rust ======
+src-tauri/target/
+src-tauri/gen/
+src-tauri/Cargo.lock
+src-tauri/.cargo/
+
+# ====== Node / npm ======
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# ====== vendor knihovny (stahují se fetch skriptem) ======
+vendor/pixi.min.js
+vendor/pixi-filters.min.js
+
+# ====== IDE / OS ======
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ====== Save soubory hry ======
+nettycoon_*.json
+
+# ====== Tauri distribuce (generuje prepare-dist.sh) ======
+dist-game/

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetTycoon v2 — ISP Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style2.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi-filters@5.3.0/dist/browser/pixi-filters.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- TOP BAR -->
+    <div class="topbar" id="topbar"></div>
+
+    <!-- TOOLBAR -->
+    <div class="sidebar" id="sidebar"></div>
+
+    <!-- VIEWPORT -->
+    <div class="viewport">
+      <canvas id="mapCanvas"></canvas>
+      <canvas id="pixiCanvas"></canvas>
+
+      <div class="zoom-controls">
+        <button id="zoomIn" title="Přiblížit">+</button>
+        <button id="zoomOut" title="Oddálit">−</button>
+        <button id="zoomReset" title="Vycentrovat">⌂</button>
+      </div>
+
+      <canvas class="minimap" id="minimap"></canvas>
+    </div>
+
+    <!-- PANEL DOCK -->
+    <div class="panel-dock">
+      <div class="panel" id="panel-stats">
+        <div class="panel-header">
+          <span>📊</span>Přehled
+          <span class="chevron">▾</span>
+        </div>
+        <div class="panel-body" id="panel-stats-body"></div>
+      </div>
+
+      <div class="panel" id="panel-notifs">
+        <div class="panel-header">
+          <span>🔔</span>Události
+          <span class="chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div class="notif-feed" id="notif-feed"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-finance">
+        <div class="panel-header">
+          <span>💰</span>Finance
+          <span class="chevron">▾</span>
+        </div>
+        <div class="panel-body" id="panel-finance-body"></div>
+      </div>
+
+      <div class="panel" id="panel-incidents">
+        <div class="panel-header">
+          <span>🚨</span>Incidenty
+          <span class="chevron">▾</span>
+        </div>
+        <div class="panel-body" id="panel-incidents-body"></div>
+      </div>
+
+      <div class="panel collapsed" id="panel-staff">
+        <div class="panel-header">
+          <span>👥</span>Tým
+          <span class="chevron">▾</span>
+        </div>
+        <div class="panel-body" id="panel-staff-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>NetTycoon — Icon Generator</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0e1a2b;color:#e2e8f0;padding:24px;max-width:900px;margin:auto}
+h1{margin:0 0 6px}
+p{color:#94a3b8;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.card{background:#1e293b;padding:12px;border-radius:8px;text-align:center}
+canvas{background:#0b1220;border-radius:8px;display:block;margin:0 auto 8px}
+button{display:block;width:100%;padding:6px;background:#22d3ee;color:#0e1a2b;border:0;border-radius:6px;font-weight:700;cursor:pointer;margin-top:6px}
+button.all{background:#fbbf24;padding:14px;font-size:16px;margin:0 0 24px;width:100%}
+.size{font-size:12px;color:#94a3b8}
+</style>
+</head>
+<body>
+<h1>🎨 NetTycoon Icon Generator</h1>
+<p>Vygeneruje všechny velikosti pro Tauri z <code>logo.svg</code>. Klikni na <b>Stáhni vše</b> a soubory přesuň do <code>src-tauri/icons/</code>.</p>
+
+<button class="all" onclick="downloadAll()">⬇️ Stáhni vše</button>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const SIZES=[
+  {name:'32x32.png',w:32,h:32},
+  {name:'128x128.png',w:128,h:128},
+  {name:'128x128@2x.png',w:256,h:256},
+  {name:'icon.png',w:512,h:512},
+  {name:'Square30x30Logo.png',w:30,h:30},
+  {name:'Square44x44Logo.png',w:44,h:44},
+  {name:'Square71x71Logo.png',w:71,h:71},
+  {name:'Square89x89Logo.png',w:89,h:89},
+  {name:'Square107x107Logo.png',w:107,h:107},
+  {name:'Square142x142Logo.png',w:142,h:142},
+  {name:'Square150x150Logo.png',w:150,h:150},
+  {name:'Square284x284Logo.png',w:284,h:284},
+  {name:'Square310x310Logo.png',w:310,h:310},
+  {name:'StoreLogo.png',w:50,h:50},
+];
+
+const grid=document.getElementById('grid');
+const logoURL='logo.svg';
+const canvases={};
+const img=new Image();
+img.crossOrigin='anonymous';
+img.onload=()=>{
+  for(const s of SIZES){
+    const card=document.createElement('div');card.className='card';
+    const c=document.createElement('canvas');c.width=s.w;c.height=s.h;
+    const ctx=c.getContext('2d');ctx.drawImage(img,0,0,s.w,s.h);
+    const label=document.createElement('div');label.className='size';label.textContent=s.name+` (${s.w}×${s.h})`;
+    const btn=document.createElement('button');btn.textContent='⬇️ .png';btn.onclick=()=>dl(c,s.name);
+    card.appendChild(c);card.appendChild(label);card.appendChild(btn);
+    grid.appendChild(card);
+    canvases[s.name]=c;
+  }
+};
+img.onerror=()=>{document.body.innerHTML+='<p style="color:#f87171">Chyba načítání logo.svg — spusť tento soubor v src-tauri/icons/ přes http-server nebo otevři v prohlížeči přímo vedle logo.svg.</p>';};
+img.src=logoURL;
+
+function dl(canvas,filename){
+  canvas.toBlob(b=>{
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  },'image/png');
+}
+async function downloadAll(){
+  for(const s of SIZES){
+    dl(canvases[s.name],s.name);
+    await new Promise(r=>setTimeout(r,150));
+  }
+  alert('✓ Všechny PNG stažené. Pro icon.ico a icon.icns použij online nástroj (např. cloudconvert.com) z icon.png.');
+}
+</script>
+</body>
+</html>

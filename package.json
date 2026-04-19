@@ -1,0 +1,22 @@
+{
+  "name": "nettycoon",
+  "version": "0.1.0",
+  "description": "NetTycoon — česká ISP simulační hra (Tauri desktop wrapper)",
+  "private": true,
+  "scripts": {
+    "prepare-dist": "bash scripts/prepare-dist.sh",
+    "prepare-dist:win": "powershell -ExecutionPolicy Bypass -File scripts/prepare-dist.ps1",
+    "vendor:fetch": "bash vendor/fetch.sh",
+    "vendor:fetch:win": "powershell -ExecutionPolicy Bypass -File vendor/fetch.ps1",
+    "test": "node tests/expandmap.test.js",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:mac": "tauri build --target universal-apple-darwin",
+    "tauri:build:win": "tauri build --target x86_64-pc-windows-msvc",
+    "icons": "tauri icon src-tauri/icons/logo.svg"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}

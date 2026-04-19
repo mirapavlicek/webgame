@@ -1,0 +1,21 @@
+{
+  "name": "NetTycoon",
+  "short_name": "NetTycoon",
+  "description": "Simulace ISP — postav si vlastní síť od modemu přes páteř až k 5G.",
+  "lang": "cs",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "background_color": "#0e1a2b",
+  "theme_color": "#0e1a2b",
+  "categories": ["games", "simulation", "strategy"],
+  "icons": [
+    { "src": "src-tauri/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "src-tauri/icons/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "src-tauri/icons/128x128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "src-tauri/icons/128x128@2x.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "src-tauri/icons/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

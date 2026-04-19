@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetTycoon - ISP Simulator</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e1a2b">
+<link rel="icon" type="image/svg+xml" href="src-tauri/icons/favicon.svg">
+<link rel="apple-touch-icon" href="src-tauri/icons/favicon.svg">
+<script>
+// [diagnostika] Zaznamenej každé naloadování stránky — pokud se hra restartuje,
+// uvidíme to v konzoli s přesným časem a protocolem (tauri:// vs http://).
+console.log('[page-load]', new Date().toISOString(), 'protocol=', location.protocol, 'href=', location.href);
+window.addEventListener('beforeunload', (e) => {
+  console.warn('[page-unload]', new Date().toISOString(), 'reason=', e.type);
+});
+
+// PWA service worker registration (no-op v Tauri i v file://)
+if('serviceWorker' in navigator && (location.protocol==='http:' || location.protocol==='https:')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW reg fail',err));
+  });
+}
+</script>
+</head>
+<body>
+<div id="gameContainer">
+<div id="sidebar">
+  <div id="companyInfo"><h1 id="companyName">NetTycoon ISP</h1><div class="sub">Simulátor poskytovatele internetu</div></div>
+  <div class="section">
+    <h3>💰 Finance</h3>
+    <div class="sr"><span class="l">Hotovost</span><span class="v pos" id="sCash">0</span></div>
+    <div class="sr"><span class="l">Příjmy/měs</span><span class="v pos" id="sInc">0</span></div>
+    <div class="sr"><span class="l">Náklady/měs</span><span class="v neg" id="sExp">0</span></div>
+    <div class="sr"><span class="l">Zisk/měs</span><span class="v" id="sPro">0</span></div>
+  </div>
+  <div class="section">
+    <h3>📊 Síť & Město</h3>
+    <div class="sr"><span class="l">Populace</span><span class="v hl" id="sPop">0</span></div>
+    <div class="sr"><span class="l">Zákazníci</span><span class="v hl" id="sCst">0</span></div>
+    <div class="sr"><span class="l">Pokrytí</span><span class="v" id="sCov">0%</span></div>
+    <div class="sr"><span class="l">Spokojenost</span><span class="v" id="sSat">–</span></div>
+  </div>
+  <div class="section">
+    <h3>📡 Kapacita sítě</h3>
+    <div class="sr"><span class="l">DC bandwidth</span><span class="v" id="sBwDC">0/0 Mbps</span></div>
+    <div class="cap-bar"><div class="fill ok" id="bwBar" style="width:0%"></div></div>
+    <div class="sr"><span class="l">Nejhorší kabel</span><span class="v" id="sWorst">–</span></div>
+    <div class="sr"><span class="l">Prům. kongesce</span><span class="v" id="sCong">0%</span></div>
+  </div>
+  <div class="section">
+    <h3>🔬 Technologie</h3>
+    <div class="sr"><span class="l">Úroveň</span><span class="v hl" id="sTech">ADSL</span></div>
+    <div class="sr"><span class="l">Max rychlost</span><span class="v" id="sSpd">20 Mbps</span></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="tabBuild">🔧<span class="tab-label">Stavba</span></div>
+    <div class="tab" data-tab="tabTech">⚙️<span class="tab-label">DC</span></div>
+    <div class="tab" data-tab="tabBW">📡<span class="tab-label">Síť</span></div>
+    <div class="tab" data-tab="tabTariff">💲<span class="tab-label">Tarify</span></div>
+    <div class="tab" data-tab="tabSvc">📦<span class="tab-label">Služby</span></div>
+    <div class="tab" data-tab="tabCloud">☁️<span class="tab-label">Cloud</span></div>
+    <div class="tab" data-tab="tabStaff">👥<span class="tab-label">Tým</span></div>
+    <div class="tab" data-tab="tabAch">🏆<span class="tab-label">Cíle</span></div>
+    <div class="tab" data-tab="tabMgmt">📋<span class="tab-label">Mgmt</span></div>
+    <div class="tab" data-tab="tabUpgrade">🆙<span class="tab-label">Upgrade</span></div>
+  </div>
+
+  <div class="tab-content active" id="tabBuild">
+    <div class="build-cat">Datová centra (stavěj na trávu)</div>
+    <button class="bb" data-tool="dc_small"><span class="ico">🏢</span><span class="inf"><span class="nm">Malé DC</span><br><span class="cs">80 000 Kč · 4 sloty · 100 Mbps</span></span></button>
+    <button class="bb" data-tool="dc_medium"><span class="ico">🏗️</span><span class="inf"><span class="nm">Střední DC</span><br><span class="cs">250 000 Kč · 12 slotů · 1 Gbps</span></span></button>
+    <button class="bb" data-tool="dc_large"><span class="ico">🏭</span><span class="inf"><span class="nm">Velké DC</span><br><span class="cs">800 000 Kč · 32 slotů · 10 Gbps</span></span></button>
+    <div class="build-cat">Kabely (po silnicích / z DC) · lze stackovat</div>
+    <button class="bb" data-tool="cable_copper"><span class="ico">🔌</span><span class="inf"><span class="nm">Měděný kabel</span><br><span class="cs">1 500 Kč/seg · kap. 100 Mbps</span></span></button>
+    <button class="bb" data-tool="cable_fiber"><span class="ico">💎</span><span class="inf"><span class="nm">Optický kabel</span><br><span class="cs">4 000 Kč/seg · kap. 1 Gbps</span></span></button>
+    <button class="bb" data-tool="cable_fiber10"><span class="ico">⚡</span><span class="inf"><span class="nm">Optika 10G</span><br><span class="cs">15 000 Kč/seg · kap. 10 Gbps</span></span></button>
+    <button class="bb" data-tool="cable_backbone"><span class="ico">🌐</span><span class="inf"><span class="nm">Páteřní 100G</span><br><span class="cs">40 000 Kč/seg · kap. 100 Gbps</span></span></button>
+    <button class="bb" data-tool="cable_400g"><span class="ico">💜</span><span class="inf"><span class="nm">Páteřní 400G</span><br><span class="cs">120 000 Kč/seg · kap. 400 Gbps</span></span></button>
+    <button class="bb" data-tool="cable_800g"><span class="ico">🔮</span><span class="inf"><span class="nm">Páteřní 800G</span><br><span class="cs">300 000 Kč/seg · kap. 800 Gbps</span></span></button>
+    <div class="build-cat">🧭 Síťové uzly na odbočkách (místo stackování)</div>
+    <button class="bb" data-tool="junction_switch"><span class="ico">🔀</span><span class="inf"><span class="nm">Polní přepínač</span><br><span class="cs">12 000 Kč · pasivní rozbočení</span><br><span class="desc">Umisti na odbočku — základní přepojení bez balancu</span></span></button>
+    <button class="bb" data-tool="junction_lb"><span class="ico">⚖️</span><span class="inf"><span class="nm">Polní Load Balancer</span><br><span class="cs">28 000 Kč · aktivní vyvažování</span><br><span class="desc">Posílá data různými částmi sítě podle volné kapacity</span></span></button>
+    <div class="build-cat">Přípojky (typ určuje max tarif)</div>
+    <button class="bb" data-tool="conn_isdn"><span class="ico">☎️</span><span class="inf"><span class="nm">ISDN přípojka</span><br><span class="cs">400 Kč · max 1 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_coax"><span class="ico">📺</span><span class="inf"><span class="nm">Koaxiál přípojka</span><br><span class="cs">1 200 Kč · max 10 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_adsl"><span class="ico">📞</span><span class="inf"><span class="nm">ADSL přípojka</span><br><span class="cs">2 000 Kč · max 20 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_vdsl"><span class="ico">📡</span><span class="inf"><span class="nm">VDSL přípojka</span><br><span class="cs">5 000 Kč · max 50 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_fiber100"><span class="ico">💠</span><span class="inf"><span class="nm">Optika 100M</span><br><span class="cs">12 000 Kč · max 100 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_fiber1g"><span class="ico">💎</span><span class="inf"><span class="nm">Optika 1G</span><br><span class="cs">25 000 Kč · max 1 000 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_fiber10g"><span class="ico">⚡</span><span class="inf"><span class="nm">Optika 10G</span><br><span class="cs">80 000 Kč · max 10 000 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_fiber25g"><span class="ico">🔥</span><span class="inf"><span class="nm">Optika 25G</span><br><span class="cs">200 000 Kč · max 25 000 Mbps</span></span></button>
+    <button class="bb" data-tool="conn_wifi"><span class="ico">📶</span><span class="inf"><span class="nm">WiFi přípojka</span><br><span class="cs">3 500 Kč · max 50 Mbps · sdílené</span></span></button>
+    <div class="build-cat">WiFi přístupové body</div>
+    <button class="bb" data-tool="wifi_small"><span class="ico">📶</span><span class="inf"><span class="nm">WiFi AP 2.4GHz</span><br><span class="cs">8 000 Kč · dosah 3 · 50 Mbps</span></span></button>
+    <button class="bb" data-tool="wifi_medium"><span class="ico">📡</span><span class="inf"><span class="nm">WiFi AP 5GHz</span><br><span class="cs">18 000 Kč · dosah 4 · 300 Mbps</span></span></button>
+    <button class="bb" data-tool="wifi_large"><span class="ico">🗼</span><span class="inf"><span class="nm">WiFi sektorový</span><br><span class="cs">35 000 Kč · dosah 6 · 500 Mbps</span></span></button>
+    <div class="build-cat">📡 4G / LTE vysílače</div>
+    <button class="bb" data-tool="tower_lte"><span class="ico">📡</span><span class="inf"><span class="nm">LTE 800MHz</span><br><span class="cs">55 000 Kč · dosah 10 · 75 Mbps · 120 klientů</span><br><span class="desc">Široký dosah, předměstí</span></span></button>
+    <button class="bb" data-tool="tower_lte_a"><span class="ico">📡</span><span class="inf"><span class="nm">LTE-A 1800MHz</span><br><span class="cs">95 000 Kč · dosah 7 · 300 Mbps · 250 klientů</span><br><span class="desc">Carrier aggregation, vyšší rychlost</span></span></button>
+    <div class="build-cat">🗼 5G vysílače</div>
+    <button class="bb" data-tool="tower_5g_nsa"><span class="ico">🗼</span><span class="inf"><span class="nm">5G NSA 3.5GHz</span><br><span class="cs">180 000 Kč · dosah 5 · 1.2 Gbps · 400 klientů</span><br><span class="desc">Vyžaduje LTE kotvu v dosahu</span></span></button>
+    <button class="bb" data-tool="tower_5g_sa"><span class="ico">🗼</span><span class="inf"><span class="nm">5G SA 3.5GHz</span><br><span class="cs">280 000 Kč · dosah 5 · 2 Gbps · 600 klientů</span><br><span class="desc">Plně autonomní, network slicing</span></span></button>
+    <button class="bb" data-tool="tower_5g_700"><span class="ico">🗼</span><span class="inf"><span class="nm">5G 700MHz</span><br><span class="cs">220 000 Kč · dosah 12 · 500 Mbps · 800 klientů</span><br><span class="desc">Venkov — obrovský dosah</span></span></button>
+    <div class="build-cat">📡 5G Sektorové (Massive MIMO)</div>
+    <button class="bb" data-tool="tower_5g_sector"><span class="ico">📡</span><span class="inf"><span class="nm">5G Sektor 64T64R</span><br><span class="cs">420 000 Kč · dosah 3 · 4 Gbps · 1000 klientů</span><br><span class="desc">Massive MIMO, 3×3 oblast, sídliště</span></span></button>
+    <button class="bb" data-tool="tower_5g_sector_plus"><span class="ico">📡</span><span class="inf"><span class="nm">5G Sektor 128T128R</span><br><span class="cs">680 000 Kč · dosah 4 · 8 Gbps · 1500 klientů</span><br><span class="desc">Massive MIMO++, prémiové městské pokrytí</span></span></button>
+    <div class="build-cat">📶 5G Small Cell / Dense</div>
+    <button class="bb" data-tool="tower_5g_small"><span class="ico">📶</span><span class="inf"><span class="nm">5G Small Cell 3.7GHz</span><br><span class="cs">85 000 Kč · dosah 2 · 1.5 Gbps · 200 klientů</span><br><span class="desc">Mikro buňka na lampy — levné zahušťování</span></span></button>
+    <button class="bb" data-tool="tower_5g_dense"><span class="ico">📶</span><span class="inf"><span class="nm">5G DAS Indoor</span><br><span class="cs">150 000 Kč · dosah 1 · 3 Gbps · 500 klientů</span><br><span class="desc">Stadiony, metro, obch. centra — extrémní hustota</span></span></button>
+    <div class="build-cat">⚡ 5G mmWave</div>
+    <button class="bb" data-tool="tower_5g_mmw"><span class="ico">⚡</span><span class="inf"><span class="nm">5G mmWave 26GHz</span><br><span class="cs">350 000 Kč · dosah 2 · 8 Gbps · 300 klientů</span><br><span class="desc">Ultra-rychlé, centra měst</span></span></button>
+    <button class="bb" data-tool="tower_5g_mmw60"><span class="ico">⚡</span><span class="inf"><span class="nm">5G mmWave 60GHz</span><br><span class="cs">450 000 Kč · dosah 1 · 20 Gbps · 150 klientů</span><br><span class="desc">Extrémní rychlost, FWA náhrada optiky</span></span></button>
+    <div class="build-cat">Nástroje</div>
+    <button class="bb active" data-tool="none"><span class="ico">👆</span><span class="inf"><span class="nm">Kurzor</span><span class="cs"> · výběr/info</span></span></button>
+    <button class="bb" data-tool="demolish"><span class="ico">🗑️</span><span class="inf"><span class="nm">Demolice</span><span class="cs"> · zdarma</span></span></button>
+  </div>
+
+  <div class="tab-content" id="tabTech">
+    <div class="build-cat">Vybavení DC (vyber → klikni na DC)</div>
+    <button class="bb" data-tool="eq_router"><span class="ico">📡</span><span class="inf"><span class="nm">Router</span><br><span class="cs">15 000 Kč · povinný pro provoz</span></span></button>
+    <button class="bb" data-tool="eq_switch24"><span class="ico">🔀</span><span class="inf"><span class="nm">Switch 24p</span><br><span class="cs">8 000 Kč · +24 portů</span></span></button>
+    <button class="bb" data-tool="eq_switch48"><span class="ico">🔀</span><span class="inf"><span class="nm">Switch 48p</span><br><span class="cs">14 000 Kč · +48 portů</span></span></button>
+    <button class="bb" data-tool="eq_server"><span class="ico">🖥️</span><span class="inf"><span class="nm">Server</span><br><span class="cs">35 000 Kč · DNS/DHCP/cache</span><br><span class="desc">Pro: tarify 100+ Mbps, cloud, IPTV</span></span></button>
+    <button class="bb" data-tool="eq_firewall"><span class="ico">🛡️</span><span class="inf"><span class="nm">Firewall Basic</span><br><span class="cs">25 000 Kč · 30% DDoS ochrana</span><br><span class="desc">Pro: Business tarify, VPN</span></span></button>
+    <button class="bb" data-tool="eq_firewall_pro"><span class="ico">🛡️</span><span class="inf"><span class="nm">Firewall Pro</span><br><span class="cs">65 000 Kč · 60% DDoS ochrana</span><br><span class="desc">Pokročilá bezpečnost</span></span></button>
+    <button class="bb" data-tool="eq_firewall_ent"><span class="ico">🔰</span><span class="inf"><span class="nm">Firewall Enterprise</span><br><span class="cs">150 000 Kč · 90% DDoS ochrana</span><br><span class="desc">Maximální bezpečnost</span></span></button>
+    <button class="bb" data-tool="eq_ups"><span class="ico">🔋</span><span class="inf"><span class="nm">UPS záloha</span><br><span class="cs">18 000 Kč · ochrana proti výpadkům</span></span></button>
+    <button class="bb" data-tool="eq_monitoring"><span class="ico">📊</span><span class="inf"><span class="nm">NMS monitoring</span><br><span class="cs">12 000 Kč · prevence výpadků</span></span></button>
+    <button class="bb" data-tool="eq_cooling"><span class="ico">❄️</span><span class="inf"><span class="nm">Chlazení</span><br><span class="cs">20 000 Kč · +4 rack sloty</span></span></button>
+    <button class="bb" data-tool="eq_backup"><span class="ico">💾</span><span class="inf"><span class="nm">Backup server</span><br><span class="cs">40 000 Kč · ochrana dat</span><br><span class="desc">Pro: Enterprise, Cloud</span></span></button>
+    <button class="bb" data-tool="eq_wifiap"><span class="ico">📶</span><span class="inf"><span class="nm">WiFi AP controller</span><br><span class="cs">22 000 Kč · řízení WiFi</span></span></button>
+    <button class="bb" data-tool="eq_voip"><span class="ico">📞</span><span class="inf"><span class="nm">VoIP gateway</span><br><span class="cs">28 000 Kč · telefonní služby</span><br><span class="desc">Pro: VoIP službu</span></span></button>
+    <button class="bb" data-tool="eq_iptv"><span class="ico">📺</span><span class="inf"><span class="nm">IPTV server</span><br><span class="cs">55 000 Kč · streaming platforma</span><br><span class="desc">Pro: IPTV službu</span></span></button>
+    <div class="build-cat">Síť & Routing</div>
+    <button class="bb" data-tool="eq_bgprouter"><span class="ico">🔀</span><span class="inf"><span class="nm">BGP router</span><br><span class="cs">45 000 Kč · veřejné IP, peering</span><br><span class="desc">Pro: Veřejné IP, dedikované linky</span></span></button>
+    <button class="bb" data-tool="eq_loadbalancer"><span class="ico">⚖️</span><span class="inf"><span class="nm">Load balancer</span><br><span class="cs">35 000 Kč · rozložení zátěže</span><br><span class="desc">Pro: CDN službu</span></span></button>
+    <div class="build-cat">Storage & Cloud</div>
+    <button class="bb" data-tool="eq_storage"><span class="ico">💿</span><span class="inf"><span class="nm">Diskové pole 10TB</span><br><span class="cs">65 000 Kč · úložiště pro cloud</span><br><span class="desc">Pro: Cloud storage, zálohy</span></span></button>
+    <button class="bb" data-tool="eq_storage_big"><span class="ico">🗄️</span><span class="inf"><span class="nm">Enterprise storage 50TB</span><br><span class="cs">180 000 Kč · velkokapacitní úložiště</span><br><span class="desc">Pro: Enterprise cloud, colocation</span></span></button>
+    <button class="bb" data-tool="eq_cloudnode"><span class="ico">☁️</span><span class="inf"><span class="nm">Cloud uzel</span><br><span class="cs">95 000 Kč · 32 vCPU / 128GB RAM</span><br><span class="desc">Pro: Cloud VPS služby</span></span></button>
+    <button class="bb" data-tool="eq_cloudnode_big"><span class="ico">🌩️</span><span class="inf"><span class="nm">Cloud cluster</span><br><span class="cs">280 000 Kč · 128 vCPU / 512GB RAM</span><br><span class="desc">Pro: Velké cloud nasazení</span></span></button>
+    <div class="build-cat">Upgrade technologie</div>
+    <button class="bb" data-tool="upgrade_tech"><span class="ico">🚀</span><span class="inf"><span class="nm">Upgrade sítě</span><br><span class="cs" id="upCost">–</span><br><span class="desc" id="upDesc">–</span></span></button>
+  </div>
+
+  <div class="tab-content" id="tabBW">
+    <div class="build-cat">Datová centra & Propustnost</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Každé DC má základní BW. Zákazníci čerpají nelineárně. Interconnect umožňuje sdílení zdrojů.</p>
+    <div id="bwDCList"></div>
+    <div class="build-cat" style="margin-top:12px">Kapacita kabelů</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Různé kabely na stejné trase se sčítají! Lepší kabel = upgrade existujícího.</p>
+    <div id="bwCableStats" style="font-size:10px"></div>
+  </div>
+
+  <div class="tab-content" id="tabTariff">
+    <div class="build-cat">Nabídka tarifů</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Domácnosti reagují na cenu, firmy na kvalitu a dostupnost.</p>
+    <table class="tariff-table"><thead><tr><th>On</th><th>Tarif</th><th>Mbps</th><th>Cena</th><th>Požadavky</th></tr></thead><tbody id="tariffBody"></tbody></table>
+    <div class="build-cat" style="margin-top:10px">Statistiky</div>
+    <div id="tariffStats" style="font-size:10px;color:#8b949e"></div>
+  </div>
+
+  <div class="tab-content" id="tabSvc">
+    <div class="build-cat">Služby pro zákazníky</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Aktivuj služby pro extra příjmy. Každá vyžaduje vybavení v DC. Různé typy budov mají různý zájem.</p>
+    <div id="svcList"></div>
+  </div>
+
+  <div class="tab-content" id="tabCloud">
+    <div class="build-cat">📊 Cloud dashboard</div>
+    <div id="cloudOverview" style="font-size:10px;margin-bottom:6px"></div>
+
+    <div class="build-cat" style="margin-top:8px">📋 SLA & Ceny</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Vyšší SLA přiláká korporáty, ale penalizuje při výpadku. Ceny ovlivňují poptávku.</p>
+    <div id="slaSelector" style="margin-bottom:6px"></div>
+    <div id="cloudPricing" style="margin-bottom:6px"></div>
+
+    <div class="build-cat" style="margin-top:8px">👥 Zákaznické segmenty</div>
+    <div id="cloudSegments" style="margin-bottom:6px"></div>
+
+    <div class="build-cat" style="margin-top:8px">☁️ Infrastruktura (per DC)</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Provisionuj VPS, K8s, DBaaS, Object Storage. Potřeba: cloud uzel + diskové pole v DC.</p>
+    <div id="cloudDCList"></div>
+
+    <div class="build-cat" style="margin-top:8px">🌍 IP adresy</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Kupuj bloky IP adres. Potřeba BGP router.</p>
+    <div id="ipStats" style="font-size:10px;margin-bottom:4px"></div>
+    <div id="ipBlockList"></div>
+
+    <div class="build-cat" style="margin-top:8px">🔗 IXP Peering</div>
+    <div id="ixpStatus" style="font-size:10px;margin-bottom:6px"></div>
+  </div>
+
+  <div class="tab-content" id="tabStaff">
+    <div class="build-cat">👥 Zaměstnanci</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Najímej zaměstnance pro zlepšení provozu. Každý typ má specifický efekt.</p>
+    <div id="staffList"></div>
+    <div class="build-cat" style="margin-top:10px">🎯 Odměny za dosažení</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Splň cíl v termínu a dostaneš peníze. Pokud nesplníš, neděje se nic — jen přijdeš o odměnu.</p>
+    <div id="contractList"></div>
+    <div class="build-cat" style="margin-top:10px">📜 Opravdové kontrakty</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Závazná smlouva s klientem. Splň a dostaneš odměnu. <b style="color:#f86963">Nesplň a zaplatíš penále ≥ 75 % smluvní částky!</b></p>
+    <div id="bindingList"></div>
+  </div>
+
+  <div class="tab-content" id="tabAch">
+    <div class="build-cat">🏆 Achievementy</div>
+    <div id="achList"></div>
+    <div class="build-cat" style="margin-top:10px">⭐ Hodnocení firmy</div>
+    <div id="ratingDisplay" style="font-size:16px;text-align:center;padding:8px"></div>
+    <div class="build-cat" style="margin-top:10px">🎯 Tržní podíl</div>
+    <div id="marketShare"></div>
+    <div class="build-cat" style="margin-top:10px">📊 KPI Dashboard</div>
+    <div id="kpiDashboard"></div>
+    <div class="build-cat" style="margin-top:10px">📈 Graf příjmů</div>
+    <canvas id="revenueChart" width="280" height="120" style="background:#0d1117;border:1px solid #21262d;border-radius:5px;width:100%"></canvas>
+    <div class="build-cat" style="margin-top:10px">🌆 Expanze města</div>
+    <div id="cityList"></div>
+    <div class="build-cat" style="margin-top:10px">🗺️ Rozšíření mapy</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Přikup si kus mapy do zvolené strany (~1/4 současné velikosti). Přibudou nové silnice a domy, které se dají připojit.</p>
+    <div id="mapExpandPanel"></div>
+    <div class="build-cat" style="margin-top:10px">🏦 Akciový trh</div>
+    <div id="ipoStatus"></div>
+  </div>
+
+  <div class="tab-content" id="tabMgmt">
+    <div class="mgmt-tabs">
+      <button class="mgmt-subtab active" data-mgmt="mgmtFinance">💰 Finance</button>
+      <button class="mgmt-subtab" data-mgmt="mgmtIncidents">🚨 Incidenty</button>
+      <button class="mgmt-subtab" data-mgmt="mgmtStaff">👥 Lidé</button>
+      <button class="mgmt-subtab" data-mgmt="mgmtMA">💼 M&A</button>
+    </div>
+    <div class="mgmt-content active" id="mgmtFinance">
+      <div class="build-cat">💳 Úvěrové hodnocení</div>
+      <div id="creditRatingBox"></div>
+      <div class="build-cat" style="margin-top:10px">💰 Úvěry</div>
+      <div id="loanSummary" style="font-size:10px;color:#8b949e;margin-bottom:6px"></div>
+      <div id="activeLoans"></div>
+      <div class="build-cat" style="margin-top:10px">📝 Nový úvěr</div>
+      <div id="loanProducts"></div>
+      <div class="build-cat" style="margin-top:10px">📊 Čtvrtletní reporty</div>
+      <div id="quarterlyReports" style="font-size:10px;max-height:150px;overflow-y:auto"></div>
+    </div>
+    <div class="mgmt-content" id="mgmtIncidents">
+      <div class="build-cat">🚨 Aktivní incidenty</div>
+      <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Klikni na akci pro nasazení týmu — delší doba bez reakce = větší ztráty!</p>
+      <div id="activeIncidents"></div>
+      <div class="build-cat" style="margin-top:10px">🎓 Learnings (snížení budoucích rizik)</div>
+      <div id="incidentLearnings" style="font-size:10px"></div>
+      <div class="build-cat" style="margin-top:10px">🕵️ Vyšetřování a soudy</div>
+      <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Po vyřešení přerušeného kabelu můžeš pátrat po viníkovi a případně ho žalovat</p>
+      <div id="investigationsList"></div>
+      <div class="build-cat" style="margin-top:10px">📜 Historie</div>
+      <div id="incidentHistoryList" style="font-size:9px;color:#8b949e;max-height:120px;overflow-y:auto"></div>
+    </div>
+    <div class="mgmt-content" id="mgmtStaff">
+      <div class="build-cat">👥 Tým a morálka</div>
+      <div id="staffDetailList"></div>
+      <div class="build-cat" style="margin-top:10px">🎓 Školící rozpočet</div>
+      <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
+        <input type="number" id="trainingBudgetInput" min="0" step="1000" style="flex:1;background:#0d1117;border:1px solid #21262d;color:#c9d1d9;padding:4px;border-radius:4px;font-size:11px">
+        <button onclick="applyTrainingBudget()" style="background:#238636;border:none;color:white;padding:5px 8px;border-radius:4px;font-size:10px;cursor:pointer">Nastavit</button>
+      </div>
+      <div style="font-size:9px;color:#6e7681">Zvyšuje morálku i XP zaměstnanců. Odečte se měsíčně.</div>
+    </div>
+    <div class="mgmt-content" id="mgmtMA">
+      <div class="build-cat">💼 Akviziční příležitosti</div>
+      <div id="takeoverList"></div>
+      <div class="build-cat" style="margin-top:10px">📢 Oznámení konkurence</div>
+      <div id="competitorAnnouncements" style="font-size:10px"></div>
+      <div class="build-cat" style="margin-top:10px">⚖️ Cartel risk</div>
+      <div id="cartelRiskBar"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tabUpgrade">
+    <div class="build-cat">Firemní upgrady</div>
+    <div id="upgradeList"></div>
+  </div>
+
+  <div id="bottomBtns">
+    <button onclick="saveGame()">💾 Uložit</button>
+    <button onclick="loadGame()">📂 Načíst</button>
+    <button onclick="showNewGame()">🆕 Nová</button>
+  </div>
+</div>
+
+<div id="canvasArea">
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="pixiCanvas"></canvas>
+  <div id="topBar">
+    <div class="tc">
+      <button class="tb" id="btnP" onclick="setSpeed(0)">⏸</button>
+      <button class="tb active" id="btnS1" onclick="setSpeed(1)">▶</button>
+      <button class="tb" id="btnS2" onclick="setSpeed(2)">▶▶</button>
+      <button class="tb" id="btnS5" onclick="setSpeed(5)">▶▶▶</button>
+    </div>
+    <div id="dateDisplay">1. ledna 2005</div>
+    <div id="popDisplay">👥 0</div>
+    <div id="bwDisplay">📡 0/0 Mbps</div>
+    <div id="moneyDisplay">500 000 Kč</div>
+  </div>
+  <div id="notifications"></div>
+  <div id="notifFeedPanel">
+    <div id="notifFeedHeader">
+      <span style="font-weight:700">📋 Události</span>
+      <div style="display:flex;gap:2px;margin-left:auto">
+        <button class="nf-btn" data-cat="outage" title="Výpadky" onclick="setNotifFilter('outage')">🔴</button>
+        <button class="nf-btn" data-cat="customer" title="Zákazníci" onclick="setNotifFilter('customer')">👥</button>
+        <button class="nf-btn" data-cat="finance" title="Finance" onclick="setNotifFilter('finance')">💰</button>
+        <button class="nf-btn" data-cat="competitor" title="Konkurence" onclick="setNotifFilter('competitor')">📊</button>
+        <button class="nf-btn" data-cat="event" title="Události" onclick="setNotifFilter('event')">⚡</button>
+        <button class="nf-btn nf-clear" title="Vymazat" onclick="clearNotifFeed()">✕</button>
+        <button class="nf-btn nf-toggle" title="Skrýt" onclick="document.getElementById('notifFeedPanel').classList.toggle('collapsed')">▼</button>
+      </div>
+    </div>
+    <div id="notifFeedList"></div>
+  </div>
+  <div id="zoomBtns">
+    <button onclick="zoomIn()" title="Přiblížit">+</button>
+    <button onclick="zoomOut()" title="Oddálit">−</button>
+    <button onclick="zoomReset()" title="Reset" style="font-size:12px">⌂</button>
+    <button onclick="pixiTogglable()" title="WebGL efekty ZAP/VYP" style="font-size:12px">✨</button>
+    <button id="btnHeatmap" onclick="cycleHeatmap()" title="Heatmap: pokrytí → utilizace → spokojenost → vypnuto" style="font-size:12px">🌡️</button>
+  </div>
+  <canvas id="minimap"></canvas>
+  <div id="infoPanel"></div>
+  <div id="tooltip"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="newGameModal">
+  <div class="modal">
+    <h2>🌐 NetTycoon</h2>
+    <p>Vybuduj internetové impérium!</p>
+    <p style="font-size:11px;color:#a78bfa">Služby: IPTV, VoIP, VPN, Cloud a další. WiFi pokrytí bez kabelů. DC interconnection pro spolehlivost.</p>
+    <p style="color:#e0e0e0">Název společnosti:</p>
+    <input type="text" id="inputName" value="MíraNet">
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0;color:#8b949e;font-size:12px;cursor:pointer;justify-content:center"><input type="checkbox" id="inputCompetitors" style="accent-color:#7c3aed;width:16px;height:16px"> AI konkurenti (3 soupeři)</label>
+    <button onclick="startNewGame()">🚀 Založit firmu</button>
+  </div>
+</div>
+<!-- DC Interior Modal -->
+<div class="dc-modal-overlay" id="dcModal">
+  <div class="dc-modal">
+    <div class="dc-modal-header">
+      <h2 id="dcModalTitle">🏢 Datové centrum</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="dcModalOutage" style="display:none;color:#f85149;font-size:11px">🔴 VÝPADEK</span>
+        <button class="dc-close" onclick="closeDCModal()">✕ Zavřít</button>
+      </div>
+    </div>
+    <div class="dc-modal-body">
+      <div class="dc-rack-area" id="dcRackArea">
+        <!-- Racks rendered dynamically -->
+      </div>
+      <div class="dc-sidebar" id="dcShopSidebar">
+        <!-- Equipment shop rendered dynamically -->
+      </div>
+    </div>
+    <div class="dc-status-bar" id="dcStatusBar">
+      <!-- Status meters rendered dynamically -->
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleLoad(event)">
+
+<!-- PixiJS WebGL renderer (for bloom/glow FX overlay) -->
+<!-- Dynamický loader: nejdřív vendor/, když padne, CDN. Pokud selžou oba, hra jede bez FX. -->
+<!-- PixiJS — statické tagy. vendor/*.min.js se zajišťují přes scripts/prepare-dist.sh,
+     takže soubory MUSÍ existovat předtím, než Tauri otevře okno. Pokud by přece
+     jen chyběly, `pixi-fx.js` má `typeof PIXI==='undefined'` guard a hra poběží
+     bez WebGL overlayů. -->
+<script src="vendor/pixi.min.js" onerror="console.warn('vendor/pixi.min.js nelze načíst — FX vypnuté')"></script>
+<script src="vendor/pixi-filters.min.js" onerror="console.warn('vendor/pixi-filters.min.js nelze načíst — FX vypnuté')"></script>
+<script>
+/* Diagnostika: potvrzení, že PIXI stihne naběhnout PŘED pixi-fx.js (oba dva
+   synchronní <script src> tagy blokují parser, takže to platí garantovaně). */
+console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
+            'filters?', typeof PIXI !== 'undefined' && !!PIXI.filters);
+</script>
+<!-- Load all JavaScript modules in order -->
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/map.js"></script>
+<script src="js/capacity.js"></script>
+<script src="js/wifi.js"></script>
+<script src="js/events.js"></script>
+<script src="js/finance.js"></script>
+<script src="js/incidents.js"></script>
+<script src="js/morale.js"></script>
+<script src="js/render.js"></script>
+<script src="js/heatmap.js"></script>
+<script src="js/sprite-cache.js"></script>
+<script src="js/pixi-fx.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/input.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
