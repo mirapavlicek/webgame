@@ -526,6 +526,8 @@ function cloudDemandTick(D){
 }
 
 function monthUp(){
+  // Reset měsíčních CapEx/OpEx kumulátorů (feature #6 — cash flow view)
+  try{if(typeof cashflowMonthlyReset==='function')cashflowMonthlyReset();}catch(e){console.error('cashflowMonthlyReset:',e);}
   calcCapacity();
   // NOC staff reduces outage chance
   const nocEffect=getStaffEffect('noc');
@@ -652,6 +654,72 @@ function monthUp(){
   if(G.upgrades.includes('wholesale1'))cr+=.2;
   exp=Math.round(exp*(1-cr));
 
+  // Elektřina — spotová cena × PUE × IT load. Nepodléhá automatizační slevě
+  // (utilita se nedá "zautomatizovat", leda investicí do chlazení = nižší PUE).
+  let elecCost=0;
+  let renewableSurplusRev=0;
+  let renewableMaint=0;
+  try{
+    if(typeof electricityMonthlyTick==='function')electricityMonthlyTick();
+    // v0.3.1: nejprve renewable — pokud jsou, sníží elektřinový účet nebo generují přebytek
+    if(typeof totalMonthlyElectricityCostNet==='function' && (G.powerPlants||[]).length>0){
+      elecCost = totalMonthlyElectricityCostNet();
+      if(typeof renewableMonthlySettle==='function'){
+        const rs = renewableMonthlySettle();
+        renewableSurplusRev = rs.surplusRev||0;
+      }
+    } else if(typeof totalMonthlyElectricityCost==='function'){
+      // Fallback — renewable neexistují / powerPlants prázdné
+      elecCost=totalMonthlyElectricityCost();
+      // DC solar roof stále může kompenzovat i bez outdoor elektráren
+      if(typeof totalMonthlyElectricityCostNet==='function'){
+        elecCost=totalMonthlyElectricityCostNet();
+      }
+    }
+    if(typeof renewableMonthlyMaintCost==='function') renewableMaint=renewableMonthlyMaintCost();
+  }catch(e){console.error('electricity:',e);}
+  G.electricityCostM=elecCost;
+  G.renewableSurplusRevM=renewableSurplusRev;
+  G.renewableMaintM=renewableMaint;
+  if(!G.electricityHist)G.electricityHist=[];
+  G.electricityHist.push({y:G.date.y,m:G.date.m,price:G.electricityPrice||0,cost:elecCost,surplusRev:renewableSurplusRev});
+  if(G.electricityHist.length>24)G.electricityHist.shift();
+  exp+=elecCost;
+  exp+=renewableMaint;
+  inc+=renewableSurplusRev;
+
+  // Transit / peering — měsíční paušál (nepodléhá automatizaci, účet od carriera).
+  let transitCost=0;
+  try{
+    if(typeof transitMonthlyCost==='function')transitCost=transitMonthlyCost();
+  }catch(e){console.error('transit:',e);}
+  G.transitCostM=transitCost;
+  exp+=transitCost;
+
+  // Factoring — pokud běží, příjmy v tomto měsíci jdou faktorovi
+  let incPreFactor=inc;
+  try{
+    if(typeof factoringRevenueCut==='function'){
+      const cutFactor=factoringRevenueCut();
+      inc=Math.round(inc*cutFactor);
+    }
+  }catch(e){console.error('factoring:',e);}
+
+  // OpEx kategorie — rozepsat pro cash flow panel (používá inflatované částky).
+  // Poznámka: `exp` už obsahuje hwExp + cust*25 + cloudOp + SLA + sal + hwExtra po cr slevě,
+  // pak přičtené elecCost a transitCost (bypass cr). Pro zjednodušení zde zaznamenáme
+  // hlavní kategorie na základě surových hodnot a aplikujeme cr u těch, kterých se týká.
+  try{
+    if(typeof recordOpex==='function'){
+      recordOpex('salaries', Math.round(inflSalaryCost(salExp)*(1-cr)));
+      recordOpex('electricity', elecCost);
+      recordOpex('transit', transitCost);
+      recordOpex('hw_maintenance', Math.round(inflComponentCost(hwExp+hwExtra)*(1-cr)));
+      recordOpex('cloud_ops', Math.round(cloudOp*(1-cr)));
+      recordOpex('customer_ops', Math.round(inflSalaryCost(cust*25)*(1-cr)));
+    }
+  }catch(e){console.error('recordOpex:',e);}
+
   G.cash+=inc-exp;
   G.stats.inc=inc;
   G.stats.exp=exp;
@@ -693,6 +761,16 @@ function monthUp(){
   try{aiCompetitorTick();}catch(e){console.error('aiCompetitorTick:',e);}
   // Finance monthly tick: loan payments + credit rating + quarterly report
   try{if(typeof financeMonthlyTick==='function')financeMonthlyTick();}catch(e){console.error('financeMonthlyTick:',e);}
+  // HW aging — check per-item failure chance based on install date
+  try{if(typeof eqDoMonthlyAging==='function')eqDoMonthlyAging();}catch(e){console.error('eqDoMonthlyAging:',e);}
+  // Dotace/granty — kontrola splnění a nabídek
+  try{if(typeof subsidiesMonthlyTick==='function')subsidiesMonthlyTick();}catch(e){console.error('subsidiesMonthlyTick:',e);}
+  // Segment churn — SLA-sensitivita dle typu zákazníka
+  try{if(typeof segmentMonthlyChurnTick==='function')segmentMonthlyChurnTick();}catch(e){console.error('segmentMonthlyChurnTick:',e);}
+  // Regulační šoky (ČTÚ, NIS2, GDPR) — měsíční kontrola
+  try{if(typeof regulatoryMonthlyTick==='function')regulatoryMonthlyTick();}catch(e){console.error('regulatoryMonthlyTick:',e);}
+  // Cash flow monthly close — uložit do historie (používá aktuální inc, exp, capexM, opexM)
+  try{if(typeof cashflowMonthlyClose==='function')cashflowMonthlyClose(inc);}catch(e){console.error('cashflowMonthlyClose:',e);}
   // Staff morale / XP / training budget deduction
   try{if(typeof staffMonthlyTick==='function')staffMonthlyTick();}catch(e){console.error('staffMonthlyTick:',e);}
   // DDoS events (occasional, separate from random events)
@@ -711,7 +789,7 @@ function yearUp(){
   let added=0;
   for(let a=0;a<300&&added<6;a++){
     const x=Math.floor(Math.random()*MAP),y=Math.floor(Math.random()*MAP);
-    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
+    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&(typeof hasPowerPlant!=='function'||!hasPowerPlant(x,y))&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
       const dc=Math.sqrt((x-MAP/2)**2+(y-MAP/2)**2);let bt;
       if(dc<8){const r=Math.random();bt=r<.3?'skyscraper':r<.5?'bigcorp':'panel';}
       else{const r=Math.random();bt=r<.35?'house':r<.55?'rowhouse':r<.75?'panel':'shop';}
@@ -746,6 +824,8 @@ function yearUp(){
   try{investorYearCheck();}catch(e){console.error('investorYearCheck:',e);}
   // Annual inflation / finance yearly effects
   try{if(typeof financeYearlyTick==='function')financeYearlyTick();}catch(e){console.error('financeYearlyTick:',e);}
+  // Cash flow yearly close — přesun YTD CapEx do historického poolu
+  try{if(typeof cashflowYearlyClose==='function')cashflowYearlyClose();}catch(e){console.error('cashflowYearlyClose:',e);}
 }
 
 window.addEventListener('load',()=>{

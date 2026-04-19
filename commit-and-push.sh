@@ -5,9 +5,9 @@ set -e
 
 cd "$(dirname "$0")"
 
-# Stale .lock soubory z předchozího crashu/sandboxu — smaž všechny.
+# Stale .lock soubory z předchozího crashu/sandboxu — smaž všechny (i v refs/remotes).
 echo "🗑  mažu stale .lock soubory v .git/"
-find .git -maxdepth 3 -name "*.lock" -type f -print -delete 2>/dev/null || true
+find .git -name "*.lock" -type f -print -delete 2>/dev/null || true
 # Některé tmp objekty z neúspěšného `git add` — ty taky uklidit
 find .git/objects -name "tmp_obj_*" -type f -print -delete 2>/dev/null || true
 

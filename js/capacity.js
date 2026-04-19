@@ -170,7 +170,11 @@ function calcBldRevenue(b){
     rev=G.tariffs[b.tariff].price*b.customers;
   }
   const tInfl=(G&&G.tariffInflation)||1;
-  return rev*tInfl;
+  // v0.3.0: segment ARPU multiplier (SMB/Enterprise/Gov platí víc za stejný tarif)
+  const segMult=(typeof segmentArpuMult==='function')?segmentArpuMult(b.type):1.0;
+  // v0.3.0: ČTÚ cenová regulace (-15 % na residential po dobu 36 měs)
+  const ctuMult=(typeof ctuPricingMultiplier==='function')?ctuPricingMultiplier(b.type):1.0;
+  return rev*tInfl*segMult*ctuMult;
 }
 
 // Check if a DC or connected DCs have equipment
@@ -292,6 +296,8 @@ function calcCapacity(){
     let usedBW=0;const dt=DC_T[dc.type];
     let maxBW=dt.baseBW;for(const bwu of(dc.bwUpgrades||[]))maxBW+=bwu.bw;
     if(G.hasIXP)maxBW+=IXP.bwBonus;
+    // v0.3.0: transit carrier poskytuje dodatečný BW poolovaný rovnoměrně do všech DC
+    if(typeof transitBwBonusPerDC==='function')maxBW+=transitBwBonusPerDC();
     for(const cn of G.conns){
       if(cn.di!==di)continue;
       const b=G.map[cn.by]?.[cn.bx]?.bld;

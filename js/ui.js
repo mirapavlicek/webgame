@@ -109,6 +109,14 @@ function updUI(){
     const tar=((G.tariffInflation||1)-1)*100;
     infEl.textContent=`CPI +${cpi.toFixed(1)}% (mzdy +${sal.toFixed(1)}% · HW +${hw.toFixed(1)}% · tarify +${tar.toFixed(1)}%)`;
   }
+  // Elektřina — spotová cena + měsíční náklad
+  const elecEl=document.getElementById('sElec');
+  if(elecEl){
+    const price=(G.electricityPrice||0);
+    const cost=G.electricityCostM||0;
+    const clr=(typeof electricityPriceColor==='function')?electricityPriceColor():'#22d3ee';
+    elecEl.innerHTML=`<span style="color:${clr}">${price.toFixed(2)} Kč/kWh</span> · <span style="color:#e6edf3">${fmtKc(cost)}/měs</span>`;
+  }
 
   // Tech upgrade button
   const upCostEl=document.getElementById('upCost');
@@ -133,9 +141,12 @@ function updUI(){
   buildAchList();
   buildRatingDisplay();
   buildMarketShareDisplay();
+  try{buildSegmentsDashboard();}catch(e){console.error('buildSegmentsDashboard:',e);}
   buildKPIDashboard();
   buildRevenueChart();
   buildIXPStatus();
+  try{buildPeeringStatus();}catch(e){console.error('buildPeeringStatus:',e);}
+  try{buildRenewableInfo();}catch(e){console.error('buildRenewableInfo:',e);}
   buildCityList();
   if(typeof buildMapExpandPanel==='function')buildMapExpandPanel();
   buildIPOStatus();
@@ -161,7 +172,7 @@ function buildBWList(){
 
     let h=`<div style="display:flex;justify-content:space-between;align-items:center">`;
     h+=`<span style="font-size:11px;font-weight:600;color:${isOut?'#f85149':'#00d4ff'}">${isOut?'⚠️ ':''}${dt.name} #${di+1}</span>`;
-    h+=`<div style="display:flex;gap:4px;align-items:center"><button onclick="event.stopPropagation();openDCModal(${di})" style="padding:2px 8px;background:#1a1040;border:1px solid #7c3aed;border-radius:4px;color:#a78bfa;cursor:pointer;font-size:8px" onmouseover="this.style.background='#7c3aed';this.style.color='#fff'" onmouseout="this.style.background='#1a1040';this.style.color='#a78bfa'">🔧 Otevřít</button><span style="font-size:9px;color:#8b949e">[${dc.x},${dc.y}]</span></div></div>`;
+    h+=`<div style="display:flex;gap:4px;align-items:center"><button onclick="event.stopPropagation();openDCModal(${di})" style="padding:2px 8px;background:#1a1040;border:1px solid #7c3aed;border-radius:4px;color:#a78bfa;cursor:pointer;font-size:9.5px" onmouseover="this.style.background='#7c3aed';this.style.color='#fff'" onmouseout="this.style.background='#1a1040';this.style.color='#a78bfa'">🔧 Otevřít</button><span style="font-size:9px;color:#8b949e">[${dc.x},${dc.y}]</span></div></div>`;
 
     // Outage status
     if(isOut)h+=`<div style="color:#f85149;font-size:9px;margin:2px 0">🔴 VÝPADEK: ${dc.outage.cause} (${dc.outage.remaining} dní)</div>`;
@@ -171,7 +182,7 @@ function buildBWList(){
     const clr=ratio>.95?'#f85149':ratio>.7?'#f59e0b':'#3fb950';
     const effBW=load.maxBW||maxBW;
     const bgpTxt=(load.sharedIn>0?` +${fmtBW(load.sharedIn)} BGP`:load.sharedOut>0?` →${fmtBW(load.sharedOut)} BGP`:'');
-    h+=`<div style="font-size:9px;color:#8b949e;margin:3px 0">BW: <b style="color:${clr}">${fmtBW(load.usedBW)} / ${fmtBW(effBW)}</b> (${ratioP}%)${bgpTxt?`<span style="color:#a78bfa;font-size:8px">${bgpTxt}</span>`:''}</div>`;
+    h+=`<div style="font-size:9px;color:#8b949e;margin:3px 0">BW: <b style="color:${clr}">${fmtBW(load.usedBW)} / ${fmtBW(effBW)}</b> (${ratioP}%)${bgpTxt?`<span style="color:#a78bfa;font-size:9.5px">${bgpTxt}</span>`:''}</div>`;
     h+=`<div class="cap-bar"><div class="fill ${ratio>.95?'crit':ratio>.7?'warn':'ok'}" style="width:${Math.min(100,ratioP)}%"></div></div>`;
 
     // Rack slots + network capacity
@@ -194,7 +205,7 @@ function buildBWList(){
       const counts={};for(const e of eqs)counts[e]=(counts[e]||0)+1;
       for(const e in counts){
         const eq=EQ[e];if(!eq)continue;
-        h+=`<span style="display:inline-block;padding:1px 4px;background:#1a1040;border:1px solid #30363d;border-radius:3px;font-size:8px;margin:1px" title="${eq.name}">${eq.icon}${counts[e]>1?'×'+counts[e]:''}</span>`;
+        h+=`<span style="display:inline-block;padding:1px 4px;background:#1a1040;border:1px solid #30363d;border-radius:3px;font-size:9.5px;margin:1px" title="${eq.name}">${eq.icon}${counts[e]>1?'×'+counts[e]:''}</span>`;
       }
       h+='</div>';
     }
@@ -203,7 +214,7 @@ function buildBWList(){
     const dcLinks=(G.dcLinks||[]).filter(l=>l.dc1===di||l.dc2===di);
     const dcPeerings=(G.bgpPeerings||[]).filter(p=>p.dc1===di||p.dc2===di);
     if(dcLinks.length){
-      h+=`<div style="font-size:8px;color:#a78bfa;margin:2px 0">🔗 ${dcLinks.map(l=>'DC#'+(l.dc1===di?l.dc2+1:l.dc1+1)).join(', ')}`;
+      h+=`<div style="font-size:9.5px;color:#a78bfa;margin:2px 0">🔗 ${dcLinks.map(l=>'DC#'+(l.dc1===di?l.dc2+1:l.dc1+1)).join(', ')}`;
       if(dcPeerings.length)h+=` · <span style="color:#3fb950">${dcPeerings.length} BGP</span>`;
       h+=`</div>`;
     }
@@ -239,7 +250,7 @@ function buildBWList(){
       if(!eqs.includes('eq_ups'))missing.push('🔋 UPS (ochrana proti výpadkům)');
       if(!eqs.includes('eq_monitoring'))missing.push('📊 NMS (prevence výpadků)');
       if(missing.length){
-        h+=`<div style="margin-top:4px;padding:4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;font-size:8px;color:#f85149">`;
+        h+=`<div style="margin-top:4px;padding:4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;font-size:9.5px;color:#f85149">`;
         h+=`⚠️ Chybí: ${missing.join(' · ')}</div>`;
       }
 
@@ -250,7 +261,7 @@ function buildBWList(){
           const bwu=dc.bwUpgrades[bwi];
           h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px;background:#1a1a0a;border:1px solid #33300a;border-radius:3px;margin:1px 0;font-size:9px">`;
           h+=`<span>📡 +${fmtBW(bwu.bw)} · ${fmtKc(bwu.mCost)}/m</span>`;
-          h+=`<button onclick="event.stopPropagation();removeBW(${di},${bwi})" style="padding:1px 4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:8px" title="Odebrat (30% refund)">✕</button>`;
+          h+=`<button onclick="event.stopPropagation();removeBW(${di},${bwi})" style="padding:1px 4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9.5px" title="Odebrat (30% refund)">✕</button>`;
           h+=`</div>`;
         }
       }
@@ -305,7 +316,7 @@ function buildBWList(){
   if(G.migrationLog&&G.migrationLog.length){
     ch+=`<div style="margin-top:8px;font-size:9px;font-weight:600;color:#a78bfa">🔄 Poslední migrace:</div>`;
     for(const log of G.migrationLog.slice(-5)){
-      ch+=`<div style="font-size:8px;color:#8b949e;padding:1px 0">${log}</div>`;
+      ch+=`<div style="font-size:9.5px;color:#8b949e;padding:1px 0">${log}</div>`;
     }
   }
 
@@ -349,7 +360,7 @@ function buildTariffTable(){
     let reqHtml=t.reqEq.length?t.reqEq.map(r=>{
       const eq=EQ[r];const has=anyDCHasEq([r]);
       return`<span class="req-tag" style="border-color:${has?'#3fb950':'#f85149'};color:${has?'#3fb950':'#f85149'}">${eq?eq.icon:''}${eq?eq.name:r}</span>`;
-    }).join(''):'<span style="color:#484f58;font-size:8px">–</span>';
+    }).join(''):'<span style="color:#484f58;font-size:9.5px">–</span>';
 
     // Customer count for this tariff (from tariffDist)
     let custCount=0;
@@ -379,7 +390,7 @@ function buildTariffTable(){
     const inflTag=inflPct>=1?` <span style="color:#f59e0b" title="Nominál ${fmtKc(t.price)} × valorizace ${inflPct}%">↑${inflPct}%</span>`:'';
     const custInfo=custCount>0?`${custCount} zákazníků · ${fmtKc(effRev)}/měs${inflTag} · `:'';
     const descInfo=t.desc?` · <span style="color:#6e7681">${t.desc}</span>`:'';
-    stRow.innerHTML=`<td colspan="5" style="padding:1px 4px;font-size:8px;color:#8b949e;border-bottom:1px solid #161b22">└ ${custInfo}ref: ${fmtKc(rp)} (${Math.round(priceRatio*100)}%)${priceLabel}${descInfo}</td>`;
+    stRow.innerHTML=`<td colspan="5" style="padding:1px 4px;font-size:9.5px;color:#8b949e;border-bottom:1px solid #161b22">└ ${custInfo}ref: ${fmtKc(rp)} (${Math.round(priceRatio*100)}%)${priceLabel}${descInfo}</td>`;
     tbody.appendChild(stRow);
   }
 
@@ -500,7 +511,7 @@ function buildSvcCard(list,si){
     else if(priceRatio>1.15)priceWarn='<span style="color:#f59e0b">⚠️ Nadprůměrná cena</span>';
     else if(priceRatio<0.75)priceWarn='<span style="color:#3fb950">🔥 Výprodej!</span>';
     else if(priceRatio<0.9)priceWarn='<span style="color:#3fb950">✓ Konkurenční</span>';
-    if(priceWarn)h+=`<div style="font-size:8px;margin-top:1px">${priceWarn} (${Math.round(priceRatio*100)}% ref)</div>`;
+    if(priceWarn)h+=`<div style="font-size:9.5px;margin-top:1px">${priceWarn} (${Math.round(priceRatio*100)}% ref)</div>`;
 
     // Revenue breakdown
     h+=`<div style="margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;font-size:9px">`;
@@ -514,21 +525,21 @@ function buildSvcCard(list,si){
     h+=`<span style="color:#f59e0b">Jednorázově: ${fmtKc(svc.cost)}</span>`;
     h+=`<span style="color:#8b949e">Provoz: ${fmtKc(svc.mCost)}/měs</span>`;
     h+=`</div>`;
-    h+=`<div style="font-size:8px;color:#8b949e;margin-top:2px">Max. odběratelů: ${maxPotential} · Ref. cena: ${refP} Kč/měs</div>`;
+    h+=`<div style="font-size:9.5px;color:#8b949e;margin-top:2px">Max. odběratelů: ${maxPotential} · Ref. cena: ${refP} Kč/měs</div>`;
   }
 
   // Extra BW consumption
-  h+=`<div style="font-size:8px;color:#8b949e;margin-top:2px">${svc.extraBW>=0?'+':''}${svc.extraBW} Mbps BW/odběratel</div>`;
+  h+=`<div style="font-size:9.5px;color:#8b949e;margin-top:2px">${svc.extraBW>=0?'+':''}${svc.extraBW} Mbps BW/odběratel</div>`;
 
   // Equipment requirements
   const reqNames=svc.reqEq.map(r=>{
     const eq=EQ[r];const has=anyDCHasEq([r]);
     return`<span style="color:${has?'#3fb950':'#f85149'}">${eq?eq.icon:''}${eq?eq.name:r}${has?' ✓':' ✗'}</span>`;
   }).join(' · ');
-  h+=`<div style="font-size:8px;margin-top:2px">Vyžaduje: ${reqNames}</div>`;
+  h+=`<div style="font-size:9.5px;margin-top:2px">Vyžaduje: ${reqNames}</div>`;
 
   // Adoption rates preview
-  h+=`<div style="font-size:8px;color:#6e7681;margin-top:2px">Max. adopce: `;
+  h+=`<div style="font-size:9.5px;color:#6e7681;margin-top:2px">Max. adopce: `;
   const topAdopt=Object.entries(svc.adopt).sort((a,b)=>b[1]-a[1]).slice(0,3);
   h+=topAdopt.map(([k,v])=>`${BTYPES[k]?.icon||''} ${Math.round(v*100)}%`).join(' · ');
   h+=`</div>`;
@@ -536,7 +547,7 @@ function buildSvcCard(list,si){
   if(!owned&&eqOk){
     h+=`<button onclick="event.stopPropagation();buyService(${si})" style="margin-top:4px;padding:4px 10px;background:#1a1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:4px;cursor:pointer;font-size:9px;width:100%">🛒 Aktivovat za ${fmtKc(svc.cost)}</button>`;
   } else if(!owned&&!eqOk){
-    h+=`<div style="margin-top:3px;font-size:8px;color:#f85149">⚠️ Chybí vybavení v DC!</div>`;
+    h+=`<div style="margin-top:3px;font-size:9.5px;color:#f85149">⚠️ Chybí vybavení v DC!</div>`;
   }
 
   div.innerHTML=h;
@@ -586,7 +597,7 @@ function buildUpgradeList(){
       h+=`<div class="ud">${upg.desc}</div>`;
       if(locked){
         const reqUpg=UPGRADES.find(u=>u.id===upg.req);
-        h+=`<div style="margin-top:2px;font-size:8px;color:#f59e0b">Vyžaduje: ${reqUpg?.icon||''} ${reqUpg?.name||upg.req}</div>`;
+        h+=`<div style="margin-top:2px;font-size:9.5px;color:#f59e0b">Vyžaduje: ${reqUpg?.icon||''} ${reqUpg?.name||upg.req}</div>`;
       }
       if(!owned&&!locked){
         h+=`<button onclick="event.stopPropagation();buyUpgrade(${upg.idx})" style="margin-top:4px;padding:3px 8px;background:#1a1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:4px;cursor:pointer;font-size:9px">🛒 Koupit</button>`;
@@ -663,7 +674,7 @@ function buildCloudTab(){
     sh+=`<b>${isCurrent?'✅ ':''} ${sla.name}</b>`;
     sh+=` <span style="color:#6e7681">· cena ×${sla.priceMult} · penále ${Math.round(sla.penaltyPct*100)}%</span>`;
     if(sla.reqEq.length>0&&!eqMet)sh+=` <span style="color:#f85149">🔒 ${sla.reqEq.map(e=>EQ[e]?.name||e).join(', ')}</span>`;
-    sh+=`<br><span style="font-size:8px;color:#6e7681">${sla.desc}</span></button>`;
+    sh+=`<br><span style="font-size:9.5px;color:#6e7681">${sla.desc}</span></button>`;
   }
   slaEl.innerHTML=sh;
 
@@ -676,7 +687,7 @@ function buildCloudTab(){
   ph+=`<span style="color:#8b949e">Drahé</span>`;
   ph+=`<span id="cloudPriceVal" style="color:#f59e0b;font-weight:600;min-width:35px">${pm.toFixed(2)}×</span>`;
   ph+=`</div>`;
-  ph+=`<div style="font-size:8px;color:#6e7681;margin-top:2px">Efektivní cena: ${(pm*curSLA.priceMult).toFixed(2)}× (základ × SLA)</div>`;
+  ph+=`<div style="font-size:9.5px;color:#6e7681;margin-top:2px">Efektivní cena: ${(pm*curSLA.priceMult).toFixed(2)}× (základ × SLA)</div>`;
   prEl.innerHTML=ph;
 
   // === Customer Segments ===
@@ -697,11 +708,11 @@ function buildCloudTab(){
     sg+=`<span style="font-size:9px;color:#a78bfa">${cs.count}/${marketSize}</span>`;
     sg+=`</div>`;
     sg+=`<div class="cap-bar" style="margin:3px 0"><div class="fill ok" style="width:${Math.min(100,fillPct)}%"></div></div>`;
-    sg+=`<div style="display:flex;justify-content:space-between;font-size:8px;color:#6e7681">`;
+    sg+=`<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#6e7681">`;
     sg+=`<span>Spokojenost: <b style="color:${satClr}">${Math.round(cs.satisfaction)}%</b></span>`;
     sg+=`<span>Pref. SLA: ${SLA_TIERS.find(s=>s.id===seg.slaPref)?.name||'?'}</span>`;
     sg+=`</div>`;
-    sg+=`<div style="font-size:8px;color:#484f58">${seg.desc}</div>`;
+    sg+=`<div style="font-size:9.5px;color:#484f58">${seg.desc}</div>`;
     sg+=`</div>`;
   }
   if(!G.cloudInstances||!G.cloudInstances.length)sg='<div style="font-size:9px;color:#484f58">Nejdřív provisionuj cloud instance v DC, pak přijdou zákazníci.</div>';
@@ -777,7 +788,7 @@ function buildCloudTab(){
         dh+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px;background:#161b22;border-radius:3px;margin:1px 0;font-size:9px">`;
         dh+=`<span>${cp.icon} ${cp.name} ×${ci.count}</span>`;
         dh+=`<span style="color:#6e7681">${cp.bwMbps||0} Mbps</span>`;
-        dh+=`<button onclick="event.stopPropagation();deprovisionCloud(${di},'${ci.type}')" style="padding:1px 4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:8px">−1</button>`;
+        dh+=`<button onclick="event.stopPropagation();deprovisionCloud(${di},'${ci.type}')" style="padding:1px 4px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9.5px">−1</button>`;
         dh+=`</div>`;
       }
     }
@@ -798,7 +809,7 @@ function buildCloudTab(){
         const info=isCompute?`${cp.vCPU} vCPU · ${cp.ramGB||0}GB`:(cp.storageTB?`${cp.storageTB} TB`:'');
         dh+=`<button onclick="event.stopPropagation();provisionCloud(${di},'${key}')" style="display:block;width:100%;padding:3px 6px;margin:1px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:${canProvision?'#e0e0e0':'#484f58'};cursor:${canProvision?'pointer':'default'};font-size:9px;text-align:left" ${canProvision?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>`;
         dh+=`${cp.icon} ${cp.name} · ${info} · ${cp.bwMbps||0} Mbps · <span style="color:#3fb950">${fmtKc(cp.price)}/m</span>`;
-        if(cp.desc)dh+=`<br><span style="font-size:8px;color:#6e7681">${cp.desc}</span>`;
+        if(cp.desc)dh+=`<br><span style="font-size:9.5px;color:#6e7681">${cp.desc}</span>`;
         dh+=`</button>`;
       }
     }
@@ -863,7 +874,7 @@ function renderNotifFeed(){
     h+=`<div style="display:flex;gap:6px;padding:4px 6px;margin:2px 0;background:#0d1117;border-left:2px solid ${c};border-radius:3px;font-size:10px;align-items:center">`;
     h+=`<span title="${n.cat}" style="color:${catColors[n.cat]};font-size:9px">${catIcons[n.cat]}</span>`;
     h+=`<span style="flex:1;color:#c9d1d9">${n.msg}</span>`;
-    if(n.ts)h+=`<span style="font-size:8px;color:#484f58">${n.ts}</span>`;
+    if(n.ts)h+=`<span style="font-size:9.5px;color:#484f58">${n.ts}</span>`;
     h+=`</div>`;
   }
   panel.innerHTML=h;
@@ -933,7 +944,7 @@ function buildContractList(){
       ah+=`<div style="background:#0d1117;border:1px solid #f59e0b44;border-left:3px solid ${catInfo.color};border-radius:5px;padding:6px 8px;margin-bottom:4px">`;
       ah+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
       ah+=`<span style="font-size:11px;font-weight:600">${ct.icon} ${ct.name}</span>`;
-      ah+=`<span style="font-size:8px;color:${urgClr};font-weight:600">${c.remaining} měs.</span></div>`;
+      ah+=`<span style="font-size:9.5px;color:${urgClr};font-weight:600">${c.remaining} měs.</span></div>`;
       ah+=`<div style="font-size:9px;color:#8b949e;margin:2px 0">${ct.desc}</div>`;
       // Progress bar (time remaining)
       const totalMonths=ct.months||12;
@@ -941,7 +952,7 @@ function buildContractList(){
       const pct=Math.round(elapsed/totalMonths*100);
       ah+=`<div style="display:flex;align-items:center;gap:6px;margin-top:3px">`;
       ah+=`<div style="flex:1;height:4px;background:#21262d;border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${urgClr};border-radius:2px"></div></div>`;
-      ah+=`<span style="font-size:8px;color:#3fb950">${fmtKc(ct.reward)}</span></div>`;
+      ah+=`<span style="font-size:9.5px;color:#3fb950">${fmtKc(ct.reward)}</span></div>`;
       ah+=`</div>`;
     }
     list.innerHTML+=ah;
@@ -970,18 +981,18 @@ function buildContractList(){
     }
     for(const catKey in byCat){
       const catInfo=CONTRACT_CATS[catKey]||{name:catKey,color:'#8b949e'};
-      ah+=`<div style="font-size:8px;color:${catInfo.color};font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:8px 0 3px">${catInfo.name}</div>`;
+      ah+=`<div style="font-size:9.5px;color:${catInfo.color};font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:8px 0 3px">${catInfo.name}</div>`;
       for(const ct of byCat[catKey]){
         const isGen=ct.source==='generated';
         ah+=`<div style="background:#0d1117;border:1px solid #21262d;border-left:3px solid ${catInfo.color};border-radius:5px;padding:6px 8px;margin-bottom:3px">`;
         ah+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
-        ah+=`<span style="font-size:10px;font-weight:600">${ct.icon} ${ct.name}${isGen?' <span style="font-size:7px;color:#f59e0b;background:#1a1a0a;padding:1px 4px;border-radius:2px">ZAKÁZKA</span>':''}</span>`;
-        ah+=`<span style="font-size:8px;color:#8b949e">${ct.months}m</span></div>`;
+        ah+=`<span style="font-size:10px;font-weight:600">${ct.icon} ${ct.name}${isGen?' <span style="font-size:9px;color:#f59e0b;background:#1a1a0a;padding:1px 4px;border-radius:2px">ZAKÁZKA</span>':''}</span>`;
+        ah+=`<span style="font-size:9.5px;color:#8b949e">${ct.months}m</span></div>`;
         ah+=`<div style="font-size:9px;color:#8b949e;margin:2px 0">${ct.desc}</div>`;
         ah+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">`;
         ah+=`<span style="font-size:9px;color:#3fb950;font-weight:600">${fmtKc(ct.reward)}</span>`;
         const acceptFn=isGen?`acceptGeneratedContract('${ct.id}')`:`acceptContract('${ct.id}')`;
-        ah+=`<button onclick="event.stopPropagation();${acceptFn}" style="padding:3px 10px;background:#1a1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:4px;cursor:pointer;font-size:8px;font-weight:600" onmouseover="this.style.background='#7c3aed';this.style.color='#fff'" onmouseout="this.style.background='#1a1040';this.style.color='#a78bfa'">Přijmout</button>`;
+        ah+=`<button onclick="event.stopPropagation();${acceptFn}" style="padding:3px 10px;background:#1a1040;border:1px solid #7c3aed;color:#a78bfa;border-radius:4px;cursor:pointer;font-size:9.5px;font-weight:600" onmouseover="this.style.background='#7c3aed';this.style.color='#fff'" onmouseout="this.style.background='#1a1040';this.style.color='#a78bfa'">Přijmout</button>`;
         ah+=`</div></div>`;
       }
     }
@@ -997,7 +1008,7 @@ function buildContractList(){
       if(!ct)ct=G.generatedContracts.find(c=>c.id===id);
       const name=ct?ct.name:id;
       const icon=ct?ct.icon:'✅';
-      ch+=`<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;background:#0a1a0a;border:1px solid #3fb95044;border-radius:3px;font-size:8px;color:#3fb950" title="${name}">${icon}</span>`;
+      ch+=`<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;background:#0a1a0a;border:1px solid #3fb95044;border-radius:3px;font-size:9.5px;color:#3fb950" title="${name}">${icon}</span>`;
     }
     ch+='</div>';
     list.innerHTML+=ch;
@@ -1038,11 +1049,11 @@ function buildBindingList(){
       h+=`<div style="font-size:9px;color:#9ba5b8;margin-bottom:4px">${c.desc}</div>`;
       h+=`<div style="display:flex;gap:6px;align-items:center;margin:3px 0">`;
       h+=`<div style="flex:1;height:4px;background:#2e3548;border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${urg};border-radius:2px"></div></div>`;
-      h+=`<span style="font-size:8px;color:#7c8699">čas ${pct}%</span></div>`;
+      h+=`<span style="font-size:9.5px;color:#7c8699">čas ${pct}%</span></div>`;
       if(progressPct>0){
         h+=`<div style="display:flex;gap:6px;align-items:center;margin:3px 0">`;
         h+=`<div style="flex:1;height:4px;background:#2e3548;border-radius:2px;overflow:hidden"><div style="height:100%;width:${progressPct}%;background:#4ec96b;border-radius:2px"></div></div>`;
-        h+=`<span style="font-size:8px;color:#4ec96b">cíl ${progressPct}%</span></div>`;
+        h+=`<span style="font-size:9.5px;color:#4ec96b">cíl ${progressPct}%</span></div>`;
       }
       h+=`<div style="display:flex;justify-content:space-between;font-size:9px;margin-top:3px">`;
       h+=`<span style="color:#4ec96b;font-weight:600">✅ ${fmtKc(c.reward)}</span>`;
@@ -1061,7 +1072,7 @@ function buildBindingList(){
       h+=`<div style="background:#242b3d;border:1px solid #3a4358;border-left:3px solid #38d5f5;border-radius:5px;padding:7px 9px;margin-bottom:5px">`;
       h+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
       h+=`<span style="font-size:10.5px;font-weight:700;color:#b69bff">${o.clientIcon||'📜'} ${o.client}</span>`;
-      h+=`<span style="font-size:8px;color:#7c8699">${o.months} měs.</span></div>`;
+      h+=`<span style="font-size:9.5px;color:#7c8699">${o.months} měs.</span></div>`;
       h+=`<div style="font-size:10px;color:#e8edf5;font-weight:600;margin:2px 0">${o.icon} ${o.name}</div>`;
       h+=`<div style="font-size:9px;color:#9ba5b8;margin-bottom:4px">${o.desc}</div>`;
       h+=`<div style="display:flex;justify-content:space-between;align-items:center;background:#1a2030;padding:3px 6px;border-radius:3px;margin:3px 0;font-size:9px">`;
@@ -1116,7 +1127,7 @@ function buildAchList(){
     h+=`<div style="display:flex;align-items:center;padding:4px 6px;margin:2px 0;background:${done?'#0a1a0a':'#0d1117'};border:1px solid ${done?'#3fb950':'#21262d'};border-radius:5px;gap:8px">`;
     h+=`<span style="font-size:18px;${done?'':'filter:grayscale(1);opacity:.5'}">${ach.icon}</span>`;
     h+=`<div><div style="font-size:10px;font-weight:600;color:${done?'#3fb950':'#8b949e'}">${ach.name}${done?' ✅':''}</div>`;
-    h+=`<div style="font-size:8px;color:#6e7681">${ach.desc}</div></div></div>`;
+    h+=`<div style="font-size:9.5px;color:#6e7681">${ach.desc}</div></div></div>`;
   }
   list.innerHTML=h;
 }
@@ -1157,7 +1168,7 @@ function buildMarketShareDisplay(){
     h+=`<span style="color:${r.isPlayer?'#7c3aed':r.color};font-weight:600">${pct}%</span>`;
     h+=`</div>`;
     if(strategyBadge||priceInfo){
-      h+=`<div style="font-size:8px;color:#6e7681;padding:0 6px 4px 22px">${strategyBadge}${priceInfo}</div>`;
+      h+=`<div style="font-size:9.5px;color:#6e7681;padding:0 6px 4px 22px">${strategyBadge}${priceInfo}</div>`;
     }
   }
   el.innerHTML=h;
@@ -1180,7 +1191,7 @@ function buildKPIDashboard(){
   for(const m of metrics){
     h+=`<div style="background:#0d1117;border:1px solid #21262d;border-radius:5px;padding:6px;text-align:center">`;
     h+=`<div style="font-size:14px;font-weight:700;color:${m.c}">${m.v}</div>`;
-    h+=`<div style="font-size:8px;color:#6e7681">${m.l}</div></div>`;
+    h+=`<div style="font-size:9.5px;color:#6e7681">${m.l}</div></div>`;
   }
   h+='</div>';
 
@@ -1194,11 +1205,11 @@ function buildKPIDashboard(){
     h+=`<div style="display:flex;justify-content:space-between;font-size:9px;margin:2px 0"><span style="color:#8b949e">Podíl:</span><span style="color:#f59e0b;font-weight:600">${inv.equityPct}%</span></div>`;
     h+=`<div style="display:flex;justify-content:space-between;font-size:9px;margin:2px 0"><span style="color:#8b949e">Trpělivost:</span><span style="color:${patienceColor};font-weight:600">${patiencePct}%</span></div>`;
     h+=`<div style="background:#21262d;border-radius:3px;height:4px;margin-top:3px"><div style="background:${patienceColor};width:${patiencePct}%;height:100%;border-radius:3px"></div></div>`;
-    h+=`<div style="display:flex;justify-content:space-between;font-size:8px;margin-top:3px;color:#6e7681"><span>Investováno: ${fmtKc(inv.totalInvested)}</span><span>Vyplaceno: ${fmtKc(inv.totalDivPaid)}</span></div>`;
+    h+=`<div style="display:flex;justify-content:space-between;font-size:9.5px;margin-top:3px;color:#6e7681"><span>Investováno: ${fmtKc(inv.totalInvested)}</span><span>Vyplaceno: ${fmtKc(inv.totalDivPaid)}</span></div>`;
     if(inv.equityPct>0){
       const valuation=getCompanyValuation();
       const buybackCost=Math.round(valuation*0.05/5*inv.equityPct);
-      h+=`<div style="font-size:8px;color:#6e7681;margin-top:2px">Odkup 5%: ~${fmtKc(Math.round(valuation*0.05))}</div>`;
+      h+=`<div style="font-size:9.5px;color:#6e7681;margin-top:2px">Odkup 5%: ~${fmtKc(Math.round(valuation*0.05))}</div>`;
     }
     h+=`</div>`;
   }
@@ -1268,6 +1279,25 @@ function buildIXPStatus(){
   }
 }
 
+// ====== CUSTOMER SEGMENTS DASHBOARD ======
+function buildSegmentsDashboard(){
+  const el=document.getElementById('segmentsDashboard');if(!el)return;
+  el.innerHTML=(typeof segmentDashboardHTML==='function')?segmentDashboardHTML():'';
+}
+
+// ====== PEERING / TRANSIT STATUS ======
+function buildPeeringStatus(){
+  const elStatus=document.getElementById('peeringStatus');
+  const elOffers=document.getElementById('peeringOffers');
+  if(!elStatus && !elOffers) return;
+  if(elStatus){
+    elStatus.innerHTML=(typeof transitStatusHTML==='function')?transitStatusHTML():'';
+  }
+  if(elOffers){
+    elOffers.innerHTML=(typeof transitOfferListHTML==='function')?transitOfferListHTML():'';
+  }
+}
+
 // ====== CITY EXPANSION ======
 function buildCityList(){
   const el=document.getElementById('cityList');if(!el)return;
@@ -1318,7 +1348,7 @@ function buildMapExpandPanel(){
   }
   // Historie expanzí
   if((G.expansions||[]).length>0){
-    h+=`<div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--bd-1);font-size:8px;color:var(--tx-4);line-height:1.5">`;
+    h+=`<div style="margin-top:6px;padding-top:5px;border-top:1px solid var(--bd-1);font-size:9.5px;color:var(--tx-4);line-height:1.5">`;
     const last=G.expansions.slice(-4).reverse();
     for(const ex of last){
       const d={n:'N',s:'S',e:'E',w:'W'}[ex.dir]||ex.dir;
@@ -1403,6 +1433,50 @@ function renderDCModal(){
   rh+=dcMiniCard('🔗','Porty',`${netCap.usedPorts}/${netCap.totalPorts}`,portRatio,portRatio>.9?'#f85149':portRatio>.7?'#f59e0b':'#3fb950');
   rh+=dcMiniCard('📡','Router',`${netCap.usedConns}/${netCap.routerCap}`,routRatio,routRatio>.9?'#f85149':routRatio>.7?'#f59e0b':'#00d4ff');
   rh+=`</div>`;
+  // Power / PUE info
+  if(typeof dcPUE==='function'&&typeof dcITLoadKW==='function'&&typeof dcMonthlyElectricityCost==='function'){
+    const pue=dcPUE(dc);
+    const kwIT=dcITLoadKW(dc);
+    const kwTotal=kwIT*pue;
+    const monthCost=dcMonthlyElectricityCost(dc);
+    const pueClr=pue>=1.7?'#f85149':pue>=1.5?'#f59e0b':pue>=1.3?'#22d3ee':'#3fb950';
+    const hasCool=eqs.some(e=>EQ[e]&&EQ[e].eff==='cooling');
+    const price=(G.electricityPrice||0).toFixed(2);
+    rh+=`<div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:8px;margin:6px 0">`;
+    rh+=`<div style="font-size:10px;color:#8b949e;margin-bottom:4px;font-weight:600">⚡ Spotřeba elektřiny</div>`;
+    rh+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px;color:#e6edf3">`;
+    rh+=`<div><span style="color:#8b949e">IT</span><br><b>${kwIT.toFixed(1)} kW</b></div>`;
+    rh+=`<div><span style="color:#8b949e">PUE</span><br><b style="color:${pueClr}">${pue.toFixed(2)}</b>${hasCool?'':' <span style="color:#f85149;font-size:9px" title="Bez chlazení = vysoké ztráty">⚠</span>'}</div>`;
+    rh+=`<div><span style="color:#8b949e">Celkem</span><br><b>${kwTotal.toFixed(1)} kW</b></div>`;
+    rh+=`<div><span style="color:#8b949e">Náklad/měs</span><br><b style="color:#f85149">${fmtKc(monthCost)}</b></div>`;
+    rh+=`</div>`;
+    rh+=`<div style="font-size:9px;color:#8b949e;margin-top:4px">Spot cena: <b style="color:${(typeof electricityPriceColor==='function')?electricityPriceColor():'#22d3ee'}">${price} Kč/kWh</b> · Více chlazení = nižší PUE = levnější provoz</div>`;
+    rh+=`</div>`;
+  }
+  // HW aging — souhrn a tlačítko pro hromadnou výměnu
+  if(typeof eqAgeMonths==='function'&&dc.eqInstalled){
+    let agedCount=0, oldCount=0, totalCost=0;
+    for(let i=0;i<dc.eq.length;i++){
+      const am=eqAgeMonths(dc,i);
+      if(am>=HW_WARN_AGE_MONTHS){
+        agedCount++;
+        if(am>=HW_EOL_AGE_MONTHS)oldCount++;
+        const e=EQ[dc.eq[i]];
+        if(e)totalCost += (typeof inflComponentCost==='function')?inflComponentCost(e.cost):e.cost;
+      }
+    }
+    if(agedCount>0){
+      const color = oldCount>0?'#f85149':'#f59e0b';
+      rh+=`<div style="background:#1a1009;border:1px solid ${color}66;border-radius:6px;padding:8px;margin:6px 0">`;
+      rh+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
+      rh+=`<div>`;
+      rh+=`<div style="font-size:10px;color:${color};font-weight:600">⚠️ Stárnoucí HW</div>`;
+      rh+=`<div style="font-size:9px;color:#8b949e;margin-top:2px">${agedCount}× starší 5 let${oldCount>0?` · ${oldCount}× starší 10 let (EOL)`:''}</div>`;
+      rh+=`</div>`;
+      rh+=`<button onclick="event.stopPropagation();replaceAllAgedInDC(${dcModalIdx},5)" style="padding:4px 10px;background:#1a1040;border:1px solid ${color};border-radius:4px;color:${color};cursor:pointer;font-size:10px;font-weight:600">🔧 Obnovit ${fmtKc(totalCost)}</button>`;
+      rh+=`</div></div>`;
+    }
+  }
   // Port breakdown tooltip
   rh+=`<div style="font-size:10px;color:#8b949e;margin:4px 0 2px;text-align:center">`;
   rh+=`Porty: ${netCap.usedConns} přípojek + ${netCap.bwUplinks||0} transit + ${netCap.towerPorts||0} věží`;
@@ -1425,7 +1499,7 @@ function renderDCModal(){
     rh+=`<div style="position:absolute;top:0;left:0;height:100%;width:${usedPct}%;background:rgba(255,255,255,.12);pointer-events:none"></div>`;
     rh+=`</div>`;
     // Legend
-    rh+=`<div style="display:flex;gap:10px;margin-top:4px;font-size:8px">`;
+    rh+=`<div style="display:flex;gap:10px;margin-top:4px;font-size:9.5px">`;
     rh+=`<span><span style="display:inline-block;width:8px;height:8px;background:#1a4a1a;border-radius:2px;margin-right:3px"></span>Vlastní ${fmtBW(ownBW)}</span>`;
     if(bgpIn>0)rh+=`<span><span style="display:inline-block;width:8px;height:8px;background:#2d1a4a;border-radius:2px;margin-right:3px"></span>BGP ← ${fmtBW(bgpIn)}</span>`;
     if(bgpOut>0)rh+=`<span style="color:#f59e0b"><span style="display:inline-block;width:8px;height:8px;background:#4a3a1a;border-radius:2px;margin-right:3px"></span>BGP → ${fmtBW(bgpOut)}</span>`;
@@ -1457,10 +1531,23 @@ function renderDCModal(){
         else if(eq.eff==='reliable'||eq.eff==='cooling')borderClr='#ef4444';
         else if(eq.eff==='routing'||eq.eff==='lb')borderClr='#06b6d4';
 
-        rh+=`<div class="rack-slot filled" style="border-color:${borderClr}" title="${eq.name} · ${fmtKc(eq.mCost)}/měs\nKlikni pro odebrání (50% refund)" onclick="event.stopPropagation();removeEqFromDC(${dcModalIdx},${si})">`;
+        // HW aging badge
+        let ageInfo='';
+        let ageBadge='';
+        if(typeof eqAgeMonths==='function'&&dc.eqInstalled){
+          const am=eqAgeMonths(dc,si);
+          const ac=(typeof ageColor==='function')?ageColor(am):'#8b949e';
+          const al=(typeof ageLabel==='function')?ageLabel(am):am+'m';
+          ageInfo=`\nStáří: ${al}`;
+          if(am>=HW_WARN_AGE_MONTHS){
+            ageBadge=`<span class="slot-age" style="position:absolute;top:2px;right:2px;font-size:8px;color:${ac};background:#0d1117cc;border:1px solid ${ac};border-radius:3px;padding:0 3px;font-weight:700" title="Stáří ${al}. Klik pravý = výměna (full cost)">${al}</span>`;
+          }
+        }
+        rh+=`<div class="rack-slot filled" style="border-color:${borderClr};position:relative" title="${eq.name} · ${fmtKc(eq.mCost)}/měs${ageInfo}\nKlikni pro odebrání · Pravým pro výměnu za nový" onclick="event.stopPropagation();removeEqFromDC(${dcModalIdx},${si})" oncontextmenu="event.preventDefault();event.stopPropagation();replaceAgedEq(${dcModalIdx},${si});return false">`;
         rh+=`<span class="slot-led ${ledClass}"></span>`;
         rh+=`<span class="slot-icon">${eq.icon}</span>`;
         rh+=`<span class="slot-name">${eq.name}</span>`;
+        rh+=ageBadge;
         rh+=`</div>`;
       } else {
         rh+=`<div class="rack-slot"><span style="font-size:14px;color:#21262d">+</span></div>`;
@@ -1471,11 +1558,11 @@ function renderDCModal(){
 
   // BW Upgrades
   rh+=`<div class="rack" style="border-color:#f59e0b44">`;
-  rh+=`<div class="rack-header"><span style="color:#f59e0b">📡 Transit / Bandwidth</span><span>${fmtBW(load.usedBW)} / ${fmtBW(effMaxBW)}${bgpIn>0?' <span style="color:#a78bfa;font-size:8px">(+'+fmtBW(bgpIn)+' BGP)</span>':''}</span></div>`;
+  rh+=`<div class="rack-header"><span style="color:#f59e0b">📡 Transit / Bandwidth</span><span>${fmtBW(load.usedBW)} / ${fmtBW(effMaxBW)}${bgpIn>0?' <span style="color:#a78bfa;font-size:9.5px">(+'+fmtBW(bgpIn)+' BGP)</span>':''}</span></div>`;
   rh+=`<div style="padding:6px;display:flex;flex-wrap:wrap;gap:4px">`;
   for(let bwi=0;bwi<(dc.bwUpgrades||[]).length;bwi++){
     const bwu=dc.bwUpgrades[bwi];
-    rh+=`<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#1a1a0a;border:1px solid #f59e0b;border-radius:4px;font-size:9px">📡 +${fmtBW(bwu.bw)} · ${fmtKc(bwu.mCost)}/m <button onclick="event.stopPropagation();removeBW(${dcModalIdx},${bwi});renderDCModal()" style="padding:0 3px;background:none;border:1px solid #f85149;border-radius:2px;color:#f85149;cursor:pointer;font-size:8px;line-height:1.2" title="Odebrat (30% refund)">✕</button></span>`;
+    rh+=`<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#1a1a0a;border:1px solid #f59e0b;border-radius:4px;font-size:9px">📡 +${fmtBW(bwu.bw)} · ${fmtKc(bwu.mCost)}/m <button onclick="event.stopPropagation();removeBW(${dcModalIdx},${bwi});renderDCModal()" style="padding:0 3px;background:none;border:1px solid #f85149;border-radius:2px;color:#f85149;cursor:pointer;font-size:9.5px;line-height:1.2" title="Odebrat (30% refund)">✕</button></span>`;
   }
   if(!(dc.bwUpgrades||[]).length)rh+=`<span style="color:#484f58;font-size:9px">Pouze základní BW (${fmtBW(dt.baseBW)})</span>`;
   // BGP sharing info
@@ -1484,7 +1571,7 @@ function renderDCModal(){
   rh+=`</div><div style="padding:0 6px 6px;display:flex;flex-wrap:wrap;gap:3px">`;
   for(let bi=0;bi<BW_UPGRADES.length;bi++){
     const bwu=BW_UPGRADES[bi];
-    rh+=`<button onclick="event.stopPropagation();buyBW(${dcModalIdx},${bi});renderDCModal()" style="padding:3px 8px;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:8px;transition:.15s" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#21262d'">+${fmtBW(bwu.bw)} · ${fmtCostInfl(bwu.cost)}</button>`;
+    rh+=`<button onclick="event.stopPropagation();buyBW(${dcModalIdx},${bi});renderDCModal()" style="padding:3px 8px;background:#0d1117;border:1px solid #21262d;border-radius:4px;color:#e0e0e0;cursor:pointer;font-size:9.5px;transition:.15s" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#21262d'">+${fmtBW(bwu.bw)} · ${fmtCostInfl(bwu.cost)}</button>`;
   }
   rh+=`</div></div>`;
 
@@ -1516,7 +1603,7 @@ function renderDCModal(){
 
   if(links.length||myPeerings.length||hasBGP){
     rh+=`<div class="rack" style="border-color:#a78bfa44">`;
-    rh+=`<div class="rack-header"><span style="color:#a78bfa">🔀 BGP Peering & Směrování</span>${hasBGP?`<span style="font-size:8px">Kapacita: ${fmtBW(bgpTotal)}</span>`:''}</div>`;
+    rh+=`<div class="rack-header"><span style="color:#a78bfa">🔀 BGP Peering & Směrování</span>${hasBGP?`<span style="font-size:9.5px">Kapacita: ${fmtBW(bgpTotal)}</span>`:''}</div>`;
     rh+=`<div style="padding:6px">`;
 
     // Physical links overview + diagnostic for unlinked BGP-capable DCs
@@ -1535,7 +1622,7 @@ function renderDCModal(){
           rh+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:#161b22;border:1px solid #21262d;border-radius:4px;margin-bottom:3px;font-size:9px">`;
           rh+=`<span>🔗 DC#${oi+1} · ${fmtBW(link.capacity)} · ${pathCount} ${pathCount>1?'tras':'trasa'}${oBGP?' · <span style="color:#3fb950">BGP✓</span>':'<span style="color:#f59e0b"> · bez BGP</span>'}</span>`;
           if(hasBGP&&oBGP&&!peerExists){
-            rh+=`<button onclick="event.stopPropagation();createBGPPeering(${dcModalIdx},${oi});renderDCModal()" style="padding:2px 6px;background:#1a1040;border:1px solid #a78bfa;border-radius:3px;color:#a78bfa;cursor:pointer;font-size:8px" title="Vytvořit BGP peering">+ BGP</button>`;
+            rh+=`<button onclick="event.stopPropagation();createBGPPeering(${dcModalIdx},${oi});renderDCModal()" style="padding:2px 6px;background:#1a1040;border:1px solid #a78bfa;border-radius:3px;color:#a78bfa;cursor:pointer;font-size:9.5px" title="Vytvořit BGP peering">+ BGP</button>`;
           }
           rh+=`</div>`;
         } else {
@@ -1576,11 +1663,11 @@ function renderDCModal(){
         rh+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
         rh+=`<span style="font-size:10px;font-weight:600;color:${stClr}">↔ DC#${oi+1} ${p.active?'':'(pozastaveno)'}</span>`;
         rh+=`<div style="display:flex;gap:3px">`;
-        rh+=`<button onclick="event.stopPropagation();toggleBGPPeering(${p.idx});renderDCModal()" style="padding:2px 6px;background:none;border:1px solid ${p.active?'#f59e0b':'#3fb950'};border-radius:3px;color:${p.active?'#f59e0b':'#3fb950'};cursor:pointer;font-size:7px">${p.active?'⏸️':'▶️'}</button>`;
-        rh+=`<button onclick="event.stopPropagation();removeBGPPeering(${p.idx});renderDCModal()" style="padding:2px 6px;background:none;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:7px">✕</button>`;
+        rh+=`<button onclick="event.stopPropagation();toggleBGPPeering(${p.idx});renderDCModal()" style="padding:2px 6px;background:none;border:1px solid ${p.active?'#f59e0b':'#3fb950'};border-radius:3px;color:${p.active?'#f59e0b':'#3fb950'};cursor:pointer;font-size:9px">${p.active?'⏸️':'▶️'}</button>`;
+        rh+=`<button onclick="event.stopPropagation();removeBGPPeering(${p.idx});renderDCModal()" style="padding:2px 6px;background:none;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">✕</button>`;
         rh+=`</div></div>`;
         // Info row
-        rh+=`<div style="font-size:8px;color:#8b949e;margin-bottom:4px">Max: ${fmtBW(p.maxBW)} · Alokováno: <b style="color:#a78bfa">${fmtBW(p.allocBW)}</b> (${allocPct}%) · Aktuální: <b style="color:#22d3ee">${fmtBW(traffic)}</b></div>`;
+        rh+=`<div style="font-size:9.5px;color:#8b949e;margin-bottom:4px">Max: ${fmtBW(p.maxBW)} · Alokováno: <b style="color:#a78bfa">${fmtBW(p.allocBW)}</b> (${allocPct}%) · Aktuální: <b style="color:#22d3ee">${fmtBW(traffic)}</b></div>`;
         // Traffic bar
         rh+=`<div style="height:6px;background:#0d1117;border-radius:3px;overflow:hidden;margin-bottom:6px;position:relative">`;
         rh+=`<div style="position:absolute;height:100%;width:${allocPct}%;background:#a78bfa33;border-radius:3px"></div>`;
@@ -1588,16 +1675,16 @@ function renderDCModal(){
         rh+=`</div>`;
         // Bandwidth allocation slider
         rh+=`<div style="display:flex;align-items:center;gap:6px">`;
-        rh+=`<span style="font-size:8px;color:#6e7681;white-space:nowrap">Alokace:</span>`;
+        rh+=`<span style="font-size:9.5px;color:#6e7681;white-space:nowrap">Alokace:</span>`;
         rh+=`<input type="range" min="0" max="${p.maxBW}" step="${Math.max(100,Math.round(p.maxBW/100))}" value="${p.allocBW}" oninput="setBGPAlloc(${p.idx},+this.value);this.nextElementSibling.textContent=fmtBW(+this.value)" style="flex:1;height:4px;accent-color:#a78bfa">`;
-        rh+=`<span style="font-size:8px;color:#a78bfa;min-width:55px;text-align:right">${fmtBW(p.allocBW)}</span>`;
+        rh+=`<span style="font-size:9.5px;color:#a78bfa;min-width:55px;text-align:right">${fmtBW(p.allocBW)}</span>`;
         rh+=`</div>`;
         // Quick allocation buttons
         rh+=`<div style="display:flex;gap:3px;margin-top:4px">`;
         for(const pct of [0,25,50,75,100]){
           const val=Math.round(p.maxBW*pct/100);
           const sel=Math.abs(p.allocBW-val)<Math.max(100,p.maxBW*.02);
-          rh+=`<button onclick="event.stopPropagation();setBGPAlloc(${p.idx},${val});renderDCModal()" style="flex:1;padding:2px;background:${sel?'#a78bfa':'#0d1117'};border:1px solid ${sel?'#a78bfa':'#21262d'};border-radius:3px;color:${sel?'#fff':'#8b949e'};cursor:pointer;font-size:7px">${pct}%</button>`;
+          rh+=`<button onclick="event.stopPropagation();setBGPAlloc(${p.idx},${val});renderDCModal()" style="flex:1;padding:2px;background:${sel?'#a78bfa':'#0d1117'};border:1px solid ${sel?'#a78bfa':'#21262d'};border-radius:3px;color:${sel?'#fff':'#8b949e'};cursor:pointer;font-size:9px">${pct}%</button>`;
         }
         rh+=`</div>`;
         rh+=`</div>`;
@@ -1621,7 +1708,7 @@ function renderDCModal(){
   if(hasLB||myConns.length>0||junctionsOnMap>0){
     rh+=`<div class="rack" style="border-color:${hasLB?'#a78bfa88':'#21262d'}">`;
     rh+=`<div class="rack-header"><span style="color:${hasLB?'#a78bfa':'#8b949e'}">⚖️ Aktivní Load Balancing & Směrování</span>`;
-    rh+=`<span style="font-size:8px;color:${hasLB?'#3fb950':'#8b949e'}">${hasLB?'AKTIVNÍ (DC LB)':junctionsOnMap>0?'AKTIVNÍ (polní LB)':'STATICKÉ (ECMP)'}</span></div>`;
+    rh+=`<span style="font-size:9.5px;color:${hasLB?'#3fb950':'#8b949e'}">${hasLB?'AKTIVNÍ (DC LB)':junctionsOnMap>0?'AKTIVNÍ (polní LB)':'STATICKÉ (ECMP)'}</span></div>`;
     rh+=`<div style="padding:6px">`;
     if(hasLB){
       rh+=`<div style="font-size:9px;color:#a78bfa;margin-bottom:6px">✅ DC má <b>Load Balancer</b> — váhování tras podle volné kapacity místo statické max. šířky. Pokud se jedna trasa zaplňuje, provoz se automaticky přesouvá na paralelní kabely.</div>`;
@@ -1652,7 +1739,7 @@ function renderDCModal(){
         rh+=`</div>`;
       }
       if(myConns.length>5){
-        rh+=`<div style="font-size:8px;color:#6e7681;font-style:italic;text-align:center">… a další ${myConns.length-5} přípojek</div>`;
+        rh+=`<div style="font-size:9.5px;color:#6e7681;font-style:italic;text-align:center">… a další ${myConns.length-5} přípojek</div>`;
       }
     }
     if(junctionsOnMap>0){
@@ -1673,7 +1760,7 @@ function renderDCModal(){
   // === SIDEBAR: Equipment Shop ===
   const shop=document.getElementById('dcShopSidebar');
   let sh=`<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🛒 Vybavení</div>`;
-  sh+=`<div style="font-size:8px;color:#6e7681;margin-bottom:8px">Klikni pro instalaci. Na obsazený slot klikni pro odebrání (50% refund).</div>`;
+  sh+=`<div style="font-size:9.5px;color:#6e7681;margin-bottom:8px">Klikni pro instalaci. Na obsazený slot klikni pro odebrání (50% refund).</div>`;
 
   const eqCats={
     network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_switch24','eq_switch48','eq_bgprouter','eq_loadbalancer']},
@@ -1691,7 +1778,7 @@ function renderDCModal(){
   const coolCount=eqs.filter(e=>e==='eq_cooling').length;
   for(const catKey in eqCats){
     const cat=eqCats[catKey];
-    sh+=`<div style="font-size:8px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:8px 0 3px;font-weight:700">${cat.name}</div>`;
+    sh+=`<div style="font-size:9.5px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:8px 0 3px;font-weight:700">${cat.name}</div>`;
     for(const eqKey of cat.items){
       const eq=EQ[eqKey];if(!eq)continue;
       // Inflace se musí počítat s aktuálním stavem G.componentInflation,
@@ -1744,7 +1831,7 @@ function dcMiniCard(icon,label,value,ratio,color){
   return `<div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:8px;text-align:center">
     <div style="font-size:16px">${icon}</div>
     <div style="font-size:14px;font-weight:700;color:${color};margin:2px 0">${value}</div>
-    <div style="font-size:8px;color:#6e7681">${label}</div>
+    <div style="font-size:9.5px;color:#6e7681">${label}</div>
     ${ratio>0?`<div class="cap-bar" style="margin-top:4px"><div class="fill ${ratio>.9?'crit':ratio>.7?'warn':'ok'}" style="width:${Math.min(100,ratio*100)}%"></div></div>`:''}
   </div>`;
 }
@@ -1760,10 +1847,18 @@ function removeEqFromDC(dcIdx,slotIdx){
   const dc=G.dcs[dcIdx];if(!dc||!dc.eq||slotIdx>=dc.eq.length)return;
   const eqKey=dc.eq[slotIdx];
   const eq=EQ[eqKey];
-  const refund=eq?Math.round(eq.cost*0.5):0;
+  // v0.3.0: refund klesá s věkem HW (10 let = 5 %, nové = 50 %)
+  let refundPct=0.5;
+  if(dc.eqInstalled&&dc.eqInstalled[slotIdx]&&typeof eqAgeMonths==='function'){
+    const ageM=eqAgeMonths(dc,slotIdx);
+    const ageY=ageM/12;
+    refundPct=Math.max(0.05, 0.5 - ageY*0.045); // −4.5 %/rok
+  }
+  const refund=eq?Math.round(eq.cost*refundPct):0;
   dc.eq.splice(slotIdx,1);
+  if(dc.eqInstalled)dc.eqInstalled.splice(slotIdx,1);
   G.cash+=refund;
-  notify(`🗑️ ${eq?eq.name:'Vybavení'} odebráno (+${fmtKc(refund)} refund)`,'good');
+  notify(`🗑️ ${eq?eq.name:'Vybavení'} odebráno (+${fmtKc(refund)} refund, ${Math.round(refundPct*100)}%)`,'good');
   renderDCModal();
   updUI();
 }
@@ -1864,7 +1959,7 @@ function buildIncidentsDisplay(){
     let b=mgmtTab.querySelector('.tab-badge');
     if(n>0){
       if(!b){b=document.createElement('span');b.className='tab-badge';mgmtTab.appendChild(b);}
-      b.textContent=n;b.style.cssText='background:#f85149;color:#fff;font-size:8px;font-weight:800;border-radius:8px;padding:0 4px;margin-left:3px;animation:pulse 1.2s ease-in-out infinite';
+      b.textContent=n;b.style.cssText='background:#f85149;color:#fff;font-size:9.5px;font-weight:800;border-radius:8px;padding:0 4px;margin-left:3px;animation:pulse 1.2s ease-in-out infinite';
     } else if(b){b.remove();}
   }
   if(incTab){
@@ -2087,13 +2182,38 @@ function buildCartelRiskBar(){
 }
 
 function buildMgmtTab(){
+  try{buildCashflowPanel();}catch(e){console.error('cashflow:',e);}
   try{buildCreditRating();}catch(e){console.error('creditRating:',e);}
   try{buildLoansDisplay();}catch(e){console.error('loans:',e);}
   try{buildLoanProducts();}catch(e){console.error('loanProducts:',e);}
+  try{buildFactoringPanel();}catch(e){console.error('factoring:',e);}
+  try{buildSubsidiesPanel();}catch(e){console.error('subsidies:',e);}
+  try{buildRegulatoryPanel();}catch(e){console.error('regulatory:',e);}
   try{buildQuarterlyReports();}catch(e){console.error('quarterlyReports:',e);}
   try{buildIncidentsDisplay();}catch(e){console.error('incidents:',e);}
   try{buildStaffDetailList();}catch(e){console.error('staffDetail:',e);}
   try{buildTakeoverList();}catch(e){console.error('takeover:',e);}
   try{buildCompetitorAnnouncements();}catch(e){console.error('announcements:',e);}
   try{buildCartelRiskBar();}catch(e){console.error('cartel:',e);}
+}
+
+function buildCashflowPanel(){
+  const el=document.getElementById('cashflowPanel');if(!el)return;
+  el.innerHTML=(typeof cashflowSummaryHTML==='function')?cashflowSummaryHTML():'';
+}
+function buildFactoringPanel(){
+  const el=document.getElementById('factoringPanel');if(!el)return;
+  el.innerHTML=(typeof factoringPanelHTML==='function')?factoringPanelHTML():'';
+}
+function buildSubsidiesPanel(){
+  const el=document.getElementById('subsidiesPanel');if(!el)return;
+  el.innerHTML=(typeof subsidiesPanelHTML==='function')?subsidiesPanelHTML():'';
+}
+function buildRegulatoryPanel(){
+  const el=document.getElementById('regulatoryPanel');if(!el)return;
+  el.innerHTML=(typeof regulatoryPanelHTML==='function')?regulatoryPanelHTML():'';
+}
+function buildRenewableInfo(){
+  const el=document.getElementById('renewableInfo');if(!el)return;
+  el.innerHTML=(typeof renewableSummaryHTML==='function')?renewableSummaryHTML():'';
 }

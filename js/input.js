@@ -38,6 +38,7 @@ function initInput(){
     if(tool.startsWith('tower_')){placeTower(h.x,h.y,tool);return;}
     if(tool.startsWith('wifi_')){placeWiFi(h.x,h.y,tool);return;}
     if(tool.startsWith('junction_')){placeJunction(h.x,h.y,tool);return;}
+    if(tool.startsWith('pp_')){if(typeof placePowerPlant==='function')placePowerPlant(h.x,h.y,tool);return;}
     if(tool==='demolish'){demolishObj(h.x,h.y);return;}
     if(tool==='upgrade_tech'){buyTechUpgrade();return;}
   });
@@ -137,11 +138,11 @@ function initInput(){
                 const c2WL=ck.startsWith('conn_lte')||ck.startsWith('conn_5g');
                 if(isWL!==c2WL)continue;
                 if(ck==='conn_wifi')continue; // wifi needs AP, skip
-                h+=`<button onclick="event.stopPropagation();downgradeBld(${hover.x},${hover.y},'${ck}')" style="padding:1px 5px;background:#1a1a00;border:1px solid #f59e0b;border-radius:3px;color:#f59e0b;cursor:pointer;font-size:7px">⬇ ${c2.name}</button>`;
+                h+=`<button onclick="event.stopPropagation();downgradeBld(${hover.x},${hover.y},'${ck}')" style="padding:1px 5px;background:#1a1a00;border:1px solid #f59e0b;border-radius:3px;color:#f59e0b;cursor:pointer;font-size:9px">⬇ ${c2.name}</button>`;
               }
             }
           }
-          h+=`<button onclick="event.stopPropagation();disconnectBld(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:7px">🔌 Odpojit</button>`;
+          h+=`<button onclick="event.stopPropagation();disconnectBld(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🔌 Odpojit</button>`;
           h+=`</div>`;
         } else {
           h+=b.want?'<span style="color:#fbbf24">⭐ Chce internet</span>':'<span style="color:#484f58">Nemá zájem</span>';
@@ -194,8 +195,8 @@ function initInput(){
               h+=`<div style="color:#38bdf8;font-size:9px;margin-top:3px">🔀 Pasivní přepínač, staticky rozbočuje provoz.</div>`;
             }
             h+=`<div style="margin-top:4px;display:flex;gap:3px">`;
-            h+=`<button onclick="event.stopPropagation();toggleJunction(${hover.x},${hover.y})" style="padding:1px 5px;background:#0a1a0a;border:1px solid #3fb950;border-radius:3px;color:#3fb950;cursor:pointer;font-size:7px">${jn.active?'⏸️ Pozastavit':'▶️ Aktivovat'}</button>`;
-            h+=`<button onclick="event.stopPropagation();demolishObj(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:7px">🗑️ Odstranit</button>`;
+            h+=`<button onclick="event.stopPropagation();toggleJunction(${hover.x},${hover.y})" style="padding:1px 5px;background:#0a1a0a;border:1px solid #3fb950;border-radius:3px;color:#3fb950;cursor:pointer;font-size:9px">${jn.active?'⏸️ Pozastavit':'▶️ Aktivovat'}</button>`;
+            h+=`<button onclick="event.stopPropagation();demolishObj(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🗑️ Odstranit</button>`;
             h+=`</div>`;
             tt.innerHTML=h;tt.style.display='block';tt.style.left=(ox+15)+'px';tt.style.top=(oy+15)+'px';
             render();return;

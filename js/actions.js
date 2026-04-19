@@ -118,6 +118,7 @@ function expandMap(dir){
     for(const j of (G.junctions||[])){j.x+=offX;j.y+=offY;}
     for(const t of (G.towers||[])){t.x+=offX;t.y+=offY;}
     for(const w of (G.wifiAPs||[])){w.x+=offX;w.y+=offY;}
+    for(const pp of (G.powerPlants||[])){pp.x+=offX;pp.y+=offY;}
     for(const df of (G.darkFiber||[])){df.x1+=offX;df.y1+=offY;df.x2+=offX;df.y2+=offY;}
     for(const dl of (G.dcLinks||[])){if(dl.x1!==undefined){dl.x1+=offX;dl.y1+=offY;dl.x2+=offX;dl.y2+=offY;}}
     // Cable cuts — přepočítej segKey
@@ -148,7 +149,8 @@ function placeDC(x,y,type){
   const dt=DC_T[type];
   const cost=inflComponentCost(dt.cost);
   if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
-  G.dcs.push({x,y,type,eq:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
+  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
+  if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
   notify(`✅ ${dt.name} postaveno! (základ ${fmtBW(dt.baseBW)})`,'good');updUI();
 }
@@ -165,6 +167,7 @@ function buyBW(dcIdx,bwIdx){
   }
   if(!dc.bwUpgrades)dc.bwUpgrades=[];
   dc.bwUpgrades.push({bw:bwu.bw,mCost:bwu.mCost});G.cash-=cost;
+  if(typeof recordCapex==='function')recordCapex('bw_upgrade',cost,`+${fmtBW(bwu.bw)}`);
   markCapDirty();
   notify(`✅ +${fmtBW(bwu.bw)} bandwidth (zabírá 1 port)`,'good');updUI();buildBWList();
 }
@@ -269,6 +272,7 @@ function placeJunction(x,y,type){
   if(!G.junctions)G.junctions=[];
   G.junctions.push({x,y,type,active:true});
   G.cash-=jCost;
+  if(typeof recordCapex==='function')recordCapex('junction',jCost,`${jt.name} @${x},${y}`);
   markCapDirty();
   notify(`✅ ${jt.icon} ${jt.name} postaven na [${x},${y}]`,'good');updUI();
 }
@@ -306,6 +310,7 @@ function placeCable(x1,y1,x2,y2,type){
     G.cables.push({...s,t:type});
   }
   G.cash-=totalCost;
+  if(typeof recordCapex==='function')recordCapex('cable',totalCost,`${ct.name} ×${ns} segmentů`);
   markCapDirty();
   let msg=`✅ ${ct.name} ×${ns}`;
   if(upgN)msg+=` (${upgN} upgradů)`;
@@ -329,6 +334,7 @@ function connectBld(x,y,connType){
     if(cn){const dc=G.dcs[cn.di];if(dc){const m=getMissingEq(dc,ct.reqEq);if(m.length){notify(`❌ DC potřebuje: ${m.join(', ')}!`,'bad');return;}}}
     const oldConnType=b.connType;
     b.connType=connType;G.cash-=cCost;
+    if(typeof recordCapex==='function')recordCapex('connection',cCost,`upg → ${ct.name}`);
     // Trigger upgrade wave — existing customers consider switching to better tariffs
     const upgraded=triggerTariffUpgradeWave(b,x,y,ct.maxBW,oldConnType,connType);
     notify(`⬆️ Upgrade na ${ct.name} (max ${fmtBW(ct.maxBW)})${upgraded>0?' · '+upgraded+' zákazníků přešlo na lepší tarif':''}`,'good');updUI();return;
@@ -361,6 +367,7 @@ function connectBld(x,y,connType){
   }
   const dl=dcLoads[di];if(dl&&dl.ratio>1.2){notify('⚠️ DC extrémně přetížené!','bad');return;}
   G.conns.push({bx:x,by:y,di});b.connected=true;b.connType=connType;b.dcIdx=di;G.cash-=cCost2;
+  if(typeof recordCapex==='function')recordCapex('connection',cCost2,`nová přípojka ${ct.name}`);
   // Initialize tariff distribution — no customers yet, they'll join via growth
   b.tariffDist={};b.customers=0;b.tariff=null;b.sat=50;if(!b.svcSubs)b.svcSubs={};
   markCapDirty();
@@ -523,6 +530,10 @@ function placeEq(dcIdx,eqType){
   for(const e of dc.eq){if(EQ[e]&&EQ[e].eff==='cooling')maxSlots+=EQ[e].val;}
   if(dc.eq.length>=maxSlots){notify(`❌ DC plné! ${dc.eq.length}/${maxSlots} slotů`,'bad');return;}
   dc.eq.push(eqType);G.cash-=eqCost;
+  // v0.3.0: track install date for HW aging
+  if(!dc.eqInstalled)dc.eqInstalled=[];
+  dc.eqInstalled.push({y:G.date.y,m:G.date.m});
+  if(typeof recordCapex==='function')recordCapex('equipment',eqCost,eq.name);
   markCapDirty();
   notify(`✅ ${eq.name} instalováno`,'good');updUI();
 }
@@ -827,6 +838,7 @@ function placeTower(x,y,type){
   }
   G.towers.push({x,y,type,dcIdx:di,clients:0});
   G.cash-=twCost;
+  if(typeof recordCapex==='function')recordCapex('tower',twCost,`${tt.name} @${x},${y}`);
   markCapDirty();
   notify(`✅ ${tt.icon} ${tt.name} (${tt.band||''}) · dosah ${tt.range} · max ${fmtBW(tt.maxBW)}`,'good');updUI();
 }
@@ -853,6 +865,7 @@ function buyIXP(){
   if(G.cash<ixpCost){notify(`❌ Chybí ${fmt(ixpCost-G.cash)} Kč!`,'bad');return;}
   if(!anyDCHasEq(['eq_bgprouter'])){notify('❌ Potřeba BGP router v DC!','bad');return;}
   G.hasIXP=true;G.cash-=ixpCost;
+  if(typeof recordCapex==='function')recordCapex('ixp',ixpCost,`${IXP.name} peering`);
   notify(`✅ ${IXP.name} peering aktivní! (+${fmtBW(IXP.bwBonus)} BW)`,'good');updUI();
 }
 
@@ -1438,7 +1451,7 @@ function unlockCity(cityIdx){
   let added=0;
   for(let a=0;a<400&&added<12;a++){
     const x=Math.floor(Math.random()*MAP),y=Math.floor(Math.random()*MAP);
-    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
+    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&(typeof hasPowerPlant!=='function'||!hasPowerPlant(x,y))&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
       const r=Math.random(),bt=r<.3?'bigcorp':r<.5?'skyscraper':r<.7?'panel':r<.85?'factory':'shop';
       const b=BTYPES[bt],units=b.units[0]+Math.floor(Math.random()*(b.units[1]-b.units[0]+1));
       const pop=b.pop[0]+Math.floor(Math.random()*(b.pop[1]-b.pop[0]+1));
@@ -1488,6 +1501,8 @@ function demolishObj(x,y){
   if(tw>=0){G.towers.splice(tw,1);markCapDirty();notify('🗑️ Věž odstraněna','good');updUI();return;}
   const jn=(G.junctions||[]).findIndex(j=>j.x===x&&j.y===y);
   if(jn>=0){G.junctions.splice(jn,1);markCapDirty();notify('🗑️ Junction odstraněn','good');updUI();return;}
+  const pp=(G.powerPlants||[]).findIndex(p=>p.x===x&&p.y===y);
+  if(pp>=0){if(typeof demolishPowerPlant==='function')demolishPowerPlant(x,y);return;}
 }
 
 // ====== BUSINESS TENANTS ======
@@ -1685,7 +1700,7 @@ function showDividendModal(){
     h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:6px;margin-bottom:4px;${canAfford?'cursor:pointer':'opacity:.5'}" ${canAfford?`onclick="payDividend(${opt.amount});document.getElementById('dividendModal').style.display='none'"`:''}>`;
     h+=`<div style="flex:1"><div style="font-size:11px;font-weight:600;color:${clr}">${opt.label}: ${fmtKc(opt.amount)}</div>`;
     h+=`<div style="font-size:9px;color:#8b949e">${opt.desc}</div>`;
-    h+=`<div style="font-size:8px;color:${opt.amount===0?'#f85149':'#6e7681'}">${opt.risk}</div></div>`;
+    h+=`<div style="font-size:9.5px;color:${opt.amount===0?'#f85149':'#6e7681'}">${opt.risk}</div></div>`;
     h+=`<span style="font-size:16px">${canAfford?'💰':'🚫'}</span>`;
     h+=`</div>`;
   }

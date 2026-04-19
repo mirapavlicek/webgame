@@ -1,6 +1,6 @@
 [package]
 name = "nettycoon"
-version = "0.2.0"
+version = "0.3.1"
 description = "NetTycoon — česká ISP simulační hra"
 authors = ["Míra <mira@pavlicek.cloud>"]
 edition = "2021"

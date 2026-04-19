@@ -68,6 +68,24 @@ function createGame(nm){
     tariffInflation:1.0,   // aplikováno na tarify (koncové ceny) a cloud — zpravidla 0.5–0.7× CPI
     heatmapMode:null,      // null | 'coverage' | 'utilization' | 'satisfaction'
     spriteCacheEnabled:true, // použít pre-renderované sprite budov (rychlejší render)
+    // ===== v0.3.0 =====
+    electricityPrice:(typeof ELEC_INITIAL!=='undefined'?ELEC_INITIAL:4.5), // spotová cena v Kč/kWh, updatovaná měsíčně
+    electricityCostM:0,    // měsíční náklad na elektřinu (Kč) — pro UI display
+    electricityHist:[],    // posledních 24 měsíců [{y,m,price}]
+    peeringContract:null,  // {providerId, mbpsCommitted, signedY, signedM} nebo null
+    // Cash flow vs profit (feature #6)
+    capexM:0, opexM:0,
+    ytdCapex:0, ytdOpex:0,
+    pastCapexPool:0,
+    capexLog:[],
+    opexBreakdownM:{},
+    cashflowHist:[],
+    activeFactoring:null,
+    subsidies:[],
+    subsidiesCompleted:{},
+    trainingSpent:0,
+    regulatory:{lastEventM:-9999, activeIssue:null, ctuPricingCap:null, nis2Deadline:null},
+    powerPlants:[],
   };
 }
 
@@ -166,6 +184,25 @@ function handleLoad(e){
       if(!G.expansions)G.expansions=[];
       if(G.heatmapMode===undefined)G.heatmapMode=null;
       if(G.spriteCacheEnabled===undefined)G.spriteCacheEnabled=true;
+      // v0.3.0
+      if(G.electricityPrice===undefined)G.electricityPrice=(typeof ELEC_INITIAL!=='undefined'?ELEC_INITIAL:4.5);
+      if(G.electricityCostM===undefined)G.electricityCostM=0;
+      if(!G.electricityHist)G.electricityHist=[];
+      if(G.peeringContract===undefined)G.peeringContract=null;
+      if(G.capexM===undefined)G.capexM=0;
+      if(G.opexM===undefined)G.opexM=0;
+      if(G.ytdCapex===undefined)G.ytdCapex=0;
+      if(G.ytdOpex===undefined)G.ytdOpex=0;
+      if(G.pastCapexPool===undefined)G.pastCapexPool=0;
+      if(!G.capexLog)G.capexLog=[];
+      if(!G.opexBreakdownM)G.opexBreakdownM={};
+      if(!G.cashflowHist)G.cashflowHist=[];
+      if(G.activeFactoring===undefined)G.activeFactoring=null;
+      if(!G.subsidies)G.subsidies=[];
+      if(!G.subsidiesCompleted)G.subsidiesCompleted={};
+      if(G.trainingSpent===undefined)G.trainingSpent=0;
+      if(!G.regulatory)G.regulatory={lastEventM:-9999, activeIssue:null, ctuPricingCap:null, nis2Deadline:null};
+      if(!G.powerPlants)G.powerPlants=[];
       // Obnovit globální MAP z uložené velikosti — save z rozšířené mapy
       if(G.map&&Array.isArray(G.map)&&G.map.length>0){
         MAP=G.map.length;
@@ -178,6 +215,9 @@ function handleLoad(e){
         if(!dc.outage)dc.outage={active:false,remaining:0,cause:''};
         if(!dc.bwUpgrades)dc.bwUpgrades=[];
         if(!dc.eq)dc.eq=[];
+        // v0.3.0: HW aging — backfill install dates pokud chybí (zpětně = jako nové)
+        if(!dc.eqInstalled)dc.eqInstalled=dc.eq.map(()=>({y:G.date.y,m:G.date.m}));
+        while(dc.eqInstalled.length<dc.eq.length)dc.eqInstalled.push({y:G.date.y,m:G.date.m});
       }
       for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
         const tile=G.map[y]?.[x];

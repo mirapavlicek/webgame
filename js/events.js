@@ -256,7 +256,7 @@ function addBlds(n){
   let c=0;
   for(let a=0;a<200&&c<n;a++){
     const x=Math.floor(Math.random()*MAP),y=Math.floor(Math.random()*MAP);
-    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
+    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&(typeof hasPowerPlant!=='function'||!hasPowerPlant(x,y))&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
       const r=Math.random(),bt=r<.4?'house':r<.6?'rowhouse':r<.8?'panel':'shop';
       const b=BTYPES[bt],units=b.units[0]+Math.floor(Math.random()*(b.units[1]-b.units[0]+1)),pop=b.pop[0]+Math.floor(Math.random()*(b.pop[1]-b.pop[0]+1));
       G.map[y][x].bld={type:bt,units,pop,maxPop:Math.round(pop*1.5),connected:false,connType:null,customers:0,sat:0,tariff:null,want:Math.random()<b.demand,dcIdx:-1};

@@ -36,6 +36,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div class="sr"><span class="l">Náklady/měs</span><span class="v neg" id="sExp">0</span></div>
     <div class="sr"><span class="l">Zisk/měs</span><span class="v" id="sPro">0</span></div>
     <div class="sr" id="inflRow" title="Kumulativní dopad inflace na mzdy a HW — každý rok CPI * 0.2–0.4"><span class="l">Inflace</span><span class="v" id="sInfl" style="color:#f59e0b">–</span></div>
+    <div class="sr" id="elecRow" title="Spotová cena elektřiny a měsíční náklad na provoz DC (IT_kW × PUE × 730h × cena)"><span class="l">⚡ Elektřina</span><span class="v" id="sElec">–</span></div>
   </div>
   <div class="section">
     <h3>📊 Síť & Město</h3>
@@ -114,6 +115,13 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div class="build-cat">⚡ 5G mmWave</div>
     <button class="bb" data-tool="tower_5g_mmw"><span class="ico">⚡</span><span class="inf"><span class="nm">5G mmWave 26GHz</span><br><span class="cs">350 000 Kč · dosah 2 · 8 Gbps · 300 klientů</span><br><span class="desc">Ultra-rychlé, centra měst</span></span></button>
     <button class="bb" data-tool="tower_5g_mmw60"><span class="ico">⚡</span><span class="inf"><span class="nm">5G mmWave 60GHz</span><br><span class="cs">450 000 Kč · dosah 1 · 20 Gbps · 150 klientů</span><br><span class="desc">Extrémní rychlost, FWA náhrada optiky</span></span></button>
+    <div class="build-cat">☀️ Obnovitelné zdroje (na zelené dlaždici, blokují zástavbu)</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Snižují účet za elektřinu. Přebytek se prodává do sítě za ⅓ spot ceny.</p>
+    <button class="bb" data-tool="pp_solar_tile"><span class="ico">🌞</span><span class="inf"><span class="nm">Solární panel</span><br><span class="cs">450 000 Kč · ~3 kW · léto ×1,4, zima ×0,5</span></span></button>
+    <button class="bb" data-tool="pp_solar_farm"><span class="ico">🔆</span><span class="inf"><span class="nm">Solární farma</span><br><span class="cs">1 800 000 Kč · ~12 kW · velkoplošná</span></span></button>
+    <button class="bb" data-tool="pp_wind_small"><span class="ico">💨</span><span class="inf"><span class="nm">Větrník</span><br><span class="cs">900 000 Kč · ~6 kW · stabilnější než solar</span></span></button>
+    <button class="bb" data-tool="pp_wind_park"><span class="ico">🌀</span><span class="inf"><span class="nm">Větrný park</span><br><span class="cs">3 500 000 Kč · ~25 kW · nejvyšší výkon</span></span></button>
+    <div id="renewableInfo" style="margin-top:6px"></div>
     <div class="build-cat">Nástroje</div>
     <button class="bb active" data-tool="none"><span class="ico">👆</span><span class="inf"><span class="nm">Kurzor</span><span class="cs"> · výběr/info</span></span></button>
     <button class="bb" data-tool="demolish"><span class="ico">🗑️</span><span class="inf"><span class="nm">Demolice</span><span class="cs"> · zdarma</span></span></button>
@@ -131,6 +139,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button class="bb" data-tool="eq_ups"><span class="ico">🔋</span><span class="inf"><span class="nm">UPS záloha</span><br><span class="cs">18 000 Kč · ochrana proti výpadkům</span></span></button>
     <button class="bb" data-tool="eq_monitoring"><span class="ico">📊</span><span class="inf"><span class="nm">NMS monitoring</span><br><span class="cs">12 000 Kč · prevence výpadků</span></span></button>
     <button class="bb" data-tool="eq_cooling"><span class="ico">❄️</span><span class="inf"><span class="nm">Chlazení</span><br><span class="cs">20 000 Kč · +4 rack sloty</span></span></button>
+    <button class="bb" data-tool="eq_solar_roof"><span class="ico">🌞</span><span class="inf"><span class="nm">Solární panely (střecha)</span><br><span class="cs">150 000 Kč · ~2 kW produkce · sníží el.</span><br><span class="desc">Na střeše DC, bez extra plochy</span></span></button>
     <button class="bb" data-tool="eq_backup"><span class="ico">💾</span><span class="inf"><span class="nm">Backup server</span><br><span class="cs">40 000 Kč · ochrana dat</span><br><span class="desc">Pro: Enterprise, Cloud</span></span></button>
     <button class="bb" data-tool="eq_wifiap"><span class="ico">📶</span><span class="inf"><span class="nm">WiFi AP controller</span><br><span class="cs">22 000 Kč · řízení WiFi</span></span></button>
     <button class="bb" data-tool="eq_voip"><span class="ico">📞</span><span class="inf"><span class="nm">VoIP gateway</span><br><span class="cs">28 000 Kč · telefonní služby</span><br><span class="desc">Pro: VoIP službu</span></span></button>
@@ -193,6 +202,11 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
 
     <div class="build-cat" style="margin-top:8px">🔗 IXP Peering</div>
     <div id="ixpStatus" style="font-size:10px;margin-bottom:6px"></div>
+
+    <div class="build-cat" style="margin-top:8px">🌐 Transit (globální carrier)</div>
+    <p style="font-size:9px;color:#6e7681;margin-bottom:4px">Předplať si BW od mezinárodního providera. Kapacita se přidá do všech DC. Cena se platí měsíčně za sjednané Mbps. NIX.CZ dává −25 % (offload lokálního provozu).</p>
+    <div id="peeringStatus" style="font-size:10px;margin-bottom:6px"></div>
+    <div id="peeringOffers" style="font-size:10px;margin-bottom:6px"></div>
   </div>
 
   <div class="tab-content" id="tabStaff">
@@ -214,6 +228,8 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div id="ratingDisplay" style="font-size:16px;text-align:center;padding:8px"></div>
     <div class="build-cat" style="margin-top:10px">🎯 Tržní podíl</div>
     <div id="marketShare"></div>
+    <div class="build-cat" style="margin-top:10px">👥 Segmenty zákazníků</div>
+    <div id="segmentsDashboard"></div>
     <div class="build-cat" style="margin-top:10px">📊 KPI Dashboard</div>
     <div id="kpiDashboard"></div>
     <div class="build-cat" style="margin-top:10px">📈 Graf příjmů</div>
@@ -235,13 +251,21 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
       <button class="mgmt-subtab" data-mgmt="mgmtMA">💼 M&A</button>
     </div>
     <div class="mgmt-content active" id="mgmtFinance">
-      <div class="build-cat">💳 Úvěrové hodnocení</div>
+      <div class="build-cat">📈 Cash Flow vs. Profit</div>
+      <div id="cashflowPanel"></div>
+      <div class="build-cat" style="margin-top:10px">💳 Úvěrové hodnocení</div>
       <div id="creditRatingBox"></div>
       <div class="build-cat" style="margin-top:10px">💰 Úvěry</div>
       <div id="loanSummary" style="font-size:10px;color:#8b949e;margin-bottom:6px"></div>
       <div id="activeLoans"></div>
       <div class="build-cat" style="margin-top:10px">📝 Nový úvěr</div>
       <div id="loanProducts"></div>
+      <div class="build-cat" style="margin-top:10px">💸 Factoring</div>
+      <div id="factoringPanel"></div>
+      <div class="build-cat" style="margin-top:10px">🇪🇺 Dotace a granty</div>
+      <div id="subsidiesPanel"></div>
+      <div class="build-cat" style="margin-top:10px">🏛️ Regulace (ČTÚ, NIS2, GDPR)</div>
+      <div id="regulatoryPanel"></div>
       <div class="build-cat" style="margin-top:10px">📊 Čtvrtletní reporty</div>
       <div id="quarterlyReports" style="font-size:10px;max-height:150px;overflow-y:auto"></div>
     </div>
@@ -387,12 +411,19 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 </script>
 <!-- Load all JavaScript modules in order -->
 <script src="js/constants.js"></script>
+<script src="js/energy.js"></script>
+<script src="js/aging.js"></script>
 <script src="js/state.js"></script>
 <script src="js/map.js"></script>
 <script src="js/capacity.js"></script>
 <script src="js/wifi.js"></script>
 <script src="js/events.js"></script>
 <script src="js/finance.js"></script>
+<script src="js/cashflow.js"></script>
+<script src="js/peering.js"></script>
+<script src="js/segments.js"></script>
+<script src="js/regulatory.js"></script>
+<script src="js/renewable.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>
 <script src="js/render.js"></script>
@@ -402,6 +433,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/actions.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
+<script src="js/palette.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

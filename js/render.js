@@ -356,6 +356,7 @@ function render(){
   for(let i=0;i<G.wifiAPs.length;i++)dr.push({t:'wifi',x:G.wifiAPs[i].x,y:G.wifiAPs[i].y,d:G.wifiAPs[i].x+G.wifiAPs[i].y,i});
   // Junction nodes (field load balancers / switches)
   for(let i=0;i<(G.junctions||[]).length;i++)dr.push({t:'jn',x:G.junctions[i].x,y:G.junctions[i].y,d:G.junctions[i].x+G.junctions[i].y,i});
+  for(let i=0;i<(G.powerPlants||[]).length;i++)dr.push({t:'pp',x:G.powerPlants[i].x,y:G.powerPlants[i].y,d:G.powerPlants[i].x+G.powerPlants[i].y,i});
   dr.sort((a,b)=>a.d-b.d);
   for(const d of dr){
     if(d.t==='b')drawBld(d.x,d.y,G.map[d.y][d.x].bld);
@@ -363,6 +364,7 @@ function render(){
     else if(d.t==='tw')drawTower(d.x,d.y,G.towers[d.i]);
     else if(d.t==='wifi')drawWiFiAP(d.x,d.y,G.wifiAPs[d.i]);
     else if(d.t==='jn')drawJunction(d.x,d.y,G.junctions[d.i]);
+    else if(d.t==='pp'&&typeof drawPowerPlant==='function')drawPowerPlant(d.x,d.y,G.powerPlants[d.i]);
   }
 
   // ====== HOVER EFFECTS ======
@@ -1367,4 +1369,71 @@ function renderMM(){
   for(const sk in mmSegs){const ms=mmSegs[sk],load=segLoads[sk];
     mmX.strokeStyle=load&&load.ratio>.95?'#ef4444':load&&load.ratio>.7?'#f59e0b':CAB_T[ms.bestType].clr;
     mmX.lineWidth=Math.min(3,1+Math.log2(ms.count)*0.5);mmX.beginPath();mmX.moveTo(ox+ms.x1*sc+sc/2,oy+ms.y1*sc+sc/2);mmX.lineTo(ox+ms.x2*sc+sc/2,oy+ms.y2*sc+sc/2);mmX.stroke();}
+}
+
+// ====== POWER PLANTS (v0.3.1) ======
+function drawPowerPlant(x,y,pp){
+  const def=(typeof PP_T!=='undefined')?PP_T[pp.type]:null;
+  if(!def)return;
+  const s=toScr(x,y);
+  const isSolar=def.type==='solar';
+  // base plot (grass-ish) diamond
+  const col = isSolar ? '#1e3a8a' : '#0ea5e9';
+  const accent = isSolar ? '#60a5fa' : '#e2e8f0';
+  // base pad
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y-TH/3);
+  ctx.lineTo(s.x+TW/3, s.y);
+  ctx.lineTo(s.x, s.y+TH/3);
+  ctx.lineTo(s.x-TW/3, s.y);
+  ctx.closePath();
+  ctx.fillStyle='#1a2a1a';
+  ctx.fill();
+  ctx.strokeStyle='#2d4a2d';ctx.lineWidth=.8;ctx.stroke();
+  if(isSolar){
+    // 4 panels — tilted rectangles on the pad
+    const isLarge = pp.type==='pp_solar_farm';
+    const rows = isLarge?3:2, cols = isLarge?3:2;
+    const panelW = (TW/3) / (cols+0.5);
+    const panelH = (TH/3) / (rows+0.5) * 1.3;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const ox = (c - (cols-1)/2) * (TW/(cols*2.5));
+      const oy = (r - (rows-1)/2) * (TH/(rows*3));
+      const px = s.x + ox;
+      const py = s.y + oy - 2;
+      ctx.beginPath();
+      ctx.moveTo(px-panelW/2, py);
+      ctx.lineTo(px+panelW/2, py-panelH*0.25);
+      ctx.lineTo(px+panelW/2, py+panelH*0.55);
+      ctx.lineTo(px-panelW/2, py+panelH*0.8);
+      ctx.closePath();
+      ctx.fillStyle=col;ctx.fill();
+      ctx.strokeStyle=accent;ctx.lineWidth=.4;ctx.stroke();
+    }
+    // tiny sun accent
+    const pulse = Math.sin(Date.now()/600 + x + y)*.3 + .7;
+    ctx.fillStyle = `rgba(253,224,71,${pulse*.8})`;
+    ctx.beginPath();ctx.arc(s.x+TW/4, s.y-TH/4, 2.2, 0, Math.PI*2);ctx.fill();
+  } else {
+    // WIND: a tower with rotating blades
+    const isLarge = pp.type==='pp_wind_park';
+    const towerH = isLarge?18:13;
+    const bladeR = isLarge?7:5;
+    // tower
+    ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(s.x, s.y);ctx.lineTo(s.x, s.y-towerH);ctx.stroke();
+    // hub
+    ctx.fillStyle='#e2e8f0';
+    ctx.beginPath();ctx.arc(s.x, s.y-towerH, 1.8, 0, Math.PI*2);ctx.fill();
+    // blades (animated)
+    const t = Date.now()/(isLarge?700:500) + x*.7 + y*.3;
+    for(let b=0;b<3;b++){
+      const a = t + b*Math.PI*2/3;
+      ctx.strokeStyle=accent;ctx.lineWidth=1.2;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y-towerH);
+      ctx.lineTo(s.x+Math.cos(a)*bladeR*0.8, s.y-towerH+Math.sin(a)*bladeR*0.45);
+      ctx.stroke();
+    }
+  }
 }

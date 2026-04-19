@@ -168,6 +168,7 @@ const EQ={
   eq_cloudnode_big:{name:'Cloud cluster',cost:280000,mCost:7000,eff:'cloud',val:0,icon:'🌩️',vCPU:128,ramGB:512},
   eq_bgprouter:{name:'BGP router',cost:45000,mCost:1000,eff:'routing',val:0,icon:'🔀',bgpCap:100000,desc:'Sdílí BW mezi propojenými DC. Max 100 Gbps na router.'},
   eq_loadbalancer:{name:'Load balancer',cost:35000,mCost:800,eff:'lb',val:0,icon:'⚖️',desc:'Aktivně rozděluje provoz mezi paralelní trasy do DC podle volné kapacity. Omezuje potřebu stackování.'},
+  eq_solar_roof:{name:'Solární panely (střecha)',cost:150000,mCost:400,eff:'solar',val:0,icon:'🌞',desc:'Solární panely na střeše DC. Sníží fakturu za elektřinu ~2 kW (sezónní). Žádné stínění, nízká údržba.'},
 };
 
 const CAB_T={
@@ -371,6 +372,34 @@ const STAFF_T={
 
 // IXP Peering exchange
 const IXP={name:'NIX.CZ Peering',cost:500000,mCost:15000,bwBonus:2000,latencyBonus:20,qualBonus:.12};
+
+// ====== v0.3.0 — Transitní providery ======
+// Smluvený transit od globálních carrierů. Nad rámec vlastních bwUpgrades.
+// Kapacita se sečítá do celkové DC BW poolu (jako IXP bwBonus).
+// Měsíční cena = mbpsCommitted × pricePerMbpsM × componentInflation.
+// Quality bonus/malus ovlivní míru výpadků a průměrnou spokojenost.
+const TRANSIT_PROVIDERS = {
+  transit_cogent:{
+    name:'Cogent (tier-3)',icon:'🟠',color:'#f87171',pricePerMbpsM:8,
+    qualMod:-0.05,latencyMod:15,minMbps:100,maxMbps:100000,setupFee:20000,
+    desc:'Cenově agresivní tier-3. Slušná kapacita, ale občas packet loss a upstream výpadky.'},
+  transit_gtt:{
+    name:'GTT (tier-2)',icon:'🟡',color:'#fbbf24',pricePerMbpsM:11,
+    qualMod:-0.02,latencyMod:8,minMbps:100,maxMbps:200000,setupFee:30000,
+    desc:'Solidní tier-2. Dostupné téměř všude. Vyvážený poměr cena/kvalita.'},
+  transit_lumen:{
+    name:'Lumen / Level3 (tier-2)',icon:'🔵',color:'#22d3ee',pricePerMbpsM:13,
+    qualMod:0,latencyMod:3,minMbps:500,maxMbps:400000,setupFee:60000,
+    desc:'Globální tier-2 hráč. Dobrá kvalita, nižší latence, férová cena.'},
+  transit_telia:{
+    name:'Telia Carrier (tier-1)',icon:'🟣',color:'#a78bfa',pricePerMbpsM:18,
+    qualMod:0.08,latencyMod:-10,minMbps:1000,maxMbps:1000000,setupFee:120000,
+    desc:'Prémiový tier-1 transit. Nejnižší latence v Evropě. Vyžaduje vyšší minimum.'},
+  transit_arelion:{
+    name:'Arelion (tier-1)',icon:'🟣',color:'#c084fc',pricePerMbpsM:17,
+    qualMod:0.06,latencyMod:-8,minMbps:1000,maxMbps:800000,setupFee:100000,
+    desc:'Severský tier-1. Stabilní kvalita, skvělé routing přes Skandinávii do Asie.'},
+};
 
 // Dark fiber leasing
 const DARK_FIBER={costPerSeg:2000,revenuePerSeg:800}; // monthly revenue for unused fiber

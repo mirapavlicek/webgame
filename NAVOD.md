@@ -418,6 +418,22 @@ rychlé řešení.
 
 ## Ovládání — klávesové zkratky
 
+### Paleta příkazů (**novinka 0.2**)
+
+Paleta funguje podobně jako Cmd+K ve VSCode / Linear — rychlý fuzzy search
+přes všechny herní akce, panely a stavební nástroje.
+
+| Klávesa | Akce |
+|---------|------|
+| `⌘ K` / `Ctrl K` | Otevřít paletu příkazů |
+| `/` | Otevřít paletu příkazů (alternativní zkratka) |
+| `?` | Zobrazit nápovědu klávesových zkratek |
+| `↑` / `↓` | Procházení výsledků v paletě |
+| `Enter` | Spustit vybraný příkaz |
+| `Esc` | Zavřít paletu / nápovědu |
+
+### Rychlost a nástroje
+
 | Klávesa | Akce |
 |---------|------|
 | `Mezerník` | Pauza / play |
@@ -434,6 +450,11 @@ rychlé řešení.
 | Tažení myší | Posun mapy |
 | Klik na budovu | Otevřít detail budovy |
 | Dvojklik na DC | Otevřít interní pohled DC |
+
+> **Tip:** Paleta Cmd+K umí přepínat panely (Stavba, Tarify, Cloud…),
+> přepnout rychlost, vybrat jakýkoliv stavební prvek (DC, kabely, vysílače,
+> DC vybavení), spustit zoom/heatmap a uložit/načíst hru. Stačí začít psát —
+> funguje i s diakritikou.
 
 ---
 
