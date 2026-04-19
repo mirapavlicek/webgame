@@ -37,10 +37,15 @@ if [ -d "vendor" ]; then
   done
 fi
 
-# SVG loga + favicon (pro PWA manifest + Tauri)
-mkdir -p "$DIST/src-tauri/icons"
-for f in src-tauri/icons/favicon.svg src-tauri/icons/logo.svg; do
-  [ -f "$f" ] && cp "$f" "$DIST/src-tauri/icons/" || true
+# Ikony pro PWA manifest + favicon + service worker cache.
+# POZOR: Tauri v2 odmítne frontendDist, která obsahuje složku "src-tauri" —
+# proto kopírujeme do icons/ (bez prefixu) a web soubory (index.html,
+# manifest.webmanifest, sw.js) používají relativní cestu icons/...
+mkdir -p "$DIST/icons"
+for f in src-tauri/icons/favicon.svg src-tauri/icons/logo.svg \
+         src-tauri/icons/128x128.png src-tauri/icons/128x128@2x.png \
+         src-tauri/icons/icon.png src-tauri/icons/32x32.png; do
+  [ -f "$f" ] && cp "$f" "$DIST/icons/" || true
 done
 
 # NEtouchovat fingerprint soubor — každý `touch` může v macOS dev modu

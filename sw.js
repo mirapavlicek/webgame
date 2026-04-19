@@ -27,8 +27,8 @@ const CORE = [
   './js/main.js',
   './js/heatmap.js',
   './js/sprite-cache.js',
-  './src-tauri/icons/favicon.svg',
-  './src-tauri/icons/logo.svg'
+  './icons/favicon.svg',
+  './icons/logo.svg'
 ];
 
 self.addEventListener('install', (event) => {
