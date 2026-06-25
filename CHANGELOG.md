@@ -5,9 +5,9 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] — 2026-06-25
 
-Vylepšení ovládání kamery a vizuálního pocitu hry.
+Vylepšení herních mechanik, ovládání kamery, vizuálního pocitu a GPU akcelerace.
 
 ### Added
 
