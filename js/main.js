@@ -15,6 +15,8 @@ function gameLoop(ts){
       }
     }
     calcCapacityIfDirty();
+    if(typeof updateCamera==='function')updateCamera(dt);
+    if(typeof updateFloaters==='function')updateFloaters(dt);
     render();
     // WebGL overlay — bloom/glow/particles (safe no-op if PixiJS failed to load)
     if(typeof renderPixiFx==='function')renderPixiFx();
@@ -739,6 +741,17 @@ function monthUp(){
   if(G.date.m%3===0)spawnBizTenants();
   if(G.upgrades.includes('brand1')&&Math.random()<.05)boostDemand(.05);
   if(Math.random()<.08)randEvent();
+  // Včasné varování: záporný měsíční tok a hotovost vydrží < 3 měsíce
+  const _net=inc-exp;
+  if(G.cash>=0&&_net<0){
+    const runway=G.cash/(-_net);
+    if(runway<3){
+      if(!G._lowRunwayWarned){
+        notify(`⚠️ Hotovost vydrží jen ~${runway.toFixed(1)} měs. při této ztrátě (${fmtKc(-_net)}/měs). Sniž náklady nebo zvyš příjmy!`,'bad');
+        G._lowRunwayWarned=true;
+      }
+    } else G._lowRunwayWarned=false;
+  } else G._lowRunwayWarned=false;
   if(G.cash<-200000)notify('⚠️ Bankrot!','bad');
   // Investor system: check if player needs bailout
   if(G.cash<-50000&&!G.investor)checkInvestorOffer();
@@ -831,6 +844,7 @@ function yearUp(){
 window.addEventListener('load',()=>{
   initRender();
   initInput();
+  if(typeof initCameraKeys==='function')initCameraKeys();
   // Initialize WebGL FX overlay (safe — fails silently if PIXI missing)
   if(typeof initPixiFx==='function')initPixiFx();
   updateSpeedButtons();

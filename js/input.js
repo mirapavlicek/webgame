@@ -1,5 +1,6 @@
 // ====== INPUT HANDLING ======
 let cam={x:0,y:0,zoom:1},drag=false,dS={x:0,y:0},cS={x:0,y:0};
+let camDragLast={x:0,y:0,t:0},mmDrag=false;
 let tool='none',cableStart=null,selDC=null;
 let hover=null,lastT=0,tAcc=0;
 
@@ -8,7 +9,7 @@ function initInput(){
     if(!G)return;
     const r=canvas.getBoundingClientRect();
     const sx=e.clientX-r.left,sy=e.clientY-r.top;
-    if(e.button===1||e.button===2||(e.button===0&&e.shiftKey)){drag=true;dS={x:sx,y:sy};cS={x:cam.x,y:cam.y};e.preventDefault();return;}
+    if(e.button===1||e.button===2||(e.button===0&&e.shiftKey)){drag=true;dS={x:sx,y:sy};cS={x:cam.x,y:cam.y};camDragLast={x:cam.x,y:cam.y,t:performance.now()};if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}if(typeof camDragVel!=='undefined'){camDragVel.x=0;camDragVel.y=0;}e.preventDefault();return;}
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
 
@@ -46,7 +47,15 @@ function initInput(){
   canvas.addEventListener('mousemove',e=>{
     if(!G)return;
     const r=canvas.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;
-    if(drag){cam.x=cS.x+(sx-dS.x);cam.y=cS.y+(sy-dS.y);render();return;}
+    if(drag){
+      const ndx=cS.x+(sx-dS.x),ndy=cS.y+(sy-dS.y);
+      const now=performance.now(),ddt=now-camDragLast.t;
+      if(ddt>0&&typeof camDragVel!=='undefined'){camDragVel.x=(ndx-cam.x)/ddt*1000;camDragVel.y=(ndy-cam.y)/ddt*1000;}
+      cam.x=ndx;cam.y=ndy;
+      if(typeof camTarget!=='undefined'){camTarget.x=ndx;camTarget.y=ndy;}
+      camDragLast={x:ndx,y:ndy,t:now};
+      render();return;
+    }
     hover=fromIso(sx,sy);
 
     // Tooltip logic
@@ -246,15 +255,46 @@ function initInput(){
     const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
     if(di>=0){openDCModal(di);e.preventDefault();}
   });
-  canvas.addEventListener('mouseup',()=>{drag=false;});
+  canvas.addEventListener('mouseup',()=>{
+    if(drag&&typeof camInertia!=='undefined'&&typeof camDragVel!=='undefined'){
+      // přenes rychlost tažení do setrvačnosti (s ořezem extrémů)
+      camInertia.x=Math.max(-3000,Math.min(3000,camDragVel.x));
+      camInertia.y=Math.max(-3000,Math.min(3000,camDragVel.y));
+    }
+    drag=false;
+  });
   canvas.addEventListener('mouseleave',()=>{drag=false;document.getElementById('tooltip').style.display='none';});
+
+  // ===== Minimapa: klik / tažení = skok kamery na dané místo =====
+  if(typeof mmC!=='undefined'&&mmC){
+    const mmJump=(e)=>{
+      if(!G)return;
+      const r=mmC.getBoundingClientRect(),w=mmC.width,h=mmC.height;
+      if(!r.width||!r.height)return;
+      const cx=(e.clientX-r.left)*(w/r.width),cy=(e.clientY-r.top)*(h/r.height);
+      const sc=Math.min(w/MAP,h/MAP),ox=(w-MAP*sc)/2,oy=(h-MAP*sc)/2;
+      const tx=Math.max(0,Math.min(MAP-1,(cx-ox)/sc));
+      const ty=Math.max(0,Math.min(MAP-1,(cy-oy)/sc));
+      if(typeof camCenterOn==='function')camCenterOn(tx,ty);
+    };
+    mmC.addEventListener('mousedown',e=>{mmDrag=true;mmJump(e);e.preventDefault();});
+    mmC.addEventListener('mousemove',e=>{if(mmDrag)mmJump(e);});
+    window.addEventListener('mouseup',()=>{mmDrag=false;});
+    mmC.style.cursor='pointer';
+  }
   canvas.addEventListener('wheel',e=>{
     e.preventDefault();
     const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
     const f=e.deltaY<0?1.12:.89;
-    const nz=Math.max(.15,Math.min(6,cam.zoom*f));
-    cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
-    cam.zoom=nz;render();
+    if(typeof camZoomTo==='function'){
+      const base=(typeof camTarget!=='undefined')?camTarget.zoom:cam.zoom;
+      camZoomTo(base*f,mx,my);
+    }else{
+      const nz=Math.max(.15,Math.min(6,cam.zoom*f));
+      cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
+      cam.zoom=nz;
+    }
+    render();
   },{passive:false});
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',e=>{

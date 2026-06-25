@@ -5,6 +5,21 @@ let cableParticles=[];
 let cableEdges=[]; // polyline edges between nodes — rebuilt each frame
 const MAX_PARTICLES=120;
 
+// ====== FLOATING FEEDBACK TEXT ======
+// Krátké plovoucí popisky kotvené na dlaždici (world space) — vizuální
+// zpětná vazba na události (výpadek, nová přípojka, …). Stoupají a mizí.
+let floaters=[];
+const MAX_FLOATERS=40;
+function addFloater(tileX,tileY,text,color){
+  if(floaters.length>=MAX_FLOATERS)floaters.shift();
+  floaters.push({x:tileX,y:tileY,text:String(text),color:color||'#e6edf3',life:1,age:0});
+}
+function updateFloaters(dt){
+  const d=Math.min(dt||16,100)/1000;
+  for(const f of floaters){f.age+=d;f.life-=d/2.2;}
+  floaters=floaters.filter(f=>f.life>0);
+}
+
 function initRender(){
   canvas=document.getElementById('gameCanvas');
   ctx=canvas.getContext('2d');
@@ -17,9 +32,9 @@ function toIso(x,y){return{x:(x-y)*(TW/2),y:(x+y)*(TH/2)};}
 function fromIso(sx,sy){const px=(sx-cam.x)/cam.zoom,py=(sy-cam.y)/cam.zoom;return{x:Math.floor((px/(TW/2)+py/(TH/2))/2),y:Math.floor((py/(TH/2)-px/(TW/2))/2)};}
 function toScr(x,y){return toIso(x,y);}
 
-function zoomIn(){const cx=canvas.width/2,cy=canvas.height/2;const nz=Math.min(6,cam.zoom*1.25);cam.x=cx-(cx-cam.x)*(nz/cam.zoom);cam.y=cy-(cy-cam.y)*(nz/cam.zoom);cam.zoom=nz;}
-function zoomOut(){const cx=canvas.width/2,cy=canvas.height/2;const nz=Math.max(.15,cam.zoom/1.25);cam.x=cx-(cx-cam.x)*(nz/cam.zoom);cam.y=cy-(cy-cam.y)*(nz/cam.zoom);cam.zoom=nz;}
-function zoomReset(){const iso=toIso(MAP/2,MAP/2);cam.zoom=1;cam.x=-iso.x+canvas.width/2;cam.y=-iso.y+canvas.height/2;}
+function zoomIn(){const cx=canvas.width/2,cy=canvas.height/2;const base=(typeof camTarget!=='undefined'?camTarget.zoom:cam.zoom);if(typeof camZoomTo==='function')camZoomTo(base*1.25,cx,cy);else{const nz=Math.min(6,cam.zoom*1.25);cam.x=cx-(cx-cam.x)*(nz/cam.zoom);cam.y=cy-(cy-cam.y)*(nz/cam.zoom);cam.zoom=nz;}}
+function zoomOut(){const cx=canvas.width/2,cy=canvas.height/2;const base=(typeof camTarget!=='undefined'?camTarget.zoom:cam.zoom);if(typeof camZoomTo==='function')camZoomTo(base/1.25,cx,cy);else{const nz=Math.max(.15,cam.zoom/1.25);cam.x=cx-(cx-cam.x)*(nz/cam.zoom);cam.y=cy-(cy-cam.y)*(nz/cam.zoom);cam.zoom=nz;}}
+function zoomReset(){const iso=toIso(MAP/2,MAP/2);cam.zoom=1;cam.x=-iso.x+canvas.width/2;cam.y=-iso.y+canvas.height/2;if(typeof syncCamTarget==='function')syncCamTarget();}
 
 // Day/night cycle: returns a tint object based on game hour
 function getDayTint(){
@@ -87,7 +102,14 @@ function pointOnPolyline(pts,t){
 function render(){
   if(!G)return;
   canvas.width=cArea.clientWidth;canvas.height=cArea.clientHeight;
-  ctx.fillStyle='#080c12';ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Atmosférické pozadí — jemný vertikální gradient místo ploché barvy.
+  {
+    const bg=ctx.createLinearGradient(0,0,0,canvas.height);
+    bg.addColorStop(0,'#0c1320');
+    bg.addColorStop(0.55,'#080c12');
+    bg.addColorStop(1,'#05070b');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
   ctx.save();
   ctx.translate(cam.x,cam.y);
   ctx.scale(cam.zoom,cam.zoom);
@@ -424,6 +446,37 @@ function render(){
   }
 
   ctx.restore();
+
+  // ====== FLOATING FEEDBACK (screen space, po restore) ======
+  if(floaters.length){
+    ctx.save();
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const f of floaters){
+      const iso=toIso(f.x,f.y);
+      const sx=cam.x+iso.x*cam.zoom;
+      const sy=cam.y+iso.y*cam.zoom - f.age*26 - 18; // stoupá nahoru
+      if(sx<-40||sx>canvas.width+40||sy<-20||sy>canvas.height+20)continue;
+      const a=Math.max(0,Math.min(1,f.life));
+      ctx.globalAlpha=a;
+      ctx.font='bold 13px sans-serif';
+      ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.7)';
+      ctx.strokeText(f.text,sx,sy);
+      ctx.fillStyle=f.color;
+      ctx.fillText(f.text,sx,sy);
+    }
+    ctx.restore();
+  }
+
+  // ====== VIGNETTE (jemné ztmavení okrajů pro hloubku) ======
+  {
+    const cx=canvas.width/2,cy=canvas.height/2;
+    const r=Math.hypot(cx,cy);
+    const vg=ctx.createRadialGradient(cx,cy,r*0.62,cx,cy,r);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1,'rgba(0,0,0,0.32)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
   renderMM();
 }
 
@@ -1157,6 +1210,10 @@ function drawDC(x,y,dc,di){
 
   // ====== Selection outline ======
   if(isSel){
+    // animovaný pulzující kroužek na zemi
+    const sp=(Date.now()/700)%1;
+    ctx.strokeStyle=`rgba(0,212,255,${(1-sp)*.5})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(s.x,s.y+2,(hw+8)+sp*16,((hw+8)+sp*16)*.5,0,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(s.x,topY);ctx.lineTo(s.x+hw,topE);ctx.lineTo(s.x+hw,s.y);ctx.lineTo(s.x,s.y+TH/2-1);ctx.lineTo(s.x-hw,s.y);ctx.lineTo(s.x-hw,topE);ctx.closePath();ctx.stroke();
     ctx.strokeStyle='rgba(0,212,255,.25)';ctx.lineWidth=5;

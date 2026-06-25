@@ -371,6 +371,7 @@ function connectBld(x,y,connType){
   // Initialize tariff distribution — no customers yet, they'll join via growth
   b.tariffDist={};b.customers=0;b.tariff=null;b.sat=50;if(!b.svcSubs)b.svcSubs={};
   markCapDirty();
+  if(typeof addFloater==='function')addFloater(x,y,'✓ '+ct.name,'#3fb950');
   notify(`✅ Připojeno na ${ct.name}!`,'good');updUI();
 }
 

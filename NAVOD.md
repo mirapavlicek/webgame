@@ -445,9 +445,11 @@ přes všechny herní akce, panely a stavební nástroje.
 | `d` | Nástroj — postavit DC (malé) |
 | `x` | Nástroj — demolice / odstranit |
 | `Esc` | Zrušit aktivní nástroj / zavřít DC modal |
-| `+` / `=` | Zoom in |
-| `-` | Zoom out |
-| Tažení myší | Posun mapy |
+| `+` / `=` | Zoom in (plynulý) |
+| `-` | Zoom out (plynulý) |
+| `↑` `↓` `←` `→` | Posun kamery (plynulý, s dojezdem) |
+| Tažení myší | Posun mapy (se setrvačností po puštění) |
+| Klik / tažení v minimapě | Skok kamery na dané místo |
 | Klik na budovu | Otevřít detail budovy |
 | Dvojklik na DC | Otevřít interní pohled DC |
 

@@ -5,6 +5,33 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Vylepšení ovládání kamery a vizuálního pocitu hry.
+
+### Added
+
+#### 🎥 Plynulá kamera (`js/camera.js`)
+- Posouvání mapy **šipkami** (↑/↓/←/→) s plynulým dojezdem (exponenciální easing).
+- **Setrvačnost** po puštění tažení myší — kamera plynule dojede.
+- **Animovaný zoom** kolečkem i tlačítky +/−/⌂ (zachová bod pod kurzorem).
+- **Klik / tažení v minimapě** vycentruje kameru na dané místo.
+- `updateCamera(dt)` běží v herní smyčce nezávisle na rychlosti hry (funguje i v pauze).
+
+#### ✨ Vizuální zpětná vazba a atmosféra (`js/render.js`)
+- **Plovoucí popisky** kotvené na dlaždici (world-space): ⚡ výpadek DC,
+  ✓ obnovení, ✓ nová přípojka — stoupají a mizí.
+- **Gradientové pozadí** místo ploché barvy + jemná **vinětace** okrajů pro hloubku.
+- **Animovaný pulzující kroužek** u vybraného datového centra.
+
+#### ⚠️ Funkční vylepšení
+- **Včasné varování před bankrotem**: když je měsíční tok záporný a hotovost
+  vydrží < 3 měsíce, hra upozorní (jednou, dokud se situace nezlepší).
+
+### Tests
+- `tests/camera.test.js` — 20 assertů na čistou matematiku kamery
+  (mapování kláves, easing, setrvačnost, normalizace diagonály).
+
 ## [0.3.1] — 2026-04-19
 
 Minor update zaměřený na obnovitelné zdroje energie. Hráč teď může aktivně
