@@ -322,6 +322,22 @@ function placeCable(x1,y1,x2,y2,type){
   notify(msg,'good');updUI();
 }
 
+// Pure: nabídka drátových přípojek pro quick-connect menu.
+// Vrací typy seřazené podle rychlosti, s příznakem dostupnosti (tech + cash).
+// connT = CONN_T, inflFn = funkce inflace ceny (volitelná).
+function quickConnectOptions(connT,tech,cash,inflFn){
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'];
+  const out=[];
+  for(const key of wired){
+    const c=connT&&connT[key];if(!c)continue;
+    if((c.minTech||0)>tech)continue;
+    const cost=inflFn?inflFn(c.cost):c.cost;
+    out.push({key,name:c.name,icon:c.icon,cost,maxBW:c.maxBW,affordable:cash>=cost});
+  }
+  out.sort((a,b)=>a.maxBW-b.maxBW);
+  return out;
+}
+
 function connectBld(x,y,connType){
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){

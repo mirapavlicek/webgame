@@ -452,6 +452,7 @@ přes všechny herní akce, panely a stavební nástroje.
 | Tažení myší | Posun mapy (se setrvačností po puštění) |
 | Klik / tažení v minimapě | Skok kamery na dané místo |
 | Klik na budovu | Otevřít detail budovy |
+| Klik na **nepřipojenou** budovu | Rychlé připojení — menu s dostupnými přípojkami na 1 klik |
 | Dvojklik na DC | Otevřít interní pohled DC |
 
 > **Tip:** Paleta Cmd+K umí přepínat panely (Stavba, Tarify, Cloud…),

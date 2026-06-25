@@ -8,7 +8,7 @@
     "prepare-dist:win": "powershell -ExecutionPolicy Bypass -File scripts/prepare-dist.ps1",
     "vendor:fetch": "bash vendor/fetch.sh",
     "vendor:fetch:win": "powershell -ExecutionPolicy Bypass -File vendor/fetch.ps1",
-    "test": "node tests/expandmap.test.js && node tests/camera.test.js",
+    "test": "node tests/expandmap.test.js && node tests/camera.test.js && node tests/quickconnect.test.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

@@ -30,6 +30,12 @@ Vylepšení ovládání kamery a vizuálního pocitu hry.
 #### 🧭 Navigace
 - **`Tab` / `Shift+Tab`** prochází datacentra — vycentruje kameru a vybere DC.
 
+#### ⚡ Rychlé připojení (quick-connect)
+- Klik na **nepřipojenou budovu** v režimu kurzoru otevře malé kontextové menu
+  s dostupnými drátovými přípojkami (filtruje podle éry, ukazuje cenu a
+  dostupnost) → připojení na **jeden klik** místo tab → modal → potvrzení.
+- Zavře se klávesou `Esc`, tlačítkem, výběrem nástroje nebo klikem jinam.
+
 #### ⚠️ Funkční vylepšení
 - **Včasné varování před bankrotem**: když je měsíční tok záporný a hotovost
   vydrží < 3 měsíce, hra upozorní (jednou, dokud se situace nezlepší).
@@ -37,6 +43,8 @@ Vylepšení ovládání kamery a vizuálního pocitu hry.
 ### Tests
 - `tests/camera.test.js` — 27 assertů na čistou logiku kamery
   (mapování kláves, easing, setrvačnost, normalizace diagonály, cyklení DC).
+- `tests/quickconnect.test.js` — 12 assertů na logiku quick-connect nabídky
+  (filtr podle technologie, affordability, inflace ceny, řazení, vynechání WiFi/bezdrátu).
 
 ## [0.3.1] — 2026-04-19
 

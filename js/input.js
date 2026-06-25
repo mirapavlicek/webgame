@@ -9,6 +9,7 @@ function initInput(){
     if(!G)return;
     const r=canvas.getBoundingClientRect();
     const sx=e.clientX-r.left,sy=e.clientY-r.top;
+    if(typeof closeQuickMenu==='function')closeQuickMenu();
     if(e.button===1||e.button===2||(e.button===0&&e.shiftKey)){drag=true;dS={x:sx,y:sy};cS={x:cam.x,y:cam.y};camDragLast={x:cam.x,y:cam.y,t:performance.now()};if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}if(typeof camDragVel!=='undefined'){camDragVel.x=0;camDragVel.y=0;}e.preventDefault();return;}
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
@@ -16,7 +17,10 @@ function initInput(){
     // Cursor mode: select DC or show tile info
     if(tool==='none'){
       const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
-      if(di>=0){selDC=di;updUI();}else{selDC=null;}
+      if(di>=0){selDC=di;updUI();return;}
+      selDC=null;
+      const b=G.map[h.y]&&G.map[h.y][h.x]&&G.map[h.y][h.x].bld;
+      if(b&&!b.connected&&typeof openQuickConnectMenu==='function'){openQuickConnectMenu(h.x,h.y,e.clientX,e.clientY);}
       return;
     }
     if(tool.startsWith('dc_')){placeDC(h.x,h.y,tool);return;}
@@ -301,7 +305,7 @@ function initInput(){
     if(!G)return;
     if(e.target.tagName==='INPUT')return;
     switch(e.key){
-      case 'Escape':if(dcModalIdx>=0){closeDCModal();}else{cableStart=null;tool='none';selDC=null;updateToolButtons();}break;
+      case 'Escape':if(typeof closeQuickMenu==='function')closeQuickMenu();if(dcModalIdx>=0){closeDCModal();}else{cableStart=null;tool='none';selDC=null;updateToolButtons();}break;
       case ' ':e.preventDefault();setSpeed(G.speed===0?1:0);break;
       case '1':setSpeed(1);break;case '2':setSpeed(2);break;case '3':setSpeed(5);break;
       case 'c':setTool('cable_copper');break;case 'f':setTool('cable_fiber');break;
@@ -332,6 +336,7 @@ function updateSpeedButtons(){
 function setTool(t){
   tool=t;
   if(!t.startsWith('cable_'))cableStart=null;
+  if(typeof closeQuickMenu==='function')closeQuickMenu();
   updateToolButtons();
 }
 
