@@ -484,6 +484,10 @@ přes všechny herní akce, panely a stavební nástroje.
 - IXP peering snižuje latenci → +5-10% satisfaction = méně churn.
 
 **Obecné:**
+- **Dimenzuj na špičku, ne na průměr.** Poptávka po BW kolísá během dne —
+  večerní prime-time přidá až **+45 %** provozu (HUD nahoře hlásí „🌙 Síťová
+  špička"). Síť, která zvládá denní průměr, může ve špičce přetékat → kongesce,
+  nižší růst a pokles spokojenosti. Nech si rezervu kapacity.
 - **Nešetři na UPS + firewall** — cena je malá vs. penále za velký incident.
 - **Morálka techniků > než jejich počet.** 2 spokojení technici řeší
   incidenty rychleji než 5 vyhořelých.

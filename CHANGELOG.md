@@ -40,11 +40,23 @@ Vylepšení ovládání kamery a vizuálního pocitu hry.
 - **Včasné varování před bankrotem**: když je měsíční tok záporný a hotovost
   vydrží < 3 měsíce, hra upozorní (jednou, dokud se situace nezlepší).
 
+#### 📈 Herní mechanika: denní špička (peak hours)
+- Poptávka po BW kolísá podle denní doby (`peakDemandMultiplier` v `capacity.js`):
+  večerní prime-time **+45 %**, hluboká noc **−15 %**, menší dopolední vrchol.
+- Hráč musí dimenzovat kapacitu **na špičku, ne na průměr** — poddimenzovaná síť
+  ve špičce trpí kongescí (přes stávající `congPenalty`/`congDrop` → nižší růst
+  a pokles spokojenosti). Tematicky navázáno na vizuální day/night cyklus.
+- **HUD indikátor** „🌙 Síťová špička" / „🌌 Noční útlum" v horní části plátna.
+- **GPU akcelerace**: během špičky PixiJS vrstva zesílí glow přetížených kabelů/DC
+  a zvýší hustotu datových částic (síť v noci „rozsvítí").
+
 ### Tests
 - `tests/camera.test.js` — 27 assertů na čistou logiku kamery
   (mapování kláves, easing, setrvačnost, normalizace diagonály, cyklení DC).
 - `tests/quickconnect.test.js` — 12 assertů na logiku quick-connect nabídky
   (filtr podle technologie, affordability, inflace ceny, řazení, vynechání WiFi/bezdrátu).
+- `tests/peakdemand.test.js` — 11 assertů na mechaniku denní špičky
+  (večerní vrchol, noční útlum, meze, cyklení hodiny).
 
 ## [0.3.1] — 2026-04-19
 

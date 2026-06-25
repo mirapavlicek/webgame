@@ -33,6 +33,29 @@ function getCloudBWForDC(dcIdx){
   return Math.round(bw*Math.max(0.15,utilFactor));
 }
 
+// ====== DENNÍ ŠPIČKA (peak hours) ======
+// Násobič poptávky po BW podle denní doby. Večerní prime-time (streaming,
+// hry, video) zvedne zátěž sítě, hluboká noc/ráno ji sníží. Hráč tak musí
+// dimenzovat kapacitu na špičku, ne na průměr — undersized síť trpí v noci
+// kongescí (nižší růst + pokles spokojenosti přes congPenalty/congDrop).
+// Vstup hour 0..24 (mapuje se z denního cyklu jako u getDayTint). Pure.
+const PEAK_DEMAND_MIN=0.7, PEAK_DEMAND_MAX=1.45;
+function peakDemandMultiplier(hour){
+  const h=((hour%24)+24)%24;
+  const evening=Math.exp(-Math.pow((h-20.5)/3.2,2));   // hlavní vrchol ~20:30
+  const morning=0.35*Math.exp(-Math.pow((h-11)/2.2,2)); // menší dopolední ~11:00
+  const nightDip=0.5*Math.exp(-Math.pow((h-4)/3.0,2));  // útlum ~4:00
+  const m=1+(PEAK_DEMAND_MAX-1)*evening+(PEAK_DEMAND_MAX-1)*morning-(1-PEAK_DEMAND_MIN)*nightDip;
+  return Math.max(PEAK_DEMAND_MIN,Math.min(PEAK_DEMAND_MAX,m));
+}
+function currentDayHour(){
+  if(typeof G==='undefined'||!G||!G.date)return 12;
+  return (G.date.d-1)/30*24; // stejné odvození jako vizuální day/night cyklus
+}
+function currentPeakDemand(){
+  return peakDemandMultiplier(currentDayHour());
+}
+
 function calcBldBW(b){
   if(!b||!b.connected)return 0;
   const bt=BTYPES[b.type];
@@ -65,6 +88,8 @@ function calcBldBW(b){
     const yearsAfter=Math.max(0,G.date.y-2010);
     bw*=(1+yearsAfter*0.05);
   }
+  // Denní špička — večerní prime-time zvedne zátěž, noc ji sníží.
+  bw*=currentPeakDemand();
   return bw;
 }
 

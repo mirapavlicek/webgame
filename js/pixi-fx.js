@@ -101,6 +101,8 @@ function renderPixiFx(){
   if(!_pixiReady||!_pixiEnabled||!G)return;
   try{
     updateSmoothCamera();
+    // Špičkový faktor — zesílí glow ve večerní prime-time (víc GPU svícení).
+    const _peakGlow=(typeof currentPeakDemand==='function')?Math.max(0.85,currentPeakDemand()):1;
 
     // ====== SKY GRADIENT ======
     if(_pixiSkyEnabled)drawPixiSky();
@@ -128,7 +130,7 @@ function renderPixiFx(){
         if(!load||load.ratio<0.65)continue;
         const s1=toIso(sg.x1,sg.y1),s2=toIso(sg.x2,sg.y2);
         const color=load.ratio>0.95?0xff3030:load.ratio>0.8?0xf59e0b:0xfbbf24;
-        const alpha=Math.min(0.55,load.ratio*0.6);
+        const alpha=Math.min(0.7,load.ratio*0.6*_peakGlow);
         _pixiGlowGfx.lineStyle({width:8,color,alpha,cap:'round'});
         _pixiGlowGfx.moveTo(s1.x,s1.y).lineTo(s2.x,s2.y);
       }
@@ -149,7 +151,7 @@ function renderPixiFx(){
           _pixiGlowGfx.endFill();
         } else if(dcL&&dcL.ratio>0.5){
           const c=dcL.ratio>0.9?0xef4444:dcL.ratio>0.7?0xf59e0b:0x7c3aed;
-          _pixiGlowGfx.beginFill(c,pulse*0.22*Math.min(1,dcL.ratio));
+          _pixiGlowGfx.beginFill(c,Math.min(0.4,pulse*0.22*Math.min(1,dcL.ratio)*_peakGlow));
           _pixiGlowGfx.drawCircle(p.x,p.y-10,28);
           _pixiGlowGfx.endFill();
         } else {
@@ -247,8 +249,10 @@ function lerpColor(a,b,t){
 function updatePixiParticles(){
   if(!_pixiLayerFx||!G||!G.cables||typeof segLoads==='undefined')return;
 
-  // Spawn new particles on congested/active segments
-  if(_pixiParticles.length<_PIXI_MAX_PARTICLES&&Math.random()<0.6){
+  // Spawn new particles on congested/active segments — během špičky víc provozu
+  const _peak=(typeof currentPeakDemand==='function')?currentPeakDemand():1;
+  const _spawnChance=Math.min(0.95,0.6*_peak);
+  if(_pixiParticles.length<_PIXI_MAX_PARTICLES&&Math.random()<_spawnChance){
     const segs=Object.keys(segLoads);
     if(segs.length>0){
       const sk=segs[Math.floor(Math.random()*segs.length)];

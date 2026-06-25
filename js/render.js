@@ -500,6 +500,26 @@ function render(){
     ctx.fillStyle=vg;ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 
+  // ====== INDIKÁTOR DENNÍ ŠPIČKY ======
+  if(typeof currentPeakDemand==='function'){
+    const pk=currentPeakDemand();
+    if(pk>=1.12||pk<=0.85){
+      const isPeak=pk>=1.12;
+      const pct=Math.round((pk-1)*100);
+      const txt=isPeak?`🌙 Síťová špička +${pct}% provozu`:`🌌 Noční útlum ${pct}% provozu`;
+      ctx.save();
+      ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      const bw=ctx.measureText(txt).width+24;
+      const bx=canvas.width/2,by=15;
+      ctx.fillStyle=isPeak?'rgba(120,45,12,.80)':'rgba(18,28,58,.72)';
+      roundRect(ctx,bx-bw/2,by-10,bw,21,10);ctx.fill();
+      ctx.strokeStyle=isPeak?'rgba(255,150,80,.6)':'rgba(120,150,220,.5)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle=isPeak?'#ffd9a8':'#cdd6f4';
+      ctx.fillText(txt,bx,by);
+      ctx.restore();
+    }
+  }
+
   renderMM();
 }
 
