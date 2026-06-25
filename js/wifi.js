@@ -19,6 +19,7 @@ function placeWiFi(x,y,wifiType){
 
   G.wifiAPs.push({x,y,type:wifiType,dcIdx});
   G.cash-=wt.cost;
+  if(typeof addPulse==='function')addPulse(x,y,wt.color||'#22d3ee');
   notify(`✅ ${wt.name} umístěn (dosah ${wt.range})`,'good');
   updUI();
 }

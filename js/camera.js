@@ -134,10 +134,18 @@ function initCameraKeys() {
   window.addEventListener('blur', () => camKeys.clear());
 }
 
+// Pure: další index v cyklu (Tab = vpřed, Shift+Tab = zpět). Z null/-1 → 0.
+function nextDCIndex(cur, count, dir) {
+  if (count <= 0) return -1;
+  dir = dir || 1;
+  if (cur === null || cur === undefined || cur < 0) return dir > 0 ? 0 : count - 1;
+  return ((cur + dir) % count + count) % count;
+}
+
 // Export pro node testy (vm/CommonJS) — v prohlížeči je module undefined.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    camKeyDir, camApplyKeys, camEaseStep, camApplyInertia,
+    camKeyDir, camApplyKeys, camEaseStep, camApplyInertia, nextDCIndex,
     CAM_PAN_SPEED, CAM_EASE_TAU,
   };
 }

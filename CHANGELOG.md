@@ -20,17 +20,23 @@ Vylepšení ovládání kamery a vizuálního pocitu hry.
 
 #### ✨ Vizuální zpětná vazba a atmosféra (`js/render.js`)
 - **Plovoucí popisky** kotvené na dlaždici (world-space): ⚡ výpadek DC,
-  ✓ obnovení, ✓ nová přípojka — stoupají a mizí.
+  ✓ obnovení, ✓ nová přípojka, 🏗️ nové DC — stoupají a mizí.
 - **Gradientové pozadí** místo ploché barvy + jemná **vinětace** okrajů pro hloubku.
 - **Animovaný pulzující kroužek** u vybraného datového centra.
+- **Noční pouliční osvětlení** — teplé lampy podél silnic se rozsvěcí v noci
+  (intenzita podle denní doby).
+- **Rozpínavý kroužek** jako efekt při umístění DC / vysílače / WiFi AP.
+
+#### 🧭 Navigace
+- **`Tab` / `Shift+Tab`** prochází datacentra — vycentruje kameru a vybere DC.
 
 #### ⚠️ Funkční vylepšení
 - **Včasné varování před bankrotem**: když je měsíční tok záporný a hotovost
   vydrží < 3 měsíce, hra upozorní (jednou, dokud se situace nezlepší).
 
 ### Tests
-- `tests/camera.test.js` — 20 assertů na čistou matematiku kamery
-  (mapování kláves, easing, setrvačnost, normalizace diagonály).
+- `tests/camera.test.js` — 27 assertů na čistou logiku kamery
+  (mapování kláves, easing, setrvačnost, normalizace diagonály, cyklení DC).
 
 ## [0.3.1] — 2026-04-19
 

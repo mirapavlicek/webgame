@@ -152,6 +152,8 @@ function placeDC(x,y,type){
   G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
   if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
+  if(typeof addPulse==='function')addPulse(x,y,dt.color||'#00d4ff');
+  if(typeof addFloater==='function')addFloater(x,y,'🏗️ '+dt.name,'#00d4ff');
   notify(`✅ ${dt.name} postaveno! (základ ${fmtBW(dt.baseBW)})`,'good');updUI();
 }
 
@@ -841,6 +843,7 @@ function placeTower(x,y,type){
   G.cash-=twCost;
   if(typeof recordCapex==='function')recordCapex('tower',twCost,`${tt.name} @${x},${y}`);
   markCapDirty();
+  if(typeof addPulse==='function')addPulse(x,y,tt.color||'#a78bfa');
   notify(`✅ ${tt.icon} ${tt.name} (${tt.band||''}) · dosah ${tt.range} · max ${fmtBW(tt.maxBW)}`,'good');updUI();
 }
 

@@ -307,6 +307,16 @@ function initInput(){
       case 'c':setTool('cable_copper');break;case 'f':setTool('cable_fiber');break;
       case 'd':setTool('dc_small');break;case 'x':setTool('demolish');break;
       case '+':case '=':zoomIn();break;case '-':zoomOut();break;
+      case 'Tab':{
+        e.preventDefault();
+        if(G.dcs&&G.dcs.length&&typeof nextDCIndex==='function'){
+          selDC=nextDCIndex(selDC,G.dcs.length,e.shiftKey?-1:1);
+          const d=G.dcs[selDC];
+          if(d&&typeof camCenterOn==='function')camCenterOn(d.x,d.y);
+          updUI();
+        }
+        break;
+      }
     }
   });
 }

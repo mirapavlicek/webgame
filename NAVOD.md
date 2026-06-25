@@ -448,6 +448,7 @@ přes všechny herní akce, panely a stavební nástroje.
 | `+` / `=` | Zoom in (plynulý) |
 | `-` | Zoom out (plynulý) |
 | `↑` `↓` `←` `→` | Posun kamery (plynulý, s dojezdem) |
+| `Tab` / `Shift+Tab` | Procházet datacentra (vycentruje + vybere) |
 | Tažení myší | Posun mapy (se setrvačností po puštění) |
 | Klik / tažení v minimapě | Skok kamery na dané místo |
 | Klik na budovu | Otevřít detail budovy |

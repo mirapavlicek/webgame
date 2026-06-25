@@ -91,6 +91,15 @@ console.log('\u2550\u2550\u2550 Test 4: camApplyInertia \u2550\u2550\u2550');
   ok(inertia.x === 0 && inertia.y === 0, 'pod prahem se rychlost rovnou vynuluje');
 }
 
+console.log('\u2550\u2550\u2550 Test 5: nextDCIndex \u2550\u2550\u2550');
+ok(cam.nextDCIndex(null, 3) === 0, 'z null -> 0');
+ok(cam.nextDCIndex(-1, 3) === 0, 'z -1 -> 0');
+ok(cam.nextDCIndex(0, 3) === 1, '0 -> 1');
+ok(cam.nextDCIndex(2, 3) === 0, '2 -> 0 (wrap)');
+ok(cam.nextDCIndex(0, 3, -1) === 2, '0 zpět -> 2 (wrap)');
+ok(cam.nextDCIndex(null, 3, -1) === 2, 'null zpět -> poslední');
+ok(cam.nextDCIndex(0, 0) === -1, 'prázdný seznam -> -1');
+
 console.log('\u2550'.repeat(60));
 if (fail === 0) { console.log(`\u2705 V\u0160ECHNY TESTY PRO\u0160LY: ${pass}/${pass}`); process.exit(0); }
 else { console.log(`\u274c SELHALO: ${fail}, pro\u0161lo: ${pass}`); process.exit(1); }
