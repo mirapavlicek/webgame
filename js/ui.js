@@ -1268,6 +1268,54 @@ function buildRevenueChart(){
   }
 }
 
+// ====== QUICK-CONNECT MENU ======
+// Klik na nepřipojenou budovu v režimu kurzoru otevře malé menu s dostupnými
+// drátovými přípojkami → připojení na jeden klik (bez tab → modal → potvrzení).
+let _quickMenuEl=null;
+function _ensureQuickMenu(){
+  if(_quickMenuEl)return _quickMenuEl;
+  const el=document.createElement('div');
+  el.id='quickMenu';
+  el.style.cssText='position:fixed;z-index:60;display:none;min-width:170px;background:rgba(20,26,38,.97);border:1px solid #2d3650;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.55);padding:6px;font-size:11px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)';
+  document.body.appendChild(el);
+  _quickMenuEl=el;
+  return el;
+}
+function closeQuickMenu(){if(_quickMenuEl)_quickMenuEl.style.display='none';}
+function openQuickConnectMenu(x,y,sx,sy){
+  if(!G)return;
+  const b=G.map[y]&&G.map[y][x]&&G.map[y][x].bld;
+  if(!b||b.connected){closeQuickMenu();return;}
+  const inflFn=(typeof inflComponentCost==='function')?inflComponentCost:null;
+  const opts=(typeof quickConnectOptions==='function')?quickConnectOptions(CONN_T,G.tech,G.cash,inflFn):[];
+  const el=_ensureQuickMenu();
+  const bt=BTYPES[b.type];
+  let h=`<div style="font-weight:600;color:#e6edf3;padding:2px 4px 6px;border-bottom:1px solid #2d3650;margin-bottom:4px">${bt?bt.icon:''} Připojit ${bt?bt.name:'budovu'}</div>`;
+  if(opts.length===0){
+    h+=`<div style="color:#8b949e;padding:4px 6px">Žádná dostupná přípojka v této éře.</div>`;
+  }else{
+    for(const o of opts){
+      const clr=o.affordable?'#e6edf3':'#6e7681';
+      const bg=o.affordable?'#0e1a12':'#15171c';
+      h+=`<button ${o.affordable?'':'disabled'} onclick="quickConnect(${x},${y},'${o.key}')" style="display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;margin:2px 0;padding:4px 7px;background:${bg};border:1px solid ${o.affordable?'#1f7a37':'#21262d'};border-radius:5px;color:${clr};cursor:${o.affordable?'pointer':'default'};font-size:11px">`;
+      h+=`<span>${o.icon||''} ${o.name} <span style="color:#8b949e">${fmtBW(o.maxBW)}</span></span><span style="color:${o.affordable?'#f59e0b':'#6e7681'}">${fmtKc(o.cost)}</span>`;
+      h+=`</button>`;
+    }
+  }
+  h+=`<div style="text-align:right;margin-top:4px"><button onclick="closeQuickMenu()" style="padding:2px 8px;background:#1a0a0a;border:1px solid #f85149;border-radius:4px;color:#f85149;cursor:pointer;font-size:10px">Zavřít</button></div>`;
+  el.innerHTML=h;
+  el.style.display='block';
+  const mw=el.offsetWidth||180,mh=el.offsetHeight||140;
+  let px=sx+12,py=sy+12;
+  if(px+mw>window.innerWidth)px=Math.max(8,window.innerWidth-mw-8);
+  if(py+mh>window.innerHeight)py=Math.max(8,window.innerHeight-mh-8);
+  el.style.left=px+'px';el.style.top=py+'px';
+}
+function quickConnect(x,y,key){
+  closeQuickMenu();
+  if(typeof connectBld==='function')connectBld(x,y,key);
+}
+
 // ====== IXP STATUS ======
 function buildIXPStatus(){
   const el=document.getElementById('ixpStatus');if(!el)return;

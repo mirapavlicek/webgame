@@ -152,6 +152,8 @@ function placeDC(x,y,type){
   G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
   if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
+  if(typeof addPulse==='function')addPulse(x,y,dt.color||'#00d4ff');
+  if(typeof addFloater==='function')addFloater(x,y,'🏗️ '+dt.name,'#00d4ff');
   notify(`✅ ${dt.name} postaveno! (základ ${fmtBW(dt.baseBW)})`,'good');updUI();
 }
 
@@ -320,6 +322,22 @@ function placeCable(x1,y1,x2,y2,type){
   notify(msg,'good');updUI();
 }
 
+// Pure: nabídka drátových přípojek pro quick-connect menu.
+// Vrací typy seřazené podle rychlosti, s příznakem dostupnosti (tech + cash).
+// connT = CONN_T, inflFn = funkce inflace ceny (volitelná).
+function quickConnectOptions(connT,tech,cash,inflFn){
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'];
+  const out=[];
+  for(const key of wired){
+    const c=connT&&connT[key];if(!c)continue;
+    if((c.minTech||0)>tech)continue;
+    const cost=inflFn?inflFn(c.cost):c.cost;
+    out.push({key,name:c.name,icon:c.icon,cost,maxBW:c.maxBW,affordable:cash>=cost});
+  }
+  out.sort((a,b)=>a.maxBW-b.maxBW);
+  return out;
+}
+
 function connectBld(x,y,connType){
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){
@@ -371,6 +389,7 @@ function connectBld(x,y,connType){
   // Initialize tariff distribution — no customers yet, they'll join via growth
   b.tariffDist={};b.customers=0;b.tariff=null;b.sat=50;if(!b.svcSubs)b.svcSubs={};
   markCapDirty();
+  if(typeof addFloater==='function')addFloater(x,y,'✓ '+ct.name,'#3fb950');
   notify(`✅ Připojeno na ${ct.name}!`,'good');updUI();
 }
 
@@ -840,6 +859,7 @@ function placeTower(x,y,type){
   G.cash-=twCost;
   if(typeof recordCapex==='function')recordCapex('tower',twCost,`${tt.name} @${x},${y}`);
   markCapDirty();
+  if(typeof addPulse==='function')addPulse(x,y,tt.color||'#a78bfa');
   notify(`✅ ${tt.icon} ${tt.name} (${tt.band||''}) · dosah ${tt.range} · max ${fmtBW(tt.maxBW)}`,'good');updUI();
 }
 

@@ -445,10 +445,14 @@ přes všechny herní akce, panely a stavební nástroje.
 | `d` | Nástroj — postavit DC (malé) |
 | `x` | Nástroj — demolice / odstranit |
 | `Esc` | Zrušit aktivní nástroj / zavřít DC modal |
-| `+` / `=` | Zoom in |
-| `-` | Zoom out |
-| Tažení myší | Posun mapy |
+| `+` / `=` | Zoom in (plynulý) |
+| `-` | Zoom out (plynulý) |
+| `↑` `↓` `←` `→` | Posun kamery (plynulý, s dojezdem) |
+| `Tab` / `Shift+Tab` | Procházet datacentra (vycentruje + vybere) |
+| Tažení myší | Posun mapy (se setrvačností po puštění) |
+| Klik / tažení v minimapě | Skok kamery na dané místo |
 | Klik na budovu | Otevřít detail budovy |
+| Klik na **nepřipojenou** budovu | Rychlé připojení — menu s dostupnými přípojkami na 1 klik |
 | Dvojklik na DC | Otevřít interní pohled DC |
 
 > **Tip:** Paleta Cmd+K umí přepínat panely (Stavba, Tarify, Cloud…),
@@ -480,6 +484,10 @@ přes všechny herní akce, panely a stavební nástroje.
 - IXP peering snižuje latenci → +5-10% satisfaction = méně churn.
 
 **Obecné:**
+- **Dimenzuj na špičku, ne na průměr.** Poptávka po BW kolísá během dne —
+  večerní prime-time přidá až **+45 %** provozu (HUD nahoře hlásí „🌙 Síťová
+  špička"). Síť, která zvládá denní průměr, může ve špičce přetékat → kongesce,
+  nižší růst a pokles spokojenosti. Nech si rezervu kapacity.
 - **Nešetři na UPS + firewall** — cena je malá vs. penále za velký incident.
 - **Morálka techniků > než jejich počet.** 2 spokojení technici řeší
   incidenty rychleji než 5 vyhořelých.

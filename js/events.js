@@ -174,6 +174,7 @@ function triggerPowerOutage(dcIdx){
   // Route through unified incident system so player can respond via MGMT → Incidenty
   if(typeof spawnIncident==='function'){
     spawnIncident(dcIdx,incidentCauseId,false);
+    if(typeof addFloater==='function')addFloater(dc.x,dc.y,'⚡ '+cause,'#ff5030');
     // BGP failover: halve remaining on fresh incident if peering exists
     const inc=(G.incidents||[]).find(i=>i.dcIdx===dcIdx&&!i.resolved);
     if(inc){
@@ -203,6 +204,7 @@ function triggerPowerOutage(dcIdx){
   const hasUPS=dc.eq&&dc.eq.includes('eq_ups');
   const duration=hasUPS?1+Math.floor(Math.random()*3):5+Math.floor(Math.random()*11);
   dc.outage={active:true,remaining:duration,cause};
+  if(typeof addFloater==='function')addFloater(dc.x,dc.y,'⚡ '+cause,'#ff5030');
   notify(`🔴 VÝPADEK DC${dcIdx+1}! (${cause})`,'bad');
 }
 
@@ -229,6 +231,7 @@ function updateOutages(){
       dc.outage.remaining--;
       if(dc.outage.remaining<=0){
         dc.outage.active=false;
+        if(typeof addFloater==='function')addFloater(dc.x,dc.y,'✓ obnoveno','#3fb950');
         notify(`✅ DC${di+1} obnoveno!`,'good');
       }
     }

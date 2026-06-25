@@ -5,6 +5,59 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Vylepšení ovládání kamery a vizuálního pocitu hry.
+
+### Added
+
+#### 🎥 Plynulá kamera (`js/camera.js`)
+- Posouvání mapy **šipkami** (↑/↓/←/→) s plynulým dojezdem (exponenciální easing).
+- **Setrvačnost** po puštění tažení myší — kamera plynule dojede.
+- **Animovaný zoom** kolečkem i tlačítky +/−/⌂ (zachová bod pod kurzorem).
+- **Klik / tažení v minimapě** vycentruje kameru na dané místo.
+- `updateCamera(dt)` běží v herní smyčce nezávisle na rychlosti hry (funguje i v pauze).
+
+#### ✨ Vizuální zpětná vazba a atmosféra (`js/render.js`)
+- **Plovoucí popisky** kotvené na dlaždici (world-space): ⚡ výpadek DC,
+  ✓ obnovení, ✓ nová přípojka, 🏗️ nové DC — stoupají a mizí.
+- **Gradientové pozadí** místo ploché barvy + jemná **vinětace** okrajů pro hloubku.
+- **Animovaný pulzující kroužek** u vybraného datového centra.
+- **Noční pouliční osvětlení** — teplé lampy podél silnic se rozsvěcí v noci
+  (intenzita podle denní doby).
+- **Rozpínavý kroužek** jako efekt při umístění DC / vysílače / WiFi AP.
+
+#### 🧭 Navigace
+- **`Tab` / `Shift+Tab`** prochází datacentra — vycentruje kameru a vybere DC.
+
+#### ⚡ Rychlé připojení (quick-connect)
+- Klik na **nepřipojenou budovu** v režimu kurzoru otevře malé kontextové menu
+  s dostupnými drátovými přípojkami (filtruje podle éry, ukazuje cenu a
+  dostupnost) → připojení na **jeden klik** místo tab → modal → potvrzení.
+- Zavře se klávesou `Esc`, tlačítkem, výběrem nástroje nebo klikem jinam.
+
+#### ⚠️ Funkční vylepšení
+- **Včasné varování před bankrotem**: když je měsíční tok záporný a hotovost
+  vydrží < 3 měsíce, hra upozorní (jednou, dokud se situace nezlepší).
+
+#### 📈 Herní mechanika: denní špička (peak hours)
+- Poptávka po BW kolísá podle denní doby (`peakDemandMultiplier` v `capacity.js`):
+  večerní prime-time **+45 %**, hluboká noc **−15 %**, menší dopolední vrchol.
+- Hráč musí dimenzovat kapacitu **na špičku, ne na průměr** — poddimenzovaná síť
+  ve špičce trpí kongescí (přes stávající `congPenalty`/`congDrop` → nižší růst
+  a pokles spokojenosti). Tematicky navázáno na vizuální day/night cyklus.
+- **HUD indikátor** „🌙 Síťová špička" / „🌌 Noční útlum" v horní části plátna.
+- **GPU akcelerace**: během špičky PixiJS vrstva zesílí glow přetížených kabelů/DC
+  a zvýší hustotu datových částic (síť v noci „rozsvítí").
+
+### Tests
+- `tests/camera.test.js` — 27 assertů na čistou logiku kamery
+  (mapování kláves, easing, setrvačnost, normalizace diagonály, cyklení DC).
+- `tests/quickconnect.test.js` — 12 assertů na logiku quick-connect nabídky
+  (filtr podle technologie, affordability, inflace ceny, řazení, vynechání WiFi/bezdrátu).
+- `tests/peakdemand.test.js` — 11 assertů na mechaniku denní špičky
+  (večerní vrchol, noční útlum, meze, cyklení hodiny).
+
 ## [0.3.1] — 2026-04-19
 
 Minor update zaměřený na obnovitelné zdroje energie. Hráč teď může aktivně
