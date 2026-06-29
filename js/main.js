@@ -129,7 +129,7 @@ function dailyTick(){
       if(hasPeering)qb+=.08;
       // Extra demand boost for public buildings with městské partnerství
       let demandBoost=0;
-      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'))demandBoost=.15;
+      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'||b.type==='hospital'||b.type==='university'))demandBoost=.15;
 
       let priceFactor=0;
       const connMax=b.connType&&CONN_T[b.connType]?CONN_T[b.connType].maxBW:20;
@@ -736,6 +736,8 @@ function monthUp(){
     if(Math.random()<.003&&b.pop>BTYPES[b.type].pop[0])b.pop--;
   }
 
+  // Počasí — sezónní změna + okamžité efekty (bouře)
+  try{if(typeof weatherMonthlyTick==='function')weatherMonthlyTick();}catch(e){console.error('weatherMonthlyTick:',e);}
   handleCustomerMigration();
   // Drobný měsíční růst města mezi ročními skoky (živé město)
   if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}

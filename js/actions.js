@@ -326,7 +326,7 @@ function placeCable(x1,y1,x2,y2,type){
 // Vrací typy seřazené podle rychlosti, s příznakem dostupnosti (tech + cash).
 // connT = CONN_T, inflFn = funkce inflace ceny (volitelná).
 function quickConnectOptions(connT,tech,cash,inflFn){
-  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'];
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g','conn_fiber50g','conn_fiber100g'];
   const out=[];
   for(const key of wired){
     const c=connT&&connT[key];if(!c)continue;
@@ -1534,7 +1534,7 @@ function spawnBizTenants(){
     if(!b.bizTenants)b.bizTenants=[];
     // Max tenants based on building size
     const bt=BTYPES[b.type];if(!bt)continue;
-    const maxTenants=b.type==='bigcorp'?5:b.type==='skyscraper'?4:b.type==='factory'?3:b.type==='public'?2:1;
+    const maxTenants=b.type==='bigcorp'?5:b.type==='skyscraper'?4:b.type==='hotel'?4:b.type==='hospital'?3:b.type==='university'?3:b.type==='mall'?3:b.type==='factory'?3:b.type==='public'?2:1;
     if(b.bizTenants.length>=maxTenants)continue;
     // Check each tenant type
     for(const biz of BIZ_TENANTS){

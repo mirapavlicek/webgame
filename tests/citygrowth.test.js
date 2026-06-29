@@ -13,7 +13,7 @@
 
 const cg = require('../js/citygrowth.js');
 
-const VALID = new Set(['house', 'rowhouse', 'shop', 'panel', 'factory', 'public', 'skyscraper', 'bigcorp']);
+const VALID = new Set(['house', 'rowhouse', 'shop', 'panel', 'factory', 'public', 'skyscraper', 'bigcorp', 'hospital', 'university', 'mall', 'hotel']);
 
 let pass = 0, fail = 0;
 function ok(cond, msg) {

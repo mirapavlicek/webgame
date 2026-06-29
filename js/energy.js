@@ -73,7 +73,9 @@ function dcMonthlyElectricityCost(dc){
   const kwIT = dcITLoadKW(dc);
   const pue = dcPUE(dc);
   const price = (G&&G.electricityPrice)||ELEC_INITIAL;
-  return Math.round(kwIT * pue * ELEC_HR_PER_MONTH * price);
+  // Počasí: vedro zvyšuje zátěž chlazení → vyšší PUE/spotřeba
+  const wMult = (typeof weatherEnergyMultiplier==='function')?weatherEnergyMultiplier():1;
+  return Math.round(kwIT * pue * ELEC_HR_PER_MONTH * price * wMult);
 }
 
 // Celkový měsíční náklad na elektřinu všech DC (Kč)

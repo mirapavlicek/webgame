@@ -7,9 +7,27 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Živé, organicky rostoucí město a chytřejší generované události.
-
 ### Added
+
+#### 🌦️ Dynamické počasí (`js/weather.js`)
+- Sezónní počasí: jasno / déšť / mlha / **bouře** / **vedro** s váženými přechody
+  podle ročního období.
+- Herní efekty: **vedro** → vyšší zátěž chlazení DC = dražší elektřina;
+  **bouře/vedro** → vyšší riziko výpadku; bouře občas poškodí kabely.
+- **GPU vrstva (PixiJS)**: déšť/bouře jako částicové čáry, mlha a horký opar
+  jako překryvy, občasný blesk. HUD indikátor aktuálního počasí.
+
+#### 🔬 Víc technologií — 50G/100G PON a 6G
+- Nové éry `TECHS`: **50G PON** (2028), **100G PON** (2032), **6G** (2035).
+- Drátové přípojky `conn_fiber50g` / `conn_fiber100g` (i v quick-connect menu).
+- 6G věže `tower_6g` (FR3) a `tower_6g_thz` (sub-THz).
+- Nové tarify: Fiber 50G/100G + mobilní 6G Ultra/Extreme.
+
+#### 🏥 Nové typy budov
+- **Nemocnice**, **univerzita**, **nákupní centrum**, **hotel** — každá s vlastním
+  profilem poptávky/citlivosti; objevují se **organickým růstem města** podle zóny.
+- Napojeno na veřejnou poptávku a B2B nájemce (telemedicína → nemocnice,
+  e-learning → univerzita, banka → centrum/hotel).
 
 #### 🏙️ Organický růst města (`js/citygrowth.js`)
 - Město už neroste jako pravidelný čtverec — postupně se **zahušťuje kolem
@@ -30,6 +48,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   zóna" — proženou organický růst a posunou poptávku.
 
 ### Tests
+- `tests/weather.test.js` — 11 assertů (sezónní váhy, výběr počasí, násobiče).
 - `tests/citygrowth.test.js` — 9 assertů (výběr typu budovy dle jádra/periferie/roku,
   škálování objemu růstu, meze).
 - `tests/events.test.js` — 10 assertů (vážený los: degenerované vstupy,
