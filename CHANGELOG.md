@@ -5,6 +5,36 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Živé, organicky rostoucí město a chytřejší generované události.
+
+### Added
+
+#### 🏙️ Organický růst města (`js/citygrowth.js`)
+- Město už neroste jako pravidelný čtverec — postupně se **zahušťuje kolem
+  stávající zástavby** (shlukování na frontieru) a **prorazí si nové ulice**
+  do volné plochy, čímž otevírá nové čtvrti (nepravidelný, živý půdorys).
+- Tempo růstu **škáluje s prosperitou** hráče (počet zákazníků) a dobou —
+  úspěšný ISP přitahuje developery. Roční skok (`cityGrowthTick` v `yearUp`)
+  + drobný měsíční přírůstek.
+- Respektuje vodu, parky, elektrárny, DC i existující budovy; nové budovy mají
+  vizuální efekt umístění.
+
+#### 🎲 Chytřejší generované události (`js/events.js`)
+- `randEvent` přepsán na **vážený výběr závislý na éře a kontextu**
+  (`weightedPick`): pozdní/specifické události (DDoS, kyber, smart city) se
+  neobjeví na startu (`minYear`); bouře jsou pravděpodobnější u rozsáhlé sítě,
+  regulace u velkého hráče, cenové války až při dostatku zákazníků atd.
+- Nové **události růstu města**: „🏘️ Rozvoj nové čtvrti", „🏭 Nová průmyslová
+  zóna" — proženou organický růst a posunou poptávku.
+
+### Tests
+- `tests/citygrowth.test.js` — 9 assertů (výběr typu budovy dle jádra/periferie/roku,
+  škálování objemu růstu, meze).
+- `tests/events.test.js` — 10 assertů (vážený los: degenerované vstupy,
+  determinismus, přeskočení nulových vah, statistický poměr).
+
 ## [0.4.0] — 2026-06-25
 
 Vylepšení herních mechanik, ovládání kamery, vizuálního pocitu a GPU akcelerace.

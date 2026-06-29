@@ -737,6 +737,8 @@ function monthUp(){
   }
 
   handleCustomerMigration();
+  // Drobný měsíční růst města mezi ročními skoky (živé město)
+  if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
   // Business tenant spawning (every 3 months)
   if(G.date.m%3===0)spawnBizTenants();
   if(G.upgrades.includes('brand1')&&Math.random()<.05)boostDemand(.05);
@@ -839,6 +841,8 @@ function yearUp(){
   try{if(typeof financeYearlyTick==='function')financeYearlyTick();}catch(e){console.error('financeYearlyTick:',e);}
   // Cash flow yearly close — přesun YTD CapEx do historického poolu
   try{if(typeof cashflowYearlyClose==='function')cashflowYearlyClose();}catch(e){console.error('cashflowYearlyClose:',e);}
+  // Organický růst města — nové budovy a občas nová ulice/čtvrť
+  try{if(typeof cityGrowthTick==='function')cityGrowthTick();}catch(e){console.error('cityGrowthTick:',e);}
 }
 
 window.addEventListener('load',()=>{
