@@ -17,8 +17,21 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   kongesce bezdrátových zákazníků (přes stávající tower-overload mechaniku).
 - GPU vrstva: hustota deště se škáluje s intenzitou.
 
+#### 🎯 Cíle / výzvy (`js/objectives.js`)
+- Vždy **3 aktivní cíle** dávají hře směr a odměny (hotovost + nárůst poptávky):
+  získej zákazníky, připoj budovy, postav DC/vysílače, odemkni technologii,
+  připoj nemocnici/univerzitu, dosáhni měsíčního zisku.
+- Po splnění se odměna vyplatí a vygeneruje se nový škálovaný cíl.
+- **HUD panel** vlevo nahoře ukazuje cíle s průběhem (X / Y).
+
+#### 🎲 Víc generovaných událostí
+- Nové události provázané se systémy: vlna veder / sněhová kalamita (vynutí
+  počasí), tendr nemocnice, rozšíření kampusu (růst města), 6G pilot, aukce
+  spektra, velký zákazník, výpadek konkurence — vážené dle éry a kontextu.
+
 ### Tests
 - `tests/weather.test.js` rozšířen na 20 assertů (degradace bezdrátu, škálování intenzitou).
+- `tests/objectives.test.js` — 15 assertů (metriky průběhu, splnění, generování).
 
 ## [0.5.0] — 2026-06-29
 

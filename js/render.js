@@ -540,6 +540,38 @@ function render(){
     }
   }
 
+  // ====== HUD CÍLŮ ======
+  if(typeof ensureObjectives==='function'&&typeof objectiveProgress==='function'){
+    let objs=[];try{objs=ensureObjectives();}catch(e){objs=[];}
+    if(objs&&objs.length){
+      const weatherShown=(typeof currentWeather==='function'&&currentWeather()!=='clear');
+      const px=12, pw=216, lineH=17, top=(weatherShown?34:12);
+      const ph=20+objs.length*lineH;
+      ctx.save();
+      ctx.fillStyle='rgba(14,20,34,.72)';
+      roundRect(ctx,px,top,pw,ph,9);ctx.fill();
+      ctx.strokeStyle='rgba(120,150,220,.35)';ctx.lineWidth=1;ctx.stroke();
+      ctx.textBaseline='middle';ctx.textAlign='left';
+      ctx.font='bold 11px sans-serif';ctx.fillStyle='#a9b6d6';
+      ctx.fillText('🎯 Cíle',px+9,top+11);
+      ctx.font='11px sans-serif';
+      for(let i=0;i<objs.length;i++){
+        const o=objs[i],y=top+24+i*lineH;
+        const prog=objectiveProgress(o,G),done=prog>=o.target;
+        let pStr;
+        if(o.type==='profit'||o.type==='cash')pStr=(typeof fmtKc==='function'?fmtKc(Math.round(prog)):Math.round(prog))+' / '+(typeof fmtKc==='function'?fmtKc(o.target):o.target);
+        else pStr=Math.min(Math.round(prog),o.target)+' / '+o.target;
+        ctx.fillStyle='#cdd6f4';
+        ctx.fillText(`${o.icon||'•'} ${o.desc}`,px+9,y);
+        ctx.textAlign='right';
+        ctx.fillStyle=done?'#3fb950':'#8b949e';
+        ctx.fillText(pStr,px+pw-9,y);
+        ctx.textAlign='left';
+      }
+      ctx.restore();
+    }
+  }
+
   renderMM();
 }
 

@@ -93,6 +93,15 @@ function currentWirelessFactor(highFreq){
   return weatherWirelessMultiplier(currentWeather(), highFreq, currentWeatherSeverity());
 }
 
+// Vynutí konkrétní počasí (používají události). severity volitelná.
+function setWeather(type, severity){
+  const w = ensureWeather();
+  if (!w || !WEATHER_T[type]) return;
+  w.type = type;
+  w.severity = (type === 'clear') ? 0 : (severity == null ? 0.8 : Math.max(0, Math.min(1, severity)));
+  if (G && G.date) w.since = { y: G.date.y, m: G.date.m };
+}
+
 // Měsíční tik — případně změní počasí a aplikuje okamžité efekty (bouře).
 function weatherMonthlyTick(){
   const w = ensureWeather();

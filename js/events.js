@@ -51,6 +51,15 @@ function randEvent(){
     // ====== GENEROVANÉ UDÁLOSTI RŮSTU MĚSTA ======
     {t:'🏘️ Rozvoj nové čtvrti!',f:()=>{const r=(typeof extendRoads==='function')?extendRoads(2):0;const b=(typeof growCity==='function')?growCity(6):0;notify(`   → +${b} budov${r>0?' a nové ulice':''}`,'good');},g:1,minYear:2007,w:()=>cust>120?1.3:0.5},
     {t:'🏭 Nová průmyslová zóna',f:()=>{const b=(typeof growCity==='function')?growCity(4):0;boostDemand(.05);notify(`   → +${b} budov, +5% poptávka`,'good');},g:1,minYear:2008,w:()=>cust>150?1:0.3},
+    // ====== PROVÁZANÉ S NOVÝMI SYSTÉMY (počasí, budovy, 6G) ======
+    {t:'🌡️ Vlna veder',f:()=>{if(typeof setWeather==='function')setWeather('heatwave',0.9);notify('   → DC se přehřívají, vyšší náklady na chlazení','warn');},g:0,minYear:2006,w:0.8},
+    {t:'❄️ Sněhová kalamita',f:()=>{if(typeof setWeather==='function')setWeather('storm',0.95);if(typeof triggerStormDamage==='function')triggerStormDamage();},g:0,w:()=>cables>15?1:0.4},
+    {t:'🏥 Tendr nemocnice na konektivitu',f:()=>{boostDemand(.06);notify('   → zdravotnictví poptává spolehlivou síť','good');},g:1,minYear:2010,w:()=>cust>200?1:0.4},
+    {t:'🎓 Univerzitní kampus se rozšiřuje',f:()=>{const b=(typeof growCity==='function')?growCity(3):0;boostDemand(.05);notify(`   → +${b} budov v okolí kampusu`,'good');},g:1,minYear:2009,w:0.7},
+    {t:'🛰️ 6G pilotní projekt!',f:()=>{boostDemand(.12);G.cash+=60000;notify('   → +12% poptávka, +60k grant na 6G','good');},g:1,minYear:2035,w:1.4},
+    {t:'📡 Aukce spektra',f:()=>{const fee=Math.round(Math.max(40000,G.stats.cust*40));G.cash-=fee;notify(`   → licenční poplatek ${fmtKc(fee)}`,'bad');},g:0,minYear:2013,w:()=>(G.towers&&G.towers.length>2)?1:0.3},
+    {t:'💼 Velký zákazník hledá ISP',f:()=>{const bonus=Math.round(Math.max(50000,G.stats.cust*120));G.cash+=bonus;notify(`   → jednorázová zakázka +${fmtKc(bonus)}`,'good');},g:1,minYear:2008,w:()=>cust>250?1.1:0.3},
+    {t:'🔌 Výpadek konkurence v regionu',f:()=>{let c=0;for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){const b=G.map[y][x].bld;if(b&&!b.want&&!b.connected&&Math.random()<0.25){b.want=true;c++;}}notify(`   → ${c} budov hledá nového providera`,'good');},g:1,minYear:2009,w:()=>cust>150?1:0.4},
   ];
   const weights=e.map(ev=>{
     if(ev.minYear&&year<ev.minYear)return 0;
