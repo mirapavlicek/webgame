@@ -13,6 +13,9 @@ const TECHS=[
   {name:'FTTH 1G',speed:1000,year:2014,cost:2200000},
   {name:'XGS-PON 10G',speed:10000,year:2020,cost:7500000},
   {name:'25G PON',speed:25000,year:2025,cost:18000000},
+  {name:'50G PON',speed:50000,year:2028,cost:40000000},
+  {name:'100G PON',speed:100000,year:2032,cost:90000000},
+  {name:'6G',speed:200000,year:2035,cost:160000000},
 ];
 
 // Building types with BW usage behavior + customer sensitivity
@@ -71,6 +74,8 @@ const CONN_T={
   conn_fiber1g:{name:'Optika 1G',cost:25000,maxBW:1000,icon:'💎',minTech:3,mCost:120,reqEq:['eq_server']},
   conn_fiber10g:{name:'Optika 10G',cost:80000,maxBW:10000,icon:'⚡',minTech:4,mCost:200,reqEq:['eq_server','eq_firewall']},
   conn_fiber25g:{name:'Optika 25G',cost:200000,maxBW:25000,icon:'🔥',minTech:5,mCost:500,reqEq:['eq_server','eq_firewall','eq_backup']},
+  conn_fiber50g:{name:'Optika 50G',cost:450000,maxBW:50000,icon:'🌟',minTech:6,mCost:900,reqEq:['eq_server','eq_firewall','eq_backup']},
+  conn_fiber100g:{name:'Optika 100G',cost:1000000,maxBW:100000,icon:'💫',minTech:7,mCost:1800,reqEq:['eq_server','eq_firewall','eq_backup']},
   conn_wifi:{name:'WiFi',cost:3500,maxBW:50,icon:'📶',minTech:1,mCost:40,reqEq:['eq_wifiap']},
   // Wireless / tower connections (auto-assigned by tower type)
   conn_lte:{name:'LTE',cost:0,maxBW:75,icon:'📱',minTech:1,mCost:0,reqEq:[]},
@@ -107,6 +112,10 @@ const DEF_TARIFFS=[
   {name:'Fiber 10G',speed:10000,price:8999,active:false,minTech:4,reqEq:['eq_server','eq_firewall','eq_backup'],cat:'fixed'},
   {name:'Fiber 25G',speed:25000,price:19999,active:false,minTech:5,reqEq:['eq_server','eq_firewall','eq_backup'],cat:'fixed',
     desc:'25G PON přípojka. Absolutní špička pro korporáty.'},
+  {name:'Fiber 50G',speed:50000,price:34999,active:false,minTech:6,reqEq:['eq_server','eq_firewall','eq_backup'],cat:'fixed',share:1,
+    desc:'50G PON. Hyperscale konektivita pro datacentra a velké korporace.'},
+  {name:'Fiber 100G',speed:100000,price:64999,active:false,minTech:7,reqEq:['eq_server','eq_firewall','eq_backup'],cat:'fixed',share:1,
+    desc:'100G PON. Páteřní třída přímo do budovy. Extrémně ziskové.'},
   // Mobile / 5G tariffs
   {name:'LTE Základ',speed:30,price:299,active:false,minTech:1,reqEq:[],cat:'mobile',icon:'📱',
     desc:'Mobilní data přes LTE. Základní pokrytí.'},
@@ -124,6 +133,11 @@ const DEF_TARIFFS=[
     desc:'Fixed Wireless Access — náhrada optiky pro domácnosti.'},
   {name:'5G FWA Business',speed:2000,price:1899,active:false,minTech:4,reqEq:['eq_server','eq_firewall'],cat:'fwa',icon:'🏢',
     desc:'FWA pro firmy. Gigabitová rychlost bez kabelu.'},
+  // 6G mobilní tarify (odemykají se s technologií 6G)
+  {name:'6G Ultra',speed:5000,price:1299,active:false,minTech:8,reqEq:['eq_server'],cat:'mobile',icon:'🛰️',
+    desc:'6G v pásmu FR3. Multigigabitová mobilní data s nízkou latencí.'},
+  {name:'6G Extreme',speed:15000,price:2999,active:false,minTech:8,reqEq:['eq_server','eq_firewall'],cat:'mobile',icon:'🛰️',
+    desc:'6G sub-THz. Holografická komunikace a XR bez kabelu.'},
 ];
 
 const DC_T={
@@ -359,6 +373,11 @@ const TOWER_T={
     band:'26GHz (n258)',gen:'5G mmW',desc:'Ultra-rychlé, ale velmi krátký dosah. Ideální pro centra/stadiony.'},
   tower_5g_mmw60:{name:'5G mmWave 60GHz',cost:450000,mCost:15000,range:1,maxBW:20000,maxClients:150,icon:'⚡',color:'#7c3aed',minTech:5,
     band:'60GHz (n259)',gen:'5G mmW+',desc:'Extrémní rychlost pro FWA. Dosah jen 1 dlaždice, vyžaduje přímou viditelnost.'},
+  // === 6G (sub-THz, AI-native rádio) ===
+  tower_6g:{name:'6G 7GHz',cost:900000,mCost:30000,range:4,maxBW:30000,maxClients:2500,icon:'🛰️',color:'#22d3ee',minTech:8,
+    band:'7-15GHz (FR3)',gen:'6G',desc:'6G v pásmu FR3 — masivní kapacita a hustota klientů, AI-native plánování. Páteř měst budoucnosti.'},
+  tower_6g_thz:{name:'6G sub-THz 140GHz',cost:1400000,mCost:48000,range:2,maxBW:80000,maxClients:800,icon:'🛰️',color:'#06b6d4',minTech:8,
+    band:'140GHz (sub-THz)',gen:'6G THz',desc:'Sub-terahertzové pásmo. Extrémní propustnost na krátkou vzdálenost — holografická komunikace, XR.'},
 };
 
 // Employee types

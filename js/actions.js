@@ -326,7 +326,7 @@ function placeCable(x1,y1,x2,y2,type){
 // Vrací typy seřazené podle rychlosti, s příznakem dostupnosti (tech + cash).
 // connT = CONN_T, inflFn = funkce inflace ceny (volitelná).
 function quickConnectOptions(connT,tech,cash,inflFn){
-  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'];
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g','conn_fiber50g','conn_fiber100g'];
   const out=[];
   for(const key of wired){
     const c=connT&&connT[key];if(!c)continue;
