@@ -718,8 +718,8 @@ function drawBld(x,y,b){
     // Per-type pattern parameters — rows (floors) × cols (window columns)
     let rowStep=5,colStep=5,litChance=.40,slitHt=1.4,slitPad=.6,ribbon=false;
     if(btype==='skyscraper'){rowStep=4;colStep=3.2;litChance=.55;slitHt=1.8;slitPad=.3;ribbon=true;}
-    else if(btype==='panel'){rowStep=5;colStep=4.5;litChance=.45;slitHt=1.8;slitPad=.5;}
-    else if(btype==='bigcorp'){rowStep=6;colStep=3.5;litChance=.32;slitHt=2.2;slitPad=.4;ribbon=true;}
+    else if(btype==='panel'||btype==='university'||btype==='mall'){rowStep=5;colStep=4.5;litChance=.45;slitHt=1.8;slitPad=.5;}
+    else if(btype==='bigcorp'||btype==='hotel'||btype==='hospital'){rowStep=6;colStep=3.5;litChance=.32;slitHt=2.2;slitPad=.4;ribbon=true;}
     else if(btype==='public'){rowStep=8;colStep=7;litChance=.40;slitHt=3.2;slitPad=.8;}
 
     const litCol='rgba(255,218,140,.82)';
@@ -997,7 +997,7 @@ function drawBld(x,y,b){
     ctx.fillStyle='#ef4444';
     ctx.fillRect(s.x+.5,topY-8,3+flag*.8,2);
   }
-  else if(type==='panel'||type==='bigcorp'){
+  else if(type==='panel'||type==='bigcorp'||type==='hotel'||type==='hospital'||type==='university'||type==='mall'){
     // Flat roof — HVAC iso cube + parapet
     // HVAC: placed off-center-left on the roof
     isoBox(s.x-hw*.35,topE-1,3.5,3.5,shade(baseColor,-35));

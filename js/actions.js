@@ -1534,7 +1534,7 @@ function spawnBizTenants(){
     if(!b.bizTenants)b.bizTenants=[];
     // Max tenants based on building size
     const bt=BTYPES[b.type];if(!bt)continue;
-    const maxTenants=b.type==='bigcorp'?5:b.type==='skyscraper'?4:b.type==='factory'?3:b.type==='public'?2:1;
+    const maxTenants=b.type==='bigcorp'?5:b.type==='skyscraper'?4:b.type==='hotel'?4:b.type==='hospital'?3:b.type==='university'?3:b.type==='mall'?3:b.type==='factory'?3:b.type==='public'?2:1;
     if(b.bizTenants.length>=maxTenants)continue;
     // Check each tenant type
     for(const biz of BIZ_TENANTS){

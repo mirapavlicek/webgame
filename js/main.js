@@ -129,7 +129,7 @@ function dailyTick(){
       if(hasPeering)qb+=.08;
       // Extra demand boost for public buildings with městské partnerství
       let demandBoost=0;
-      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'))demandBoost=.15;
+      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'||b.type==='hospital'||b.type==='university'))demandBoost=.15;
 
       let priceFactor=0;
       const connMax=b.connType&&CONN_T[b.connType]?CONN_T[b.connType].maxBW:20;

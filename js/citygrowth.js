@@ -18,22 +18,27 @@ function pickGrowthBuildingType(distCenter, year, rnd){
   if(distCenter < 6){
     if(r < 0.30 + highRise) return 'skyscraper';
     if(r < 0.52 + highRise) return 'bigcorp';
-    if(r < 0.74) return 'panel';
-    if(r < 0.88) return 'shop';
-    return 'public';
+    if(r < 0.70) return 'panel';
+    if(r < 0.82) return 'shop';
+    if(r < 0.90) return 'public';
+    if(r < 0.95) return 'hotel';
+    return 'hospital';
   } else if(distCenter < 12){
     if(r < 0.20) return 'panel';
-    if(r < 0.38) return 'shop';
-    if(r < 0.54) return 'rowhouse';
-    if(r < 0.70) return 'house';
-    if(r < 0.85) return 'factory';
-    return 'bigcorp';
+    if(r < 0.37) return 'shop';
+    if(r < 0.52) return 'rowhouse';
+    if(r < 0.66) return 'house';
+    if(r < 0.80) return 'factory';
+    if(r < 0.89) return 'bigcorp';
+    if(r < 0.95) return 'university';
+    return 'mall';
   } else if(distCenter < 18){
     if(r < 0.30) return 'house';
     if(r < 0.50) return 'rowhouse';
-    if(r < 0.65) return 'panel';
-    if(r < 0.80) return 'shop';
-    return 'factory';
+    if(r < 0.64) return 'panel';
+    if(r < 0.78) return 'shop';
+    if(r < 0.93) return 'factory';
+    return 'mall';
   } else {
     if(r < 0.45) return 'house';
     if(r < 0.68) return 'rowhouse';

@@ -28,6 +28,11 @@ const BTYPES={
   bigcorp:   {name:'Velká firma',clr:'#7b1fa2',h:32,units:[10,50],pop:[20,150],demand:.95,icon:'🏬',tPref:3,growth:.01,bwRatio:1.2,priceSens:.15,qualSens:.85},
   factory:   {name:'Průmysl',clr:'#6d4c41',h:22,units:[5,20],pop:[10,60],demand:.55,icon:'🏭',tPref:1,growth:.005,bwRatio:.90,priceSens:.30,qualSens:.70},
   public:    {name:'Veřejná',clr:'#e91e63',h:26,units:[5,30],pop:[10,80],demand:.80,icon:'🏫',tPref:2,growth:.01,bwRatio:.75,priceSens:.40,qualSens:.60},
+  // === Speciální budovy (přibývají organickým růstem města) ===
+  hospital:  {name:'Nemocnice',clr:'#ef5350',h:30,units:[8,24],pop:[40,160],demand:.92,icon:'🏥',tPref:3,growth:.006,bwRatio:1.05,priceSens:.15,qualSens:.85},
+  university:{name:'Univerzita',clr:'#5c6bc0',h:30,units:[10,30],pop:[60,250],demand:.88,icon:'🎓',tPref:2,growth:.01,bwRatio:.90,priceSens:.35,qualSens:.65},
+  mall:      {name:'Nákupní centrum',clr:'#ffa726',h:24,units:[6,20],pop:[20,120],demand:.82,icon:'🛒',tPref:1,growth:.015,bwRatio:.90,priceSens:.45,qualSens:.55},
+  hotel:     {name:'Hotel',clr:'#26a69a',h:36,units:[10,40],pop:[30,180],demand:.85,icon:'🏨',tPref:2,growth:.01,bwRatio:.80,priceSens:.40,qualSens:.60},
 };
 
 // Specialized business tenants — buildings can spawn these demanding extra BW + revenue
@@ -43,16 +48,16 @@ const BIZ_TENANTS=[
     types:['bigcorp','skyscraper'],chance:.05,desc:'Build servery, CI/CD, nízká latence.'},
   {id:'biz_bank',name:'Pobočka banky',icon:'🏦',bwMbps:100,revMonth:5999,
     reqConn:['conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'],reqSvc:['eq_firewall'],
-    types:['bigcorp','skyscraper','shop'],chance:.07,desc:'Dedikovaná linka, VPN, firewall.'},
+    types:['bigcorp','skyscraper','shop','mall','hotel'],chance:.07,desc:'Dedikovaná linka, VPN, firewall.'},
   {id:'biz_medical',name:'Lékařská ordinace',icon:'⚕️',bwMbps:80,revMonth:1999,
     reqConn:['conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'],reqSvc:[],
-    types:['public','skyscraper'],chance:.08,desc:'Telemedicína, DICOM přenosy.'},
+    types:['public','skyscraper','hospital'],chance:.08,desc:'Telemedicína, DICOM přenosy.'},
   {id:'biz_startup',name:'IT startup',icon:'🚀',bwMbps:250,revMonth:2499,
     reqConn:['conn_fiber1g','conn_fiber10g','conn_fiber25g'],reqSvc:[],
     types:['bigcorp','skyscraper','shop'],chance:.10,desc:'Cloud-heavy, potřebuje upload.'},
   {id:'biz_school',name:'Online škola',icon:'🎓',bwMbps:150,revMonth:1499,
     reqConn:['conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g'],reqSvc:[],
-    types:['public'],chance:.10,desc:'Videokonference, e-learning platformy.'},
+    types:['public','university'],chance:.10,desc:'Videokonference, e-learning platformy.'},
   {id:'biz_isp_reseller',name:'ISP reseller',icon:'📡',bwMbps:1000,revMonth:8999,
     reqConn:['conn_fiber10g','conn_fiber25g'],reqSvc:['eq_server','eq_firewall'],
     types:['bigcorp'],chance:.03,desc:'Přeprodává konektivitu dál. Masivní BW.'},
