@@ -520,6 +520,24 @@ function render(){
     }
   }
 
+  // ====== INDIKÁTOR POČASÍ ======
+  if(typeof currentWeather==='function'&&typeof WEATHER_T!=='undefined'){
+    const wt=currentWeather();
+    if(wt&&wt!=='clear'&&WEATHER_T[wt]){
+      const def=WEATHER_T[wt];
+      const txt=`${def.icon} ${def.name}`;
+      ctx.save();
+      ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+      const tw=ctx.measureText(txt).width+18;
+      const bx=12,by=15;
+      ctx.fillStyle='rgba(14,20,34,.78)';
+      roundRect(ctx,bx,by-10,tw,21,10);ctx.fill();
+      ctx.strokeStyle='rgba(120,150,220,.45)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#cdd6f4';ctx.fillText(txt,bx+9,by);
+      ctx.restore();
+    }
+  }
+
   renderMM();
 }
 

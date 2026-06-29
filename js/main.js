@@ -736,6 +736,8 @@ function monthUp(){
     if(Math.random()<.003&&b.pop>BTYPES[b.type].pop[0])b.pop--;
   }
 
+  // Počasí — sezónní změna + okamžité efekty (bouře)
+  try{if(typeof weatherMonthlyTick==='function')weatherMonthlyTick();}catch(e){console.error('weatherMonthlyTick:',e);}
   handleCustomerMigration();
   // Drobný měsíční růst města mezi ročními skoky (živé město)
   if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
