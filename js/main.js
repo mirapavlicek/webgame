@@ -80,7 +80,11 @@ function dailyTick(){
     if(!tt){towerLoads.push({clients:0,max:0,ratio:0});continue;}
     const cl=getTowerClients(ti);
     tw.clients=cl; // update stored value
-    towerLoads.push({clients:cl,max:tt.maxClients,ratio:tt.maxClients>0?cl/tt.maxClients:0});
+    // Počasí degraduje bezdrát — déšť/bouře snižují efektivní kapacitu (nejvíc mmWave/6G)
+    const hf=/mmW|THz|6G/.test(tt.gen||'')||/mmWave|26GHz|60GHz|140GHz|sub-THz/.test(tt.band||'');
+    const wf=(typeof currentWirelessFactor==='function')?currentWirelessFactor(hf):1;
+    const effMax=tt.maxClients*wf;
+    towerLoads.push({clients:cl,max:tt.maxClients,ratio:effMax>0?cl/effMax:0});
   }
 
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){

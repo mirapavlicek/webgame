@@ -49,6 +49,35 @@ console.log('\u2550\u2550\u2550 Test 3: násobiče \u2550\u2550\u2550');
   ok(w.WEATHER_T.rain.outageMult >= 1, 'déšť mírně zvyšuje riziko');
 }
 
+console.log('\u2550\u2550\u2550 Test 4: degradace bezdrátu \u2550\u2550\u2550');
+{
+  ok(w.weatherWirelessMultiplier('clear', false, 1) === 1, 'jasno → bez degradace');
+  ok(w.weatherWirelessMultiplier('storm', false, 1) < 1, 'bouře degraduje i nízké pásmo');
+  ok(w.weatherWirelessMultiplier('storm', true, 1) < w.weatherWirelessMultiplier('storm', false, 1),
+     'mmWave/6G trpí v bouři víc než nízké pásmo');
+  ok(w.weatherWirelessMultiplier('rain', true, 1) < w.weatherWirelessMultiplier('rain', false, 1),
+     'vysoké pásmo trpí v dešti víc');
+  // meze
+  let inRange = true;
+  for (const t of ['clear', 'rain', 'fog', 'storm', 'heatwave'])
+    for (const hf of [true, false])
+      for (let s = 0; s <= 1; s += 0.25) {
+        const v = w.weatherWirelessMultiplier(t, hf, s);
+        if (v < 0.4 || v > 1) inRange = false;
+      }
+  ok(inRange, 'faktor vždy v mezích [0.4, 1]');
+}
+
+console.log('\u2550\u2550\u2550 Test 5: škálování intenzitou \u2550\u2550\u2550');
+{
+  ok(w.scaleBySeverity(1.4, 0) === 1, 'severity 0 → bez efektu (násobič 1)');
+  ok(w.scaleBySeverity(1.4, 1) === 1.4, 'severity 1 → plný efekt');
+  ok(Math.abs(w.scaleBySeverity(1.4, 0.5) - 1.2) < 1e-9, 'severity 0.5 → poloviční odchylka');
+  // silnější bouře degraduje bezdrát víc než slabá
+  ok(w.weatherWirelessMultiplier('storm', true, 1) < w.weatherWirelessMultiplier('storm', true, 0.3),
+     'silnější bouře = větší degradace');
+}
+
 console.log('\u2550'.repeat(60));
 if (fail === 0) { console.log(`\u2705 V\u0160ECHNY TESTY PRO\u0160LY: ${pass}/${pass}`); process.exit(0); }
 else { console.log(`\u274c SELHALO: ${fail}, pro\u0161lo: ${pass}`); process.exit(1); }

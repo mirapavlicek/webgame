@@ -56,13 +56,41 @@ function currentWeather(){
   const w = ensureWeather();
   return (w && w.type) || 'clear';
 }
+function currentWeatherSeverity(){
+  const w = ensureWeather();
+  return (w && typeof w.severity === 'number') ? w.severity : 1;
+}
+// Pure: škáluje násobič podle intenzity — slabá bouře má menší dopad než silná.
+function scaleBySeverity(mult, severity){
+  const s = (severity == null) ? 1 : Math.max(0, Math.min(1, severity));
+  return 1 + (mult - 1) * s;
+}
 function weatherEnergyMultiplier(){
   const t = currentWeather();
-  return (WEATHER_T[t] && WEATHER_T[t].energyMult) || 1;
+  const base = (WEATHER_T[t] && WEATHER_T[t].energyMult) || 1;
+  return scaleBySeverity(base, currentWeatherSeverity());
 }
 function weatherOutageMultiplier(){
   const t = currentWeather();
-  return (WEATHER_T[t] && WEATHER_T[t].outageMult) || 1;
+  const base = (WEATHER_T[t] && WEATHER_T[t].outageMult) || 1;
+  return scaleBySeverity(base, currentWeatherSeverity());
+}
+// Pure: kapacitní faktor bezdrátu (≤1). Déšť/bouře degradují rádio, nejvíc
+// vysokofrekvenční pásma (mmWave / sub-THz / 6G). severity škáluje dopad.
+function weatherWirelessMultiplier(type, highFreq, severity){
+  let base;
+  switch(type){
+    case 'storm':    base = highFreq ? 0.55 : 0.80; break;
+    case 'rain':     base = highFreq ? 0.78 : 0.92; break;
+    case 'fog':      base = highFreq ? 0.90 : 0.97; break;
+    case 'heatwave': base = 0.96; break;
+    default:         base = 1;
+  }
+  const eff = scaleBySeverity(base, severity);
+  return Math.max(0.4, Math.min(1, eff));
+}
+function currentWirelessFactor(highFreq){
+  return weatherWirelessMultiplier(currentWeather(), highFreq, currentWeatherSeverity());
 }
 
 // Měsíční tik — případně změní počasí a aplikuje okamžité efekty (bouře).
@@ -73,6 +101,7 @@ function weatherMonthlyTick(){
   if (Math.random() < 0.55){
     const prev = w.type;
     w.type = nextWeather(G.date.m, Math.random());
+    w.severity = (w.type === 'clear') ? 0 : (0.5 + Math.random() * 0.5);
     w.since = { y: G.date.y, m: G.date.m };
     if (w.type !== prev && w.type !== 'clear' && typeof notify === 'function'){
       const def = WEATHER_T[w.type];
@@ -87,5 +116,5 @@ function weatherMonthlyTick(){
 
 // Export pro node testy.
 if (typeof module !== 'undefined' && module.exports){
-  module.exports = { WEATHER_T, weatherWeights, nextWeather };
+  module.exports = { WEATHER_T, weatherWeights, nextWeather, weatherWirelessMultiplier, scaleBySeverity };
 }

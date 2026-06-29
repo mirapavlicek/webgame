@@ -5,6 +5,21 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### 🌩️ Počasí: intenzita + degradace bezdrátu
+- Každé počasí má **intenzitu (severity)**, která škáluje jeho dopady
+  (slabá vs. silná bouře). HUD ukazuje „slabé/silné".
+- **Déšť a bouře degradují bezdrát** — snižují efektivní kapacitu věží,
+  nejvíc vysokofrekvenční pásma (mmWave / sub-THz / 6G). Za bouře tak roste
+  kongesce bezdrátových zákazníků (přes stávající tower-overload mechaniku).
+- GPU vrstva: hustota deště se škáluje s intenzitou.
+
+### Tests
+- `tests/weather.test.js` rozšířen na 20 assertů (degradace bezdrátu, škálování intenzitou).
+
 ## [0.5.0] — 2026-06-29
 
 Živé město, dynamické počasí, víc technologií a nové typy budov.
