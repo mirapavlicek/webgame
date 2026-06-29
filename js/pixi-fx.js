@@ -223,6 +223,8 @@ function drawPixiWeather(){
   const g=_pixiWeatherGfx;g.clear();
   const W=_pixiApp.screen.width,H=_pixiApp.screen.height;
   const wt=(typeof currentWeather==='function')?currentWeather():'clear';
+  const sev=(typeof currentWeatherSeverity==='function')?currentWeatherSeverity():1;
+  const sevK=0.55+0.45*sev; // intenzita škáluje hustotu/sílu efektu
   if(wt==='fog'){
     g.beginFill(0xaeb8c8,0.15);g.drawRect(0,0,W,H);g.endFill();
     for(let i=0;i<5;i++){g.beginFill(0xc8d2e0,0.035);g.drawRect(0,(i/5)*H,W,H*0.13);g.endFill();}
@@ -235,7 +237,7 @@ function drawPixiWeather(){
   }
   if(wt==='rain'||wt==='storm'){
     const storm=wt==='storm';
-    const target=storm?170:85;
+    const target=Math.round((storm?170:85)*sevK);
     while(_rainDrops.length<target)_rainDrops.push(_newRainDrop(W,H,storm));
     if(_rainDrops.length>target)_rainDrops.length=target;
     const slant=storm?6:2;

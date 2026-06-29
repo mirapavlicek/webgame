@@ -525,7 +525,9 @@ function render(){
     const wt=currentWeather();
     if(wt&&wt!=='clear'&&WEATHER_T[wt]){
       const def=WEATHER_T[wt];
-      const txt=`${def.icon} ${def.name}`;
+      const sev=(typeof currentWeatherSeverity==='function')?currentWeatherSeverity():1;
+      const sevLbl=sev>0.8?' · silné':sev<0.55?' · slabé':'';
+      const txt=`${def.icon} ${def.name}${sevLbl}`;
       ctx.save();
       ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
       const tw=ctx.measureText(txt).width+18;
