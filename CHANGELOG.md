@@ -19,9 +19,6 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   - **Adresní plán (IP)** — přehled využití IP adres (přípojky + věže + AP vs.
     koupené bloky), varování při docházení adres (`addressingPlan`).
   - Přehled bezdrátu a **seznam aktivních incidentů** s odkazem na řešení.
-- **Rozvoj kabelových technologií** — kabely mají nově `minTech` a odemykají se
-  s postupem éry (optika 1G od FTTH, 10G/100G/400G/800G postupně). `placeCable`
-  vyšší kabel bez potřebné technologie odmítne.
 - `tests/controlcenter.test.js` — 23 assertů.
 
 ## [0.6.0] — 2026-06-29
