@@ -7,6 +7,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+<<<<<<< HEAD
 ### Added
 - **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — 🙂 Normál
   (výchozí) / 😰 Heavy (×0,65 růst, ×1,6 poruchy, ×1,5 náklady) / 💀 Hardcore
@@ -63,6 +64,10 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 - **Ovládání ve skupinách:** rychlost hry je nově **segmentovaný přepínač**
   (jedna skupina se sdíleným pozadím). Stavební tlačítka a hlavičky kategorií
   mají čistší, vzdušnější „grouped" vzhled.
+- **Přehlednější postranní panel — víc místa na scrollování.** Statistické sekce
+  (Finance, Síť & Město, Kapacita, Technologie) jsou nově **sbalitelné** (klik na
+  nadpis, chevron ▾/▸); sbalením uvolníš místo pro obsah záložek. Stav se pamatuje
+  (localStorage). Obsah záložek má garantovanou minimální výšku.
 
 ### Fixed
 - **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
@@ -99,7 +104,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
   `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
   `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů;
-  `tests/perf.test.js` — 12 assertů.
+  `tests/perf.test.js` — 12 assertů; `tests/sidebar.test.js` — 10 assertů.
 
 ## [0.6.0] — 2026-06-29
 
