@@ -450,6 +450,7 @@ přes všechny herní akce, panely a stavební nástroje.
 | `↑` `↓` `←` `→` | Posun kamery (plynulý, s dojezdem) |
 | `Tab` / `Shift+Tab` | Procházet datacentra (vycentruje + vybere) |
 | `E` | Editor mapy (sandbox) — zapnout/vypnout |
+| `B` | Ploché budovy (barevné čtverce) — režim kabeláže |
 | Tažení myší | Posun mapy (se setrvačností po puštění) |
 | Trackpad: 2 prsty posun | Posun mapy (macOS) |
 | Trackpad: pinch (sevření) | Zoom (macOS) |

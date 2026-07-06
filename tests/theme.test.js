@@ -25,6 +25,11 @@ ok(t.parseBoolPref(null, true) === true, 'null → default true');
 ok(t.parseBoolPref(null, false) === false, 'null → default false');
 ok(t.parseBoolPref('x', true) === true, 'neznámé → default');
 
+console.log('\u2550\u2550\u2550 Test 3: preference plochých budov (parseBoolPref) \u2550\u2550\u2550');
+ok(t.parseBoolPref(null, false) === false, 'flat default = vypnuto');
+ok(t.parseBoolPref('1', false) === true, 'uložené zapnuto se obnoví');
+ok(t.parseBoolPref('0', true) === false, 'uložené vypnuto se obnoví');
+
 console.log('\u2550'.repeat(60));
 if (fail === 0) { console.log(`\u2705 V\u0160ECHNY TESTY PRO\u0160LY: ${pass}/${pass}`); process.exit(0); }
 else { console.log(`\u274c SELHALO: ${fail}, pro\u0161lo: ${pass}`); process.exit(1); }
