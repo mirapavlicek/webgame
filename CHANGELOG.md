@@ -5,6 +5,16 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Přehnaná zátěž techniků.** Model počítal 1 „jednotku práce" za každý kus HW
+  a kabely dělil jen 80 → i velký tým se tvářil jako přetížený (10 techniků na
+  2000 přípojek = přetížení, nesmysl). Přepočítáno (`staffWorkloadUnits`):
+  technici škálují hlavně **počtem přípojek** (1 jednotka ≈ 800 přípojek / 800
+  kabelů), DC a HW jen drobně. **10 techniků teď pohodlně zvládne 2000+ přípojek.**
+- `tests/workload.test.js` — 14 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
