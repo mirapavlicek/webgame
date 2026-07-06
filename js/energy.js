@@ -41,6 +41,7 @@ const EQ_POWER_KW = {
   eq_wifiap:0.05, eq_voip:0.15, eq_iptv:0.50,
   eq_storage:0.50, eq_storage_big:1.50,
   eq_cloudnode:3.50, eq_cloudnode_big:10.0,
+  eq_gpunode:12.0, eq_asicnode:4.5,
   eq_bgprouter:0.40, eq_loadbalancer:0.20,
 };
 

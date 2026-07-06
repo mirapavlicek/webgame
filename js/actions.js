@@ -857,6 +857,30 @@ function getDCCompute(dcIdx){
   return{vCPU,ram,usedCPU,usedRAM};
 }
 
+// GPU/ASIC akcelerátory v DC — poskytují je eq_gpunode/eq_asicnode, spotřebovávají AI instance
+function getDCAccel(dcIdx){
+  const dc=G.dcs[dcIdx];if(!dc)return{gpu:0,asic:0,usedGPU:0,usedASIC:0};
+  let gpu=0,asic=0;
+  for(const e of(dc.eq||[])){
+    const eq=EQ[e];if(!eq)continue;
+    if(eq.gpu)gpu+=eq.gpu;
+    if(eq.asic)asic+=eq.asic;
+  }
+  let usedGPU=0,usedASIC=0;
+  if(G.cloudInstances){
+    for(const ci of G.cloudInstances){
+      if(ci.dcIdx===dcIdx){
+        const cp=CLOUD_PRICING[ci.type];
+        if(cp){
+          if(cp.gpu)usedGPU+=cp.gpu*ci.count;
+          if(cp.asic)usedASIC+=cp.asic*ci.count;
+        }
+      }
+    }
+  }
+  return{gpu,asic,usedGPU,usedASIC};
+}
+
 function provisionCloud(dcIdx,typeKey){
   const cp=CLOUD_PRICING[typeKey];if(!cp){notify('❌ Neznámý typ!','bad');return;}
   const dc=G.dcs[dcIdx];if(!dc){notify('❌ Neznámé DC!','bad');return;}
@@ -878,6 +902,12 @@ function provisionCloud(dcIdx,typeKey){
     const comp=getDCCompute(dcIdx);
     if(comp.usedCPU+cp.vCPU>comp.vCPU){notify(`❌ Nedostatek vCPU! (${comp.usedCPU}/${comp.vCPU})`,'bad');return;}
     if(comp.usedRAM+(cp.ramGB||0)>comp.ram){notify(`❌ Nedostatek RAM! (${comp.usedRAM}/${comp.ram} GB)`,'bad');return;}
+  }
+  // Check accelerator capacity (GPU/ASIC)
+  if(cp.gpu||cp.asic){
+    const acc=getDCAccel(dcIdx);
+    if(cp.gpu&&acc.usedGPU+cp.gpu>acc.gpu){notify(`❌ Nedostatek GPU! (${acc.usedGPU}/${acc.gpu}) — přikup GPU server`,'bad');return;}
+    if(cp.asic&&acc.usedASIC+cp.asic>acc.asic){notify(`❌ Nedostatek ASIC! (${acc.usedASIC}/${acc.asic}) — přikup ASIC akcelerátor`,'bad');return;}
   }
   if(!G.cloudInstances)G.cloudInstances=[];
   // Find existing or create new
@@ -920,6 +950,9 @@ function calcCloudRevenue(){
   const repAdj=1+Math.max(-0.20,Math.min(0.05,(rep-60)/400));
   let rev=0;
 
+  // AI služby vynáší jen když má hráč reálně GPU/ASIC hardware v nějakém DC
+  const hasAccel=(typeof anyDCHasEq==='function')&&(anyDCHasEq(['eq_gpunode'])||anyDCHasEq(['eq_asicnode']));
+
   for(const seg of CLOUD_SEGMENTS){
     const cs=G.cloudCustomers?.[seg.id];
     if(!cs||cs.count<=0)continue;
@@ -927,6 +960,7 @@ function calcCloudRevenue(){
     for(const key in CLOUD_PRICING){
       const cp=CLOUD_PRICING[key];
       const cat=cp.cat||'vps';
+      if(cat==='ai'&&!hasAccel)continue;
       const demandWeight=seg.demand[cat]||0;
       if(demandWeight>0)segRevPerCust+=cp.price*demandWeight;
     }

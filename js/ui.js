@@ -253,6 +253,8 @@ function buildBWList(){
       if(stInfo.total>0||compInfo.vCPU>0){
         h+=`<div style="font-size:9px;font-weight:600;color:#22d3ee;margin:6px 0 3px">Cloud kapacita:</div>`;
         if(compInfo.vCPU>0)h+=`<div style="font-size:9px;color:#8b949e">☁️ CPU: ${compInfo.usedCPU}/${compInfo.vCPU} vCPU · RAM: ${compInfo.usedRAM}/${compInfo.ram} GB</div>`;
+        const accQ=(typeof getDCAccel==='function')?getDCAccel(di):null;
+        if(accQ&&(accQ.gpu>0||accQ.asic>0))h+=`<div style="font-size:9px;color:#8b949e">${accQ.gpu>0?`🎮 GPU: ${accQ.usedGPU}/${accQ.gpu}`:''}${accQ.gpu>0&&accQ.asic>0?' · ':''}${accQ.asic>0?`🎛️ ASIC: ${accQ.usedASIC}/${accQ.asic}`:''}</div>`;
         if(stInfo.total>0)h+=`<div style="font-size:9px;color:#8b949e">💿 Storage: ${stInfo.used.toFixed(1)}/${stInfo.total} TB</div>`;
       }
 
@@ -761,7 +763,7 @@ function buildCloudTab(){
   // === Per-DC cloud infrastructure ===
   const dcList=document.getElementById('cloudDCList');
   let dh='';
-  const categories={vps:'💻 VPS & GPU',k8s:'🐳 Kubernetes',db:'🗃️ Databáze',s3:'📁 Object Storage',block:'💿 Block Storage'};
+  const categories={vps:'💻 VPS & GPU',k8s:'🐳 Kubernetes',db:'🗃️ Databáze',s3:'📁 Object Storage',block:'💿 Block Storage',ai:'🤖 AI služby'};
   for(let di=0;di<G.dcs.length;di++){
     const dc=G.dcs[di],dt=DC_T[dc.type];
     const st=getDCStorage(di);
@@ -785,6 +787,18 @@ function buildCloudTab(){
       const rRatio=comp.ram>0?comp.usedRAM/comp.ram:0;
       dh+=`<div style="font-size:9px;color:#8b949e">☁️ CPU: <b>${comp.usedCPU}/${comp.vCPU} vCPU</b> · RAM: <b>${comp.usedRAM}/${comp.ram} GB</b></div>`;
       dh+=`<div class="cap-bar"><div class="fill ${Math.max(cRatio,rRatio)>.9?'crit':Math.max(cRatio,rRatio)>.7?'warn':'ok'}" style="width:${Math.min(100,Math.max(cRatio,rRatio)*100)}%"></div></div>`;
+    }
+
+    // Accelerator bar (GPU/ASIC)
+    const acc=getDCAccel(di);
+    if(acc.gpu>0||acc.asic>0){
+      const gRatio=acc.gpu>0?acc.usedGPU/acc.gpu:0;
+      const aRatio=acc.asic>0?acc.usedASIC/acc.asic:0;
+      const parts=[];
+      if(acc.gpu>0)parts.push(`🎮 GPU: <b>${acc.usedGPU}/${acc.gpu}</b>`);
+      if(acc.asic>0)parts.push(`🎛️ ASIC: <b>${acc.usedASIC}/${acc.asic}</b>`);
+      dh+=`<div style="font-size:9px;color:#8b949e">${parts.join(' · ')}</div>`;
+      dh+=`<div class="cap-bar"><div class="fill ${Math.max(gRatio,aRatio)>.9?'crit':Math.max(gRatio,aRatio)>.7?'warn':'ok'}" style="width:${Math.min(100,Math.max(gRatio,aRatio)*100)}%"></div></div>`;
     }
 
     // Cloud BW for this DC
@@ -1779,6 +1793,17 @@ function renderDCModal(){
       const stR=stInfo.used/stInfo.total;
       rh+=`<div style="margin:4px 0">Storage: <b style="color:${stR>.9?'#f85149':'#3fb950'}">${stInfo.used.toFixed(1)}/${stInfo.total} TB</b></div>`;
       rh+=`<div class="cap-bar"><div class="fill ${stR>.9?'crit':stR>.7?'warn':'ok'}" style="width:${Math.min(100,stR*100)}%"></div></div>`;
+    }
+    const accInfo=(typeof getDCAccel==='function')?getDCAccel(dcModalIdx):{gpu:0,asic:0,usedGPU:0,usedASIC:0};
+    if(accInfo.gpu>0){
+      const gR=accInfo.usedGPU/accInfo.gpu;
+      rh+=`<div style="margin:4px 0">🎮 GPU: <b style="color:${gR>.9?'#f85149':'#3fb950'}">${accInfo.usedGPU}/${accInfo.gpu}</b></div>`;
+      rh+=`<div class="cap-bar"><div class="fill ${gR>.9?'crit':gR>.7?'warn':'ok'}" style="width:${Math.min(100,gR*100)}%"></div></div>`;
+    }
+    if(accInfo.asic>0){
+      const aR=accInfo.usedASIC/accInfo.asic;
+      rh+=`<div style="margin:4px 0">🎛️ ASIC: <b style="color:${aR>.9?'#f85149':'#3fb950'}">${accInfo.usedASIC}/${accInfo.asic}</b></div>`;
+      rh+=`<div class="cap-bar"><div class="fill ${aR>.9?'crit':aR>.7?'warn':'ok'}" style="width:${Math.min(100,aR*100)}%"></div></div>`;
     }
     rh+=`</div></div>`;
   }
