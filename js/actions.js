@@ -491,6 +491,20 @@ function installTeamTick(){
   return done;
 }
 
+// Pure: je typ přípojky bezdrátový (WiFi / mobilní přes vysílače)?
+function isWirelessConnType(type){
+  return type==='conn_wifi'||!!(type&&(type.startsWith('conn_lte')||type.startsWith('conn_5g')));
+}
+// Pure: co vyžaduje instalace daného typu přípojky u budovy.
+//   'cable'   — pevná linka: u budovy MUSÍ vést kabel k DC
+//   'wifi_ap' — WiFi: AP v dosahu
+//   'tower'   — mobilní (LTE/5G): řídí vysílače, ručně instalovat nelze
+function connInstallRequirement(newType){
+  if(newType==='conn_wifi')return 'wifi_ap';
+  if(newType&&(newType.startsWith('conn_lte')||newType.startsWith('conn_5g')))return 'tower';
+  return 'cable';
+}
+
 function connectBld(x,y,connType){
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){
@@ -501,11 +515,38 @@ function connectBld(x,y,connType){
     if(ct.minTech>G.tech){notify(`❌ Potřeba technologie ${TECHS[ct.minTech].name}!`,'bad');return;}
     const cCost=inflComponentCost(ct.cost);
     if(G.cash<cCost){notify(`❌ Chybí ${fmt(cCost-G.cash)}!`,'bad');return;}
+    // ===== Fyzická vrstva: pevná linka jde jen tam, kde je kabel; WiFi jen
+    // v dosahu AP. Klient na 5G/WiFi se bez kabelu NEDÁ převést na pevnou. =====
+    const req=connInstallRequirement(connType);
+    if(req==='tower'){notify('❌ Mobilní připojení přiděluje vysílač — nelze instalovat ručně!','bad');return;}
     const cn=G.conns.find(c=>c.bx===x&&c.by===y);
-    if(cn){const dc=G.dcs[cn.di];if(dc){const m=getMissingEq(dc,ct.reqEq);if(m.length){notify(`❌ DC potřebuje: ${m.join(', ')}!`,'bad');return;}}}
+    const oldWL=isWirelessConnType(b.connType);
+    let targetDi=cn?cn.di:-1;
+    if(req==='cable'){
+      const reach=findDC(x,y);
+      if(reach===-1){notify('❌ Pevná přípojka vyžaduje kabel u budovy! Bez kabelu nelze klienta z 5G/WiFi převést.','bad');return;}
+      if(oldWL||targetDi<0||!G.dcs[targetDi])targetDi=reach; // z bezdrátu → napoj na kabelové DC
+    }else if(req==='wifi_ap'){
+      const ap=getWiFiInRange(x,y);
+      if(!ap){notify('❌ Budova není v dosahu WiFi AP!','bad');return;}
+      const dcw=G.dcs[ap.dcIdx];
+      if(!dcw||!(dcw.eq||[]).includes('eq_wifiap')){notify('❌ DC musí mít WiFi AP kontroler!','bad');return;}
+      targetDi=ap.dcIdx;
+    }
+    const dcT=G.dcs[targetDi];
+    if(!dcT){notify('❌ Cílové DC neexistuje!','bad');return;}
+    if(!networkHasEq(targetDi,ct.reqEq)){notify(`❌ Síť potřebuje: ${getMissingEq(dcT,ct.reqEq).join(', ')}!`,'bad');return;}
+    // Přepnutí na jiné DC (typicky bezdrát → kabel) = nový fyzický spoj → kapacita routeru/portů
+    if(cn&&cn.di!==targetDi){
+      const netCap=getDCNetCapacity(targetDi);
+      if(netCap.usedConns>=netCap.routerCap){notify(`❌ Router cílového DC přetížen! ${netCap.usedConns}/${netCap.routerCap}`,'bad');return;}
+      if(netCap.usedPorts>=netCap.totalPorts){notify(`❌ Žádné volné porty v cílovém DC! ${netCap.usedPorts}/${netCap.totalPorts}`,'bad');return;}
+      cn.di=targetDi;b.dcIdx=targetDi;
+    }
     const oldConnType=b.connType;
     b.connType=connType;G.cash-=cCost;
     if(typeof recordCapex==='function')recordCapex('connection',cCost,`upg → ${ct.name}`);
+    markCapDirty();
     // Trigger upgrade wave — existing customers consider switching to better tariffs
     const upgraded=triggerTariffUpgradeWave(b,x,y,ct.maxBW,oldConnType,connType);
     notify(`⬆️ Upgrade na ${ct.name} (max ${fmtBW(ct.maxBW)})${upgraded>0?' · '+upgraded+' zákazníků přešlo na lepší tarif':''}`,'good');updUI();return;
