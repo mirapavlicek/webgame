@@ -8,6 +8,12 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Výjezdová četa (`field`)** — nový typ zaměstnance (🚐). Technické týmy
+  **automaticky opravují přerušené trasy** (kabelové řezy) v terénu bez nutnosti
+  ručně reagovat na každý incident. `fieldCrewRemedy`:
+  - kabelové řezy opravují rychle (7 bodů/den/četa, strop 28), u ostatních
+    incidentů jen asistují (2/den, strop 8);
+  - efekt se přičítá k dennímu progresu incidentů (vedle NOC).
 
 #### 🛠️ Sandbox editor mapy (`js/editor.js`)
 - Volný editor ve 2D izometrii (klávesa **E** nebo tlačítko 🛠️ Editor): malování
@@ -44,7 +50,8 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   prstů); kolečko myši zoomuje beze změny.
 
 ### Tests
-- `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů.
+- `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
+  `tests/fieldcrew.test.js` — 12 assertů.
 
 ## [0.6.0] — 2026-06-29
 
