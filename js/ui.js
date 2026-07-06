@@ -1855,7 +1855,8 @@ function renderDCModal(){
         rh+=`<button onclick="event.stopPropagation();removeBGPPeering(${p.idx});renderDCModal()" style="padding:2px 6px;background:none;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">✕</button>`;
         rh+=`</div></div>`;
         // Info row
-        rh+=`<div style="font-size:9.5px;color:#8b949e;margin-bottom:4px">Max: ${fmtBW(p.maxBW)} · Alokováno: <b style="color:#a78bfa">${fmtBW(p.allocBW)}</b> (${allocPct}%) · Aktuální: <b style="color:#22d3ee">${fmtBW(traffic)}</b></div>`;
+        rh+=`<div style="font-size:9.5px;color:#8b949e;margin-bottom:4px">Max: ${fmtBW(p.maxBW)} · Alokováno: <b style="color:#a78bfa">${fmtBW(p.allocBW)}</b> (${allocPct}%) · Aktuální: <b style="color:#22d3ee">${fmtBW(traffic)}</b>${(p._overflow||0)>0?` · <b style="color:#f59e0b">⚡ overflow ${fmtBW(p._overflow)}</b>`:''}</div>`;
+        if((p._overflow||0)>0)rh+=`<div style="font-size:9px;color:#f59e0b;margin-bottom:3px">Peer automaticky převzal přetečení nad rámec alokace (druhé DC bylo přes kapacitu).</div>`;
         // Traffic bar
         rh+=`<div style="height:6px;background:#0d1117;border-radius:3px;overflow:hidden;margin-bottom:6px;position:relative">`;
         rh+=`<div style="position:absolute;height:100%;width:${allocPct}%;background:#a78bfa33;border-radius:3px"></div>`;

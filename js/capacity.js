@@ -240,6 +240,20 @@ function bfsPathToDC(ax,ay,dc){
   return null;
 }
 
+// ====== BGP OVERFLOW TAKEOVER ======
+// Pure: kolik kapacity má BGP peer automaticky převzít, když je druhé DC
+// přetečené (nad 100 % kapacity). Nad rámec manuální alokace — do volné
+// kapacity dárce a fyzického zbytku peering linky, s malým headroomem.
+//   deficit      = usedBW − maxBW přetíženého DC (>0 = přetečení)
+//   donorFree    = volná kapacita pomáhajícího DC
+//   linkCapLeft  = zbývající fyzická kapacita peeringu (max − už sdílené)
+//   headroomPct  = rezerva navíc (např. 0.05 = +5 %), ať DC nesedí přesně na hraně
+function bgpOverflowTakeover(deficit,donorFree,linkCapLeft,headroomPct){
+  if(!deficit||deficit<=0)return 0;
+  const want=Math.round(deficit*(1+(headroomPct||0)));
+  return Math.max(0,Math.min(want,Math.max(0,donorFree||0),Math.max(0,linkCapLeft||0)));
+}
+
 // ====== POSÍLENÍ POLNÍCH LOAD BALANCERŮ ======
 // Aktivní polní LB chytře řídí fronty (shaping, priorizace) a tím zvedá
 // efektivní kapacitu svých 4 přilehlých segmentů o +20 %. Segment dostane
@@ -432,7 +446,9 @@ function calcCapacity(){
   const bgpSegTraffic=[]; // collect [{paths,amount}] to load segments after
   for(let pi=0;pi<(G.bgpPeerings||[]).length;pi++){
     const peer=G.bgpPeerings[pi];
-    if(!peer.active||peer.allocBW<=0)continue;
+    // Pozn.: alokace 0 nevypíná peering — overflow takeover funguje i bez
+    // manuální alokace (nouzové převzetí přetečení).
+    if(!peer.active)continue;
     const dc1=G.dcs[peer.dc1],dc2=G.dcs[peer.dc2];
     if(!dc1||!dc2)continue;
     // Find the dcLink for paths
@@ -465,6 +481,24 @@ function calcCapacity(){
         if(s>0){l1.maxBW+=s;l1.sharedIn+=s;l2.sharedOut+=s;shared=s;}
       }
     }
+    // ===== Overflow takeover: když je jedno DC PŘES kapacitu, peer automaticky
+    // převezme nadbytek i nad rámec manuální alokace — do své volné kapacity
+    // a fyzického zbytku linky (s 5% headroomem). =====
+    let overflow=0;
+    const capLeft=Math.max(0,peer.maxBW-shared);
+    const defic1=l1.usedBW-l1.maxBW;
+    const defic2=l2.usedBW-l2.maxBW;
+    if(defic2>0&&capLeft>0){
+      const donorFree=l1.maxBW-l1.usedBW-l1.sharedOut;
+      overflow=bgpOverflowTakeover(defic2,donorFree,capLeft,0.05);
+      if(overflow>0){l2.maxBW+=overflow;l2.sharedIn+=overflow;l1.sharedOut+=overflow;}
+    } else if(defic1>0&&capLeft>0){
+      const donorFree=l2.maxBW-l2.usedBW-l2.sharedOut;
+      overflow=bgpOverflowTakeover(defic1,donorFree,capLeft,0.05);
+      if(overflow>0){l1.maxBW+=overflow;l1.sharedIn+=overflow;l2.sharedOut+=overflow;}
+    }
+    peer._overflow=overflow;
+    shared+=overflow;
     // Store actual traffic for segment loading
     peer._actualTraffic=shared;
     if(shared>0){
