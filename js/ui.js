@@ -95,6 +95,7 @@ function updUI(){
   updDate();
   calcCapacityIfDirty();
   refreshBuildPaletteCosts();
+  if(typeof gateBuildPalette==='function')try{gateBuildPalette();}catch(e){}
 
   // Stats
   updStats();

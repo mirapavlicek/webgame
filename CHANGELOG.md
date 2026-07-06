@@ -42,6 +42,13 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
     (pro-rata za dny mimo provoz, strop 60 %);
   - **UPS** dopad zhruba půlí (udržuje část provozu).
   - Dny výpadku se sčítají per DC během měsíce; refundace se zúčtuje na konci měsíce.
+- **Přehlednější stavební paleta (ve stylu Apple).** Paleta nově **skrývá prvky,
+  které nejdou v aktuální éře postavit** (přípojky/vysílače nad úroveň technologie)
+  i prázdné kategorie — odemykají se automaticky s postupem technologie
+  (`isToolAvailable`/`gateBuildPalette`). Méně šumu, jen relevantní volby.
+- **Ovládání ve skupinách:** rychlost hry je nově **segmentovaný přepínač**
+  (jedna skupina se sdíleným pozadím). Stavební tlačítka a hlavičky kategorií
+  mají čistší, vzdušnější „grouped" vzhled.
 
 ### Fixed
 - **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
@@ -57,7 +64,8 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Tests
 - `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
-  `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů.
+  `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
+  `tests/uigate.test.js` — 17 assertů.
 
 ## [0.6.0] — 2026-06-29
 
