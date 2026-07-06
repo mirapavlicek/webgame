@@ -5,7 +5,11 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.0] — 2026-07-06
+
+Editor mapy, řídící centrum (prestiž/QoS/adresní plány), obtížnosti, nové týmy
+(výjezdové čety, bezdrátový tým, modernizace přípojek), multi-tile DC + nová
+generace HW, GUI vylepšení, výkon a balanční opravy.
 
 ### Added
 - **⭕ Vypínač kruhů pokrytí** (WiFi/vysílače) a **☀️ světlý design** — tlačítka
