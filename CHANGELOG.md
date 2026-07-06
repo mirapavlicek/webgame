@@ -8,6 +8,11 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **⚖️ Polní load balancery ukazují toky po směrech.** Aktivní LB na mapě
+  vykresluje **animované toky do každé kabelové větve** (barva = zatížení,
+  velikost/hustota teček = podíl objemu, rychlost = vytížení) — vidíš, kudy
+  a kolik dat teče. Tooltip uzlu má **rozpis toků po směrech** (↑ sever,
+  → východ…: použito/kapacita a %). `junctionFlowsFromSegs`/`getJunctionFlows`.
 - **💧 Velká DC na vodě s vodním chlazením.** Velké DC, Mega DC a Hyperscale
   kampus lze nově stavět i **na vodní ploše**. Když stojí **celý půdorys na vodě**,
   DC získá **vodní chlazení**: PUE −0,25 (floor 1,06 → výrazně levnější elektřina)

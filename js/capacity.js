@@ -238,6 +238,32 @@ function bfsPathToDC(ax,ay,dc){
   return null;
 }
 
+// ====== TOKY NA JUNCTIONU (polní LB / přepínač) ======
+// Pure: toky do 4 směrů z uzlu (x,y) podle mapy segmentových zátěží.
+// segs = { segKey: {used,max,ratio} } — přítomnost klíče = existuje kabel.
+// Vrací [{dir,label,dx,dy,used,max,ratio}] jen pro směry s kabelem.
+function junctionFlowsFromSegs(x,y,segs,keyFn){
+  const kf=keyFn||((x1,y1,x2,y2)=>segKey(x1,y1,x2,y2));
+  const dirs=[
+    {dir:'N',label:'sever', dx:0, dy:-1},
+    {dir:'J',label:'jih',   dx:0, dy: 1},
+    {dir:'V',label:'východ',dx: 1,dy: 0},
+    {dir:'Z',label:'západ', dx:-1,dy: 0},
+  ];
+  const out=[];
+  for(const d of dirs){
+    const k=kf(x,y,x+d.dx,y+d.dy);
+    const s=segs&&segs[k];
+    if(!s)continue;
+    out.push({dir:d.dir,label:d.label,dx:d.dx,dy:d.dy,used:s.used||0,max:s.max||0,ratio:s.max>0?(s.used||0)/s.max:0});
+  }
+  return out;
+}
+// Wrapper nad aktuálním stavem hry.
+function getJunctionFlows(x,y){
+  return junctionFlowsFromSegs(x,y,segLoads);
+}
+
 // Get least loaded reachable DC (check tile itself + adjacent road tiles)
 function findDC(bx,by){
   // Collect candidate start tiles for BFS (tile itself if road/DC, plus adjacent roads)

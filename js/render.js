@@ -1537,8 +1537,33 @@ function drawJunction(x,y,j){
   ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(s.x-7,s.y-13,14,10);
   ctx.fillStyle=col;ctx.fillText(jt.icon,s.x,s.y-8);
   ctx.textBaseline='alphabetic';
-  // active-LB: arrows showing redistribution
-  if(isLB&&active){
+  // Aktivní LB: reálné toky po směrech — animované tečky podél každé větve
+  // s kabelem. Barva = zatížení větve, velikost/hustota = objem toku,
+  // rychlost = poměrné vytížení. Vidíš tak, kudy a kolik dat teče.
+  if(isLB&&active&&typeof getJunctionFlows==='function'){
+    const flows=getJunctionFlows(x,y);
+    let totalUsed=0;for(const f of flows)totalUsed+=f.used;
+    for(const f of flows){
+      const dst=toScr(x+f.dx,y+f.dy);
+      const vx=(dst.x-s.x),vy=(dst.y-s.y);
+      const share=totalUsed>0?f.used/totalUsed:0;
+      const clr=f.ratio>0.9?'239,68,68':f.ratio>0.7?'245,158,11':'63,185,80';
+      // slabá vodicí linka větve
+      ctx.strokeStyle=`rgba(${clr},${0.10+share*0.25})`;
+      ctx.lineWidth=1+share*3;
+      ctx.beginPath();ctx.moveTo(s.x,s.y+1);ctx.lineTo(s.x+vx*0.42,s.y+1+vy*0.42);ctx.stroke();
+      if(f.used<=0)continue;
+      // animované tečky ven z uzlu — hustší při větším podílu toku
+      const dots=1+Math.round(share*2);
+      for(let di=0;di<dots;di++){
+        const t=((Date.now()/(700-Math.min(400,f.ratio*400)))+di/dots+(f.dx+2)*0.17+(f.dy+2)*0.31)%1;
+        const px=s.x+vx*0.42*t,py=s.y+1+vy*0.42*t;
+        ctx.fillStyle=`rgba(${clr},${0.9-t*0.6})`;
+        ctx.beginPath();ctx.arc(px,py,1.2+share*1.6,0,Math.PI*2);ctx.fill();
+      }
+    }
+  } else if(isLB&&active){
+    // fallback bez dat o tocích
     const t=(Date.now()/500)%1;
     ctx.fillStyle=`rgba(167,139,250,${.8-t*.8})`;
     ctx.beginPath();ctx.arc(s.x-bw-2-t*4,s.y+1,1.3,0,Math.PI*2);ctx.fill();
