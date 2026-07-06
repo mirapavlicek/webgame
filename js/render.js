@@ -390,7 +390,10 @@ function render(){
   for(let i=0;i<(G.powerPlants||[]).length;i++)dr.push({t:'pp',x:G.powerPlants[i].x,y:G.powerPlants[i].y,d:G.powerPlants[i].x+G.powerPlants[i].y,i});
   dr.sort((a,b)=>a.d-b.d);
   for(const d of dr){
-    if(d.t==='b')drawBld(d.x,d.y,G.map[d.y][d.x].bld);
+    if(d.t==='b'){
+      if(typeof flatBuildingsEnabled==='function'&&flatBuildingsEnabled())drawFlatBld(d.x,d.y,G.map[d.y][d.x].bld);
+      else drawBld(d.x,d.y,G.map[d.y][d.x].bld);
+    }
     else if(d.t==='dc')drawDC(d.x,d.y,G.dcs[d.i],d.i);
     else if(d.t==='tw')drawTower(d.x,d.y,G.towers[d.i]);
     else if(d.t==='wifi')drawWiFiAP(d.x,d.y,G.wifiAPs[d.i]);
@@ -693,6 +696,19 @@ function drawRoad(x,y){
 
 function drawDia(x,y,f,s){const p=toScr(x,y);ctx.beginPath();ctx.moveTo(p.x,p.y-TH/2);ctx.lineTo(p.x+TW/2,p.y);ctx.lineTo(p.x,p.y+TH/2);ctx.lineTo(p.x-TW/2,p.y);ctx.closePath();ctx.fillStyle=f;ctx.fill();if(s){ctx.strokeStyle=s;ctx.lineWidth=.5;ctx.stroke();}}
 function shade(c,p){const n=parseInt(c.replace('#',''),16),a=Math.round(2.55*p);return'#'+(0x1000000+Math.max(0,Math.min(255,(n>>16)+a))*0x10000+Math.max(0,Math.min(255,((n>>8)&0xff)+a))*0x100+Math.max(0,Math.min(255,(n&0xff)+a))).toString(16).slice(1);}
+
+// Ploché zobrazení budovy — barevný diamant v typové barvě + stavová tečka.
+// Nepřekáží při tahání kabeláže (žádná výška) a je výrazně levnější na render.
+function drawFlatBld(x,y,b){
+  const bt=BTYPES[b.type];if(!bt)return;
+  drawDia(x,y,bt.clr+'66',bt.clr);
+  const s=toScr(x,y);
+  // stav: zelená = připojeno, žlutá = chce internet, šedá = nezájem
+  const clr=b.connected?'#3fb950':(b.want?'#fbbf24':'rgba(140,150,165,.55)');
+  ctx.fillStyle=clr;
+  ctx.beginPath();ctx.arc(s.x,s.y,2.2,0,Math.PI*2);ctx.fill();
+  if(b.connected){ctx.strokeStyle='rgba(63,185,80,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(s.x,s.y,3.8,0,Math.PI*2);ctx.stroke();}
+}
 
 function drawBld(x,y,b){
   const bt=BTYPES[b.type],s=toScr(x,y),hw=TW/2-6,h=bt.h;

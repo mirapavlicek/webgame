@@ -359,6 +359,7 @@ function initInput(){
       case 'd':setTool('dc_small');break;case 'x':setTool('demolish');break;
       case '+':case '=':zoomIn();break;case '-':zoomOut();break;
       case 'e':case 'E':if(typeof toggleEditor==='function')toggleEditor();break;
+      case 'b':case 'B':if(typeof toggleFlatBuildings==='function')toggleFlatBuildings();break;
       case 'Tab':{
         e.preventDefault();
         if(G.dcs&&G.dcs.length&&typeof nextDCIndex==='function'){

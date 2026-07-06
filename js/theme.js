@@ -6,8 +6,10 @@
 
 const _THEME_KEY = 'nt_theme';       // 'light' | 'dark'
 const _COVERAGE_KEY = 'nt_coverage'; // '1' | '0'
+const _FLATBLD_KEY = 'nt_flatbld';   // '1' | '0' — ploché budovy (barevné čtverce)
 
 let _coverageOn = true;
+let _flatBldOn = false;
 
 // Pure: další téma v cyklu.
 function nextTheme(cur){ return cur === 'light' ? 'dark' : 'light'; }
@@ -19,6 +21,17 @@ function parseBoolPref(v, def){
 }
 
 function coverageEnabled(){ return _coverageOn; }
+function flatBuildingsEnabled(){ return _flatBldOn; }
+
+// Ploché budovy — místo 3D domů jen barevné diamanty (typová barva + stav
+// připojení). Skvělé pro přehledné tahání kabeláže; navíc levnější render.
+function toggleFlatBuildings(){
+  _flatBldOn = !_flatBldOn;
+  try{ localStorage.setItem(_FLATBLD_KEY, _flatBldOn ? '1' : '0'); }catch(e){}
+  if(typeof notify === 'function') notify(_flatBldOn ? '⬜ Ploché budovy — režim kabeláže' : '🏠 Plné budovy', '');
+  _syncToggleButtons();
+  if(typeof render === 'function') try{ render(); }catch(e){}
+}
 
 function toggleCoverage(){
   _coverageOn = !_coverageOn;
@@ -51,14 +64,18 @@ function _syncToggleButtons(){
   if(tb) tb.textContent = currentTheme() === 'light' ? '🌙' : '☀️';
   const cb = document.getElementById('btnCoverage');
   if(cb) cb.style.opacity = _coverageOn ? '1' : '.45';
+  const fb = document.getElementById('btnFlatBld');
+  if(fb){ fb.textContent = _flatBldOn ? '🏠' : '⬜'; fb.style.opacity = _flatBldOn ? '1' : '.75'; }
 }
 
 // Obnova preferencí při startu.
 function initTheme(){
-  let theme = 'dark', cov = '1';
+  let theme = 'dark', cov = '1', flat = '0';
   try{ theme = localStorage.getItem(_THEME_KEY) || 'dark'; }catch(e){}
   try{ cov = localStorage.getItem(_COVERAGE_KEY); }catch(e){}
+  try{ flat = localStorage.getItem(_FLATBLD_KEY); }catch(e){}
   _coverageOn = parseBoolPref(cov, true);
+  _flatBldOn = parseBoolPref(flat, false);
   applyTheme(theme);
 }
 

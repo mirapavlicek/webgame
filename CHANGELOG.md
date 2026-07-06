@@ -8,6 +8,10 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **⬜ Ploché budovy — režim kabeláže.** Tlačítko ⬜ (nebo klávesa **B**) skryje
+  3D domy a nechá jen **barevné čtverce** v typové barvě se stavovou tečkou
+  (zelená = připojeno, žlutá = zájemce, šedá = nezájem). Nic nepřekáží při
+  tahání kabelů; navíc levnější render. Preference se pamatuje.
 - **🪛 Instalační tým (`install`)** — nový typ zaměstnance (42 000 Kč/měs).
   Automaticky připojuje nepřipojené budovy **pevnou přípojkou** tam, kam dosáhne
   DC kabelem — stejně jako bezdrátový tým u WiFi. 3 přípojky/tým/měsíc,
