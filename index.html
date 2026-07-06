@@ -350,6 +350,8 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button onclick="zoomReset()" title="Reset" style="font-size:12px">⌂</button>
     <button onclick="pixiTogglable()" title="WebGL efekty ZAP/VYP" style="font-size:12px">✨</button>
     <button id="btnHeatmap" onclick="cycleHeatmap()" title="Heatmap: pokrytí → utilizace → spokojenost → vypnuto" style="font-size:12px">🌡️</button>
+    <button id="btnCoverage" onclick="toggleCoverage()" title="Kruhy pokrytí WiFi/vysílačů ZAP/VYP" style="font-size:12px">⭕</button>
+    <button id="btnTheme" onclick="toggleTheme()" title="Světlý/tmavý design" style="font-size:12px">☀️</button>
   </div>
   <canvas id="minimap"></canvas>
   <div id="infoPanel"></div>
@@ -438,6 +440,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/input.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/palette.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

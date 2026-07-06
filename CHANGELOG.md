@@ -5,6 +5,17 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **⭕ Vypínač kruhů pokrytí** — kruhy dosahu WiFi AP a mobilních vysílačů jdou
+  vypnout tlačítkem v ovládání mapy (na hustých mapách dělají vizuální šum).
+  Náhledy při umisťování zůstávají vždy. Preference se pamatuje.
+- **☀️ Světlý design** — přepínač světlého/tmavého vzhledu UI (tlačítko v
+  ovládání mapy). Přemapuje design tokeny (`body.light`) — postranní panel,
+  lišty, minimapa, tooltipy, notifikace. Preference se pamatuje (localStorage).
+- `tests/theme.test.js` — 8 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

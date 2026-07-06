@@ -856,6 +856,7 @@ function yearUp(){
 window.addEventListener('load',()=>{
   initRender();
   initInput();
+  if(typeof initTheme==='function')initTheme();
   if(typeof initCameraKeys==='function')initCameraKeys();
   // Initialize WebGL FX overlay (safe — fails silently if PIXI missing)
   if(typeof initPixiFx==='function')initPixiFx();
