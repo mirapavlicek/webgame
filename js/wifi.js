@@ -1,7 +1,7 @@
 // ====== WiFi SYSTEM ======
 
 function placeWiFi(x,y,wifiType){
-  if(!isRoad(x,y)&&!G.dcs.some(d=>d.x===x&&d.y===y)){
+  if(!isRoad(x,y)&&dcIndexAt(x,y)<0){
     notify('❌ WiFi jen na silnicích nebo DC!','bad');
     return;
   }

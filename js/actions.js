@@ -143,9 +143,16 @@ function expandMap(dir){
 }
 
 function placeDC(x,y,type){
-  if(G.map[y][x].type!=='grass'){notify('❌ DC jen na trávu!','bad');return;}
-  if(G.map[y][x].bld){notify('❌ Obsazeno!','bad');return;}
-  if(G.dcs.some(d=>d.x===x&&d.y===y)){notify('❌ Již stojí DC!','bad');return;}
+  const dt0=DC_T[type];
+  // Multi-tile DC: zvaliduj celý půdorys (tráva, bez budov, bez jiného DC, v mapě)
+  const fp=footprintTiles(x,y,(dt0&&dt0.tilesW)||1,(dt0&&dt0.tilesH)||1);
+  for(const t of fp){
+    if(t.x<0||t.x>=MAP||t.y<0||t.y>=MAP){notify('❌ Půdorys DC přesahuje mapu!','bad');return;}
+    if(G.map[t.y][t.x].type!=='grass'){notify('❌ DC jen na trávu (celý půdorys)!','bad');return;}
+    if(G.map[t.y][t.x].bld){notify('❌ V půdorysu stojí budova!','bad');return;}
+    if(dcIndexAt(t.x,t.y)>=0){notify('❌ Již stojí DC!','bad');return;}
+    if(typeof hasPowerPlant==='function'&&hasPowerPlant(t.x,t.y)){notify('❌ V půdorysu je elektrárna!','bad');return;}
+  }
   const dt=DC_T[type];
   const cost=inflComponentCost(dt.cost);
   if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
@@ -288,8 +295,8 @@ function toggleJunction(x,y){
 }
 
 function placeCable(x1,y1,x2,y2,type){
-  const ok1=isRoad(x1,y1)||G.dcs.some(d=>d.x===x1&&d.y===y1);
-  const ok2=isRoad(x2,y2)||G.dcs.some(d=>d.x===x2&&d.y===y2);
+  const ok1=isRoad(x1,y1)||dcIndexAt(x1,y1)>=0;
+  const ok2=isRoad(x2,y2)||dcIndexAt(x2,y2)>=0;
   if(!ok1||!ok2){notify('❌ Jen po silnicích/z DC!','bad');return;}
   const segs=pathSegs(x1,y1,x2,y2),ct=CAB_T[type];let ns=0,upgN=0,upgCost=0,stackN=0;
   for(const s of segs){
@@ -829,7 +836,7 @@ function placeTower(x,y,type){
   if(G.tech<tt.minTech){notify(`❌ Potřeba ${TECHS[tt.minTech].name}!`,'bad');return;}
   // Small cells can be placed on buildings too (facade-mounted), macro towers only on roads/DC
   const hasBld=G.map[y]&&G.map[y][x]&&G.map[y][x].bld;
-  const onRoadOrDC=isRoad(x,y)||G.dcs.some(d=>d.x===x&&d.y===y);
+  const onRoadOrDC=isRoad(x,y)||dcIndexAt(x,y)>=0;
   if(tt.small){
     if(!onRoadOrDC&&!hasBld){notify('❌ Small cell na silnici, DC nebo budovu!','bad');return;}
   } else {
@@ -1499,7 +1506,7 @@ function doIPO(){
 
 function demolishObj(x,y){
   if(x<0||x>=MAP||y<0||y>=MAP)return;
-  const dc=G.dcs.findIndex(d=>d.x===x&&d.y===y);
+  const dc=dcIndexAt(x,y);
   if(dc>=0){
     G.dcs.splice(dc,1);
     G.conns=G.conns.filter(c=>c.di!==dc&&(c.di>dc?true:true));

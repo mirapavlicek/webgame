@@ -16,7 +16,7 @@ function initInput(){
 
     // Cursor mode: select DC or show tile info
     if(tool==='none'){
-      const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+      const di=dcIndexAt(h.x,h.y);
       if(di>=0){selDC=di;updUI();return;}
       selDC=null;
       const b=G.map[h.y]&&G.map[h.y][h.x]&&G.map[h.y][h.x].bld;
@@ -30,7 +30,7 @@ function initInput(){
     if(tool.startsWith('conn_')){connectBld(h.x,h.y,tool);return;}
     // Equipment: click on a DC on the map to install
     if(tool.startsWith('eq_')){
-      const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+      const di=dcIndexAt(h.x,h.y);
       if(di>=0){
         placeEq(di,tool);
         selDC=di;
@@ -67,7 +67,7 @@ function initInput(){
     const oy=e.clientY-cArea.getBoundingClientRect().top;
     if(hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
       const tile=G.map[hover.y][hover.x];
-      const dc=G.dcs.find(d=>d.x===hover.x&&d.y===hover.y);
+      const dc=dcAt(hover.x,hover.y);
       const tt=document.getElementById('tooltip');
 
       if(dc){
@@ -256,7 +256,7 @@ function initInput(){
     const sx=e.clientX-r.left,sy=e.clientY-r.top;
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
-    const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+    const di=dcIndexAt(h.x,h.y);
     if(di>=0){openDCModal(di);e.preventDefault();}
   });
   canvas.addEventListener('mouseup',()=>{

@@ -174,7 +174,7 @@ function render(){
   }
   const isEndpoint=(x,y)=>{
     if(G.map[y]&&G.map[y][x]&&G.map[y][x].bld)return true;
-    if(G.dcs.some(d=>d.x===x&&d.y===y))return true;
+    if(dcIndexAt(x,y)>=0)return true;
     if((G.junctions||[]).some(j=>j.x===x&&j.y===y))return true;
     return false;
   };
@@ -381,7 +381,7 @@ function render(){
   // ====== DRAW ENTITIES (sorted by depth) ======
   const dr=[];
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){if(G.map[y][x].bld)dr.push({t:'b',x,y,d:x+y});}
-  for(let i=0;i<G.dcs.length;i++)dr.push({t:'dc',x:G.dcs[i].x,y:G.dcs[i].y,d:G.dcs[i].x+G.dcs[i].y,i});
+  for(let i=0;i<G.dcs.length;i++){const _d=G.dcs[i],_dt=DC_T[_d.type];dr.push({t:'dc',x:_d.x,y:_d.y,d:_d.x+((_dt&&_dt.tilesW)||1)-1+_d.y+((_dt&&_dt.tilesH)||1)-1,i});}
   for(let i=0;i<(G.towers||[]).length;i++)dr.push({t:'tw',x:G.towers[i].x,y:G.towers[i].y,d:G.towers[i].x+G.towers[i].y,i});
   // WiFi APs as drawable objects
   for(let i=0;i<G.wifiAPs.length;i++)dr.push({t:'wifi',x:G.wifiAPs[i].x,y:G.wifiAPs[i].y,d:G.wifiAPs[i].x+G.wifiAPs[i].y,i});
@@ -420,22 +420,33 @@ function render(){
       ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(s2.x,s2.y);ctx.strokeStyle=(ct?ct.clr:'#fff')+'66';ctx.lineWidth=2;ctx.stroke();
       const dist=Math.abs(hover.x-cableStart.x)+Math.abs(hover.y-cableStart.y);
       if(ct&&dist>0){ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle='#f59e0b';ctx.fillText(fmt(dist*ct.cost),s2.x,s2.y-20);}}
-    if(tool.startsWith('dc_')){const s=toScr(hover.x,hover.y),tile=G.map[hover.y][hover.x];
-      ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=tile.type==='grass'&&!tile.bld?'#3fb950':'#f85149';
-      ctx.fillText(tile.type==='grass'&&!tile.bld?'✓':'✗',s.x,s.y-20);}
+    if(tool.startsWith('dc_')){
+      const dt=DC_T[tool];
+      const fp=footprintTiles(hover.x,hover.y,(dt&&dt.tilesW)||1,(dt&&dt.tilesH)||1);
+      let ok=true;
+      for(const t of fp){
+        const inMap=t.x>=0&&t.x<MAP&&t.y>=0&&t.y<MAP;
+        const tl=inMap?G.map[t.y][t.x]:null;
+        const free=inMap&&tl.type==='grass'&&!tl.bld&&dcIndexAt(t.x,t.y)<0;
+        if(!free)ok=false;
+        drawDia(t.x,t.y,free?'rgba(63,185,80,.25)':'rgba(248,81,73,.3)',free?'#3fb950':'#f85149');
+      }
+      const s=toScr(hover.x,hover.y);
+      ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';
+      ctx.fillText(ok?'✓':'✗',s.x,s.y-20);}
     if(tool.startsWith('conn_')){const s=toScr(hover.x,hover.y),tile=G.map[hover.y][hover.x];
       const ok=tile.bld&&(!tile.bld.connected||(tile.bld.connType!==tool&&CONN_T[tool]&&CONN_T[tile.bld.connType]&&CONN_T[tool].maxBW>CONN_T[tile.bld.connType].maxBW));
       ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';
       ctx.fillText(ok?'✓ '+CONN_T[tool].name:'✗',s.x,s.y-20);}
     if(tool.startsWith('tower_')){const s=toScr(hover.x,hover.y),tile=G.map[hover.y][hover.x];
-      const ok=(isRoad(hover.x,hover.y)||G.dcs.some(d=>d.x===hover.x&&d.y===hover.y));
+      const ok=(isRoad(hover.x,hover.y)||dcIndexAt(hover.x,hover.y)>=0);
       const tt=TOWER_T[tool];
       ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';
       ctx.fillText(ok?'✓ '+((tt&&tt.name)||''):'✗',s.x,s.y-20);
       if(ok&&tt){ctx.fillStyle=tt.color+'18';ctx.beginPath();ctx.arc(s.x,s.y,tt.range*(TW/2),0,Math.PI*2);ctx.fill();
         ctx.strokeStyle=tt.color+'55';ctx.lineWidth=1;ctx.stroke();}}
     if(tool.startsWith('wifi_')){const s=toScr(hover.x,hover.y),tile=G.map[hover.y][hover.x];
-      const ok=(isRoad(hover.x,hover.y)||G.dcs.some(d=>d.x===hover.x&&d.y===hover.y));
+      const ok=(isRoad(hover.x,hover.y)||dcIndexAt(hover.x,hover.y)>=0);
       ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';
       ctx.fillText(ok?'✓':'✗',s.x,s.y-20);}
     if(tool.startsWith('junction_')){
@@ -1101,7 +1112,10 @@ function drawBld(x,y,b){
 }
 
 function drawDC(x,y,dc,di){
-  const dt=DC_T[dc.type],s=toScr(x,y),hw=TW/2-2,h=dt.h;const isSel=selDC===di;const load=dcLoads[di];
+  const dt=DC_T[dc.type];
+  // Multi-tile DC: kresli ve středu půdorysu, šířku škáluj podle wScale
+  const _tw=(dt.tilesW||1),_th=(dt.tilesH||1);
+  const s=toScr(x+(_tw-1)/2,y+(_th-1)/2),hw=(TW/2-2)*(dt.wScale||1),h=dt.h;const isSel=selDC===di;const load=dcLoads[di];
   const isOutage=dc.outage&&dc.outage.active;
   const topY=s.y-h-TH/2+1;
   const topE=s.y-h;
@@ -1527,7 +1541,7 @@ function renderMM(){
     else if(t.bld)mmX.fillStyle=t.bld.connected?'#3fb950':BTYPES[t.bld.type].clr+'88';
     else mmX.fillStyle='#152215';
     mmX.fillRect(ox+x*sc,oy+y*sc,Math.ceil(sc),Math.ceil(sc));}
-  for(const dc of G.dcs){mmX.fillStyle=DC_T[dc.type].color;mmX.fillRect(ox+dc.x*sc-1,oy+dc.y*sc-1,sc+2,sc+2);}
+  for(const dc of G.dcs){const dt=DC_T[dc.type];mmX.fillStyle=dt.color;mmX.fillRect(ox+dc.x*sc-1,oy+dc.y*sc-1,sc*((dt.tilesW||1))+2,sc*((dt.tilesH||1))+2);}
   const mmSegs={};
   for(const cb of G.cables){const sk=segKey(cb.x1,cb.y1,cb.x2,cb.y2);
     if(!mmSegs[sk])mmSegs[sk]={x1:cb.x1,y1:cb.y1,x2:cb.x2,y2:cb.y2,count:0,bestTier:-1,bestType:cb.t};

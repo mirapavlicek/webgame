@@ -5,6 +5,23 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Multi-tile datová centra** — DC může zabírat víc polí (`DC_T.tilesW×tilesH`):
+  - 🏯 **Mega DC** (2 pole, 2,5 M Kč): 64 slotů, 50 Gbps základ, 6× cooling.
+  - 🏰 **Hyperscale kampus** (2×2 pole, 8 M Kč): 128 slotů, 200 Gbps, 10× cooling.
+  - Umisťování validuje celý půdorys (hover náhled obarví všechna pole); výběr,
+    demolice, kabely, věže/WiFi i BFS dosažitelnost fungují z kterékoli dlaždice
+    půdorysu (`footprintTiles`/`dcIndexAt`/`bfsReachesDC`). Minimapa kreslí celý
+    půdorys, render škáluje budovu (`wScale`) a řadí podle zadního rohu.
+- **Nová generace hardwaru:**
+  - kabely **Páteřní 1.6T** a **3.2T** (tier 6/7, stackovatelné jako ostatní);
+  - **Switch 96p** a **Switch šasi 256p** (+96/+256 portů);
+  - **Router Carrier-Max** (250 přípojek) a **Router Tera** (600 přípojek);
+  - transity **+1.6 Tbps** a **+3.2 Tbps**.
+- `tests/megadc.test.js` — 23 assertů (footprint geometrie + data).
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
