@@ -380,7 +380,7 @@ function render(){
 
   // ====== DRAW ENTITIES (sorted by depth) ======
   const dr=[];
-  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){if(G.map[y][x].bld)dr.push({t:'b',x,y,d:x+y});}
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const _bb=G.map[y][x].bld;if(_bb){const _bt=BTYPES[_bb.type];dr.push({t:'b',x,y,d:x+((_bt&&_bt.tilesW)||1)-1+y+((_bt&&_bt.tilesH)||1)-1});}}
   for(let i=0;i<G.dcs.length;i++){const _d=G.dcs[i],_dt=DC_T[_d.type];dr.push({t:'dc',x:_d.x,y:_d.y,d:_d.x+((_dt&&_dt.tilesW)||1)-1+_d.y+((_dt&&_dt.tilesH)||1)-1,i});}
   for(let i=0;i<(G.towers||[]).length;i++)dr.push({t:'tw',x:G.towers[i].x,y:G.towers[i].y,d:G.towers[i].x+G.towers[i].y,i});
   // WiFi APs as drawable objects
@@ -701,8 +701,9 @@ function shade(c,p){const n=parseInt(c.replace('#',''),16),a=Math.round(2.55*p);
 // Nepřekáží při tahání kabeláže (žádná výška) a je výrazně levnější na render.
 function drawFlatBld(x,y,b){
   const bt=BTYPES[b.type];if(!bt)return;
-  drawDia(x,y,bt.clr+'66',bt.clr);
-  const s=toScr(x,y);
+  const tw=(bt.tilesW||1),th=(bt.tilesH||1);
+  for(const t of footprintTiles(x,y,tw,th))drawDia(t.x,t.y,bt.clr+'66',bt.clr);
+  const s=toScr(x+(tw-1)/2,y+(th-1)/2);
   // stav: zelená = připojeno, žlutá = chce internet, šedá = nezájem
   const clr=b.connected?'#3fb950':(b.want?'#fbbf24':'rgba(140,150,165,.55)');
   ctx.fillStyle=clr;
@@ -711,7 +712,10 @@ function drawFlatBld(x,y,b){
 }
 
 function drawBld(x,y,b){
-  const bt=BTYPES[b.type],s=toScr(x,y),hw=TW/2-6,h=bt.h;
+  const bt=BTYPES[b.type];
+  // Multi-tile budova (velký závod): kresli ve středu půdorysu, širší (wScale)
+  const _btw=(bt.tilesW||1),_bth=(bt.tilesH||1);
+  const s=toScr(x+(_btw-1)/2,y+(_bth-1)/2),hw=(TW/2-6)*(bt.wScale||1),h=bt.h;
   const topY=s.y-h-TH/2+2;
   const topE=s.y-h;                   // y at the side corners of the top cap
   const baseColor=bt.clr;
@@ -719,7 +723,7 @@ function drawBld(x,y,b){
   // ====== BUILDING BODY (shell) ======
   // Pokud je povolená sprite cache, blitneme hotové tělo jedním drawImage.
   // Jinak kreslíme všech 6 tahů inline (backward-compat).
-  const _useSprite = G&&G.spriteCacheEnabled&&typeof window!=='undefined'&&window.spriteCacheReady&&typeof BLD_SPRITES!=='undefined'&&BLD_SPRITES[b.type];
+  const _useSprite = G&&G.spriteCacheEnabled&&!bt.tilesW&&typeof window!=='undefined'&&window.spriteCacheReady&&typeof BLD_SPRITES!=='undefined'&&BLD_SPRITES[b.type];
   if(_useSprite){
     blitBuildingBody(x,y,b.type);
   } else {

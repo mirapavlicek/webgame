@@ -806,6 +806,16 @@ function monthUp(){
   try{if(typeof wifiTeamTick==='function')wifiTeamTick();}catch(e){console.error('wifiTeamTick:',e);}
   // Instalační tým — automaticky připojuje nové budovy pevnou přípojkou
   try{if(typeof installTeamTick==='function')installTeamTick();}catch(e){console.error('installTeamTick:',e);}
+  // Velké závody: měsíční přepočet páteřního napájení (hráč mohl kabely změnit)
+  try{
+    if(typeof getBldBackboneFeeds==='function'){
+      for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+        const b=G.map[y][x].bld;
+        if(!b||!BTYPES[b.type]||!BTYPES[b.type].reqBackbone)continue;
+        b.backboneFeeds=getBldBackboneFeeds(x,y,BTYPES[b.type]).length;
+      }
+    }
+  }catch(e){console.error('backboneFeeds refresh:',e);}
   // Drobný měsíční růst města mezi ročními skoky (živé město)
   if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
   // Business tenant spawning (every 3 months)

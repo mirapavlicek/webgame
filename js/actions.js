@@ -506,6 +506,8 @@ function connInstallRequirement(newType){
 }
 
 function connectBld(x,y,connType){
+  // Multi-tile budova: klik na annex dlaždici se přesměruje na anchor
+  if(typeof resolveBldAnchor==='function'){const r=resolveBldAnchor(x,y);x=r.x;y=r.y;}
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){
     if(b.connType===connType){notify('❌ Tato přípojka již existuje!','bad');return;}
@@ -555,6 +557,16 @@ function connectBld(x,y,connType){
   if(ct.minTech>G.tech){notify(`❌ Potřeba technologie ${TECHS[ct.minTech].name}!`,'bad');return;}
   const cCost2=inflComponentCost(ct.cost);
   if(G.cash<cCost2){notify(`❌ Chybí ${fmt(cCost2-G.cash)}!`,'bad');return;}
+
+  // Velký závod: potřebuje přípojku ≥ minConnBW a páteřní kabel přímo u půdorysu
+  const btNew=BTYPES[b.type];
+  if(btNew&&btNew.minConnBW&&ct.maxBW<btNew.minConnBW){notify(`❌ ${btNew.name} potřebuje přípojku ≥ ${fmtBW(btNew.minConnBW)}!`,'bad');return;}
+  if(btNew&&btNew.reqBackbone){
+    const feeds=(typeof getBldBackboneFeeds==='function')?getBldBackboneFeeds(x,y,btNew):[];
+    if(feeds.length<1){notify(`❌ ${btNew.name} vyžaduje páteřní kabel (100G+) přímo u závodu!`,'bad');return;}
+    b.backboneFeeds=feeds.length;
+    if(feeds.length>=2)notify(`✅ Redundantní páteř z ${feeds.length} směrů — bonus tržeb +30 %`,'good');
+  }
 
   let di=-1;
   if(connType==='conn_wifi'){

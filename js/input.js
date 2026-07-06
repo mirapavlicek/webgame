@@ -27,8 +27,8 @@ function initInput(){
       const di=dcIndexAt(h.x,h.y);
       if(di>=0){selDC=di;updUI();return;}
       selDC=null;
-      const b=G.map[h.y]&&G.map[h.y][h.x]&&G.map[h.y][h.x].bld;
-      if(b&&!b.connected&&typeof openQuickConnectMenu==='function'){openQuickConnectMenu(h.x,h.y,e.clientX,e.clientY);}
+      const _ra=(typeof resolveBldAnchor==='function')?resolveBldAnchor(h.x,h.y):{x:h.x,y:h.y,b:G.map[h.y]&&G.map[h.y][h.x]&&G.map[h.y][h.x].bld};
+      if(_ra.b&&!_ra.b.connected&&typeof openQuickConnectMenu==='function'){openQuickConnectMenu(_ra.x,_ra.y,e.clientX,e.clientY);}
       return;
     }
     if(tool.startsWith('dc_')){placeDC(h.x,h.y,tool);return;}
@@ -112,9 +112,22 @@ function initInput(){
         if(links.length)h+=`<br><span style="color:#a78bfa">🔗 Propojeno: ${links.map(l=>'DC#'+(l.dc1===di?l.dc2+1:l.dc1+1)).join(', ')}</span>`;
         tt.innerHTML=h;tt.style.display='block';tt.style.left=(ox+15)+'px';tt.style.top=(oy+15)+'px';
 
-      } else if(tile.bld){
-        const b=tile.bld,bt=BTYPES[b.type];
-        let h=`<b>${bt.icon} ${bt.name}</b><br>`;
+      } else if(tile.bld||tile.annex){
+        const _r=(typeof resolveBldAnchor==='function')?resolveBldAnchor(hover.x,hover.y):{x:hover.x,y:hover.y,b:tile.bld};
+        const b=_r.b,bt=b?BTYPES[b.type]:null;
+        if(!b||!bt){document.getElementById('tooltip').style.display='none';return;}
+        let h=`<b>${bt.icon} ${bt.name}</b>`;
+        if(bt.tilesW)h+=` <span style="color:#8b949e">(${bt.tilesW}×${bt.tilesH||1} pole)</span>`;
+        h+=`<br>`;
+        // Velký závod: stav páteřního napájení
+        if(bt.reqBackbone&&typeof getBldBackboneFeeds==='function'){
+          const feeds=getBldBackboneFeeds(_r.x,_r.y,bt);
+          const fclr=feeds.length>=2?'#3fb950':feeds.length===1?'#f59e0b':'#f85149';
+          h+=`<div class="tr"><span>🧵 Páteř u závodu</span><span class="tv" style="color:${fclr}">${feeds.length?feeds.join(', ')+' ('+feeds.length+' směr'+(feeds.length>1?'y':'')+')':'CHYBÍ'}</span></div>`;
+          if(feeds.length>=2)h+=`<div style="font-size:9px;color:#3fb950">✓ Redundance — bonus tržeb +30 %</div>`;
+          else if(feeds.length===1)h+=`<div style="font-size:9px;color:#f59e0b">Přiveď páteř z druhého směru pro +30 % tržeb</div>`;
+          else h+=`<div style="font-size:9px;color:#f85149">Vyžaduje páteřní kabel (100G+) přímo u půdorysu + přípojku ≥ ${fmtBW(bt.minConnBW||10000)}</div>`;
+        }
         h+=`<div class="tr"><span>Populace</span><span class="tv">${b.pop}/${b.maxPop}</span></div>`;
         h+=`<div class="tr"><span>Jednotky</span><span class="tv">${b.units}</span></div>`;
         h+=`<div class="tr"><span>Citlivost</span><span class="tv">💰${Math.round(bt.priceSens*100)}% ⚙️${Math.round(bt.qualSens*100)}%</span></div>`;
@@ -136,7 +149,7 @@ function initInput(){
           h+=`<div class="tr"><span>BW spotřeba</span><span class="tv">${fmtBW(Math.round(calcBldBW(b)))}</span></div>`;
           h+=`<div class="tr"><span>Spokojenost</span><span class="tv">${Math.round(b.sat)}%</span></div>`;
           // DC info
-          const cn=G.conns.find(c=>c.bx===hover.x&&c.by===hover.y);
+          const cn=G.conns.find(c=>c.bx===_r.x&&c.by===_r.y);
           if(cn&&G.dcs[cn.di]){h+=`<div class="tr"><span>DC</span><span class="tv">${DC_T[G.dcs[cn.di].type].name} #${cn.di+1}</span></div>`;}
           // Services with actual subscriber counts
           if(b.svcSubs&&Object.keys(b.svcSubs).length>0){
@@ -167,11 +180,11 @@ function initInput(){
                 const c2WL=ck.startsWith('conn_lte')||ck.startsWith('conn_5g');
                 if(isWL!==c2WL)continue;
                 if(ck==='conn_wifi')continue; // wifi needs AP, skip
-                h+=`<button onclick="event.stopPropagation();downgradeBld(${hover.x},${hover.y},'${ck}')" style="padding:1px 5px;background:#1a1a00;border:1px solid #f59e0b;border-radius:3px;color:#f59e0b;cursor:pointer;font-size:9px">⬇ ${c2.name}</button>`;
+                h+=`<button onclick="event.stopPropagation();downgradeBld(${_r.x},${_r.y},'${ck}')" style="padding:1px 5px;background:#1a1a00;border:1px solid #f59e0b;border-radius:3px;color:#f59e0b;cursor:pointer;font-size:9px">⬇ ${c2.name}</button>`;
               }
             }
           }
-          h+=`<button onclick="event.stopPropagation();disconnectBld(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🔌 Odpojit</button>`;
+          h+=`<button onclick="event.stopPropagation();disconnectBld(${_r.x},${_r.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🔌 Odpojit</button>`;
           h+=`</div>`;
         } else {
           h+=b.want?'<span style="color:#fbbf24">⭐ Chce internet</span>':'<span style="color:#484f58">Nemá zájem</span>';

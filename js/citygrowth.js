@@ -78,7 +78,7 @@ function growCity(n){
   const tiles = [];
   for(let y = 0; y < MAP; y++) for(let x = 0; x < MAP; x++){
     const t = G.map[y][x];
-    if(t.type !== 'grass' || t.bld) continue;
+    if(t.type !== 'grass' || t.bld || t.annex) continue;
     if(typeof hasPowerPlant === 'function' && hasPowerPlant(x, y)) continue;
     if(typeof dcIndexAt === 'function' && dcIndexAt(x, y) >= 0) continue;
     if(!nb(x, y).some(([ax, ay]) => isRoad(ax, ay))) continue;
@@ -147,6 +147,48 @@ function extendRoads(count){
   return made;
 }
 
+// ====== VELKÝ ZÁVOD (multi-tile 2×2) ======
+// Najde volné 2×2 místo na trávě (bez budov/annexů/DC/elektráren) s alespoň
+// jednou silnicí u půdorysu. Preferuje okraj města (dál od centra).
+function findPlantSpot(){
+  if(!G||!G.map)return null;
+  const w=(BTYPES.megafactory&&BTYPES.megafactory.tilesW)||2;
+  const h=(BTYPES.megafactory&&BTYPES.megafactory.tilesH)||2;
+  let best=null,bestDist=-1;
+  for(let attempt=0;attempt<250;attempt++){
+    const x=Math.floor(Math.random()*(MAP-w)),y=Math.floor(Math.random()*(MAP-h));
+    let ok=true,nearRoad=false;
+    for(const t of footprintTiles(x,y,w,h)){
+      const tl=G.map[t.y][t.x];
+      if(tl.type!=='grass'||tl.bld||tl.annex){ok=false;break;}
+      if(typeof dcIndexAt==='function'&&dcIndexAt(t.x,t.y)>=0){ok=false;break;}
+      if(typeof hasPowerPlant==='function'&&hasPowerPlant(t.x,t.y)){ok=false;break;}
+      for(const[ax,ay]of nb(t.x,t.y)){
+        if(ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')nearRoad=true;
+      }
+    }
+    if(!ok||!nearRoad)continue;
+    const dist=Math.sqrt((x-MAP/2)**2+(y-MAP/2)**2);
+    if(dist>bestDist){bestDist=dist;best={x,y};}
+    if(bestDist>MAP*0.3)break; // dost daleko od centra — bereme
+  }
+  return best;
+}
+
+// Postaví velký závod: anchor bld + annex značky na zbytku půdorysu.
+function spawnMegaFactory(){
+  const bt=BTYPES.megafactory;if(!bt)return 0;
+  const spot=findPlantSpot();if(!spot)return 0;
+  if(!spawnBuilding(spot.x,spot.y,'megafactory'))return 0;
+  for(const t of footprintTiles(spot.x,spot.y,bt.tilesW||2,bt.tilesH||2)){
+    if(t.x===spot.x&&t.y===spot.y)continue;
+    G.map[t.y][t.x].annex={ax:spot.x,ay:spot.y};
+  }
+  if(typeof addPulse==='function')addPulse(spot.x,spot.y,'#8d6e63');
+  if(typeof notify==='function')notify('🏗️ Ve městě vzniká VELKÝ ZÁVOD (2×2)! Chce přípojku ≥10 Gbps a páteřní kabel (100G+) přímo k závodu — páteř ze 2 směrů = bonus +30 %.','good');
+  return 1;
+}
+
 // Roční tik růstu — volán z yearUp. Otevře občas novou čtvrť a zahustí frontier.
 function cityGrowthTick(){
   if(!G || !G.map) return 0;
@@ -160,6 +202,11 @@ function cityGrowthTick(){
   const built = growCity(amount);
   if(built > 0 && typeof notify === 'function'){
     notify(`🏗️ Město roste: +${built} nových budov${roadsAdded > 0 ? ' a nová ulice' : ''}`, '');
+  }
+  // Velký závod — vzniká později (minYear) a vzácně; velké město = větší šance
+  const mfYear=(BTYPES.megafactory&&BTYPES.megafactory.minYear)||2015;
+  if(year>=mfYear&&cust>300&&Math.random()<0.20){
+    try{spawnMegaFactory();}catch(e){console.error('spawnMegaFactory:',e);}
   }
   return built;
 }

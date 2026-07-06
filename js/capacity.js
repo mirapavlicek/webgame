@@ -199,7 +199,9 @@ function calcBldRevenue(b){
   const segMult=(typeof segmentArpuMult==='function')?segmentArpuMult(b.type):1.0;
   // v0.3.0: ČTÚ cenová regulace (-15 % na residential po dobu 36 měs)
   const ctuMult=(typeof ctuPricingMultiplier==='function')?ctuPricingMultiplier(b.type):1.0;
-  return rev*tInfl*segMult*ctuMult;
+  // Velký závod: redundantní páteřní napájení (2+ směry) = +30 % tržeb
+  const bbMult=(typeof backboneRedundancyBonus==='function')?backboneRedundancyBonus(b.backboneFeeds):1.0;
+  return rev*tInfl*segMult*ctuMult*bbMult;
 }
 
 // Check if a DC or connected DCs have equipment

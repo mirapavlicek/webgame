@@ -39,7 +39,7 @@ function editorMakeBuilding(btype, BTYPES){
 function editorPlaceBuilding(map, x, y, btype, mapSize, BTYPES){
   if(!map || x < 0 || y < 0 || x >= mapSize || y >= mapSize) return false;
   const t = map[y][x];
-  if(!t || t.type !== 'grass' || t.bld) return false;
+  if(!t || t.type !== 'grass' || t.bld || t.annex) return false;
   const b = editorMakeBuilding(btype, BTYPES);
   if(!b) return false;
   t.bld = b;
@@ -51,8 +51,21 @@ function editorBulldoze(map, x, y, mapSize){
   if(!map || x < 0 || y < 0 || x >= mapSize || y >= mapSize) return false;
   const t = map[y][x];
   if(!t) return false;
-  const had = t.bld || t.type !== 'grass';
+  const had = t.bld || t.annex || t.type !== 'grass';
+  // Multi-tile budova: bourání kterékoli dlaždice odstraní celý závod
+  // (anchor + všechny annex značky ukazující na něj).
+  let ax = null, ay = null;
+  if(t.annex){ ax = t.annex.ax; ay = t.annex.ay; }
+  else if(t.bld){ ax = x; ay = y; }
+  if(ax != null){
+    if(map[ay] && map[ay][ax]) map[ay][ax].bld = null;
+    for(let yy = 0; yy < mapSize; yy++)for(let xx = 0; xx < mapSize; xx++){
+      const tt = map[yy][xx];
+      if(tt && tt.annex && tt.annex.ax === ax && tt.annex.ay === ay){ tt.annex = null; tt.bld = null; if(tt.type !== 'water' && tt.type !== 'road') tt.type = 'grass'; }
+    }
+  }
   t.bld = null;
+  t.annex = null;
   t.type = 'grass';
   if(t.variant == null) t.variant = 0;
   return !!had;
