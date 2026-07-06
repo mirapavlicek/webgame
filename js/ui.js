@@ -24,8 +24,17 @@ function updStats(){
   document.getElementById('sCov').textContent=bldCount>0?Math.round(connCount/bldCount*100)+'%':'0%';
   document.getElementById('sSat').textContent=satN>0?Math.round(satSum/satN)+'%':'–';
   document.getElementById('sPop').textContent=fmt(pop);
-  document.getElementById('moneyDisplay').textContent=fmtKc(G.cash);
+  const moneyEl=document.getElementById('moneyDisplay');
+  moneyEl.textContent=fmtKc(G.cash);
+  moneyEl.style.color=G.cash<0?'var(--ac-red)':'';
   document.getElementById('popDisplay').textContent='👥 '+fmt(pop);
+  const custEl=document.getElementById('custDisplay');if(custEl)custEl.textContent='🔌 '+fmt(cust);
+  const satEl=document.getElementById('satDisplay');
+  if(satEl){
+    const avgSat=satN>0?Math.round(satSum/satN):-1;
+    satEl.textContent=(avgSat>=0?(avgSat>=70?'😊 ':avgSat>=40?'😐 ':'😟 ')+avgSat+'%':'😊 –');
+    satEl.style.color=avgSat<0?'':(avgSat>=70?'var(--ac-green)':avgSat>=40?'var(--ac-amber)':'var(--ac-red)');
+  }
 
   const dcTotal=dcLoads.reduce((s,dl)=>s+dl.maxBW,0);
   const dcUsed=dcLoads.reduce((s,dl)=>s+dl.usedBW,0);
@@ -1314,6 +1323,29 @@ function openQuickConnectMenu(x,y,sx,sy){
 function quickConnect(x,y,key){
   closeQuickMenu();
   if(typeof connectBld==='function')connectBld(x,y,key);
+}
+
+// ====== SANDBOX EDITOR PANEL ======
+// Plovoucí paleta editoru — terén, budovy, guma. Zobrazí se jen v editor módu.
+function updateEditorPanel(){
+  const el=document.getElementById('editorPanel');if(!el)return;
+  if(typeof editorMode==='undefined'||!editorMode){el.style.display='none';el.innerHTML='';return;}
+  const cur=(typeof tool!=='undefined')?tool:'';
+  const terrain=[
+    {t:'ed_grass',icon:'🟩',name:'Tráva'},
+    {t:'ed_road',icon:'🛣️',name:'Silnice'},
+    {t:'ed_water',icon:'💧',name:'Voda'},
+    {t:'ed_park',icon:'🌳',name:'Park'},
+  ];
+  const blds=[];
+  if(typeof BTYPES!=='undefined')for(const k in BTYPES){blds.push({t:'ed_bld_'+k,icon:BTYPES[k].icon||'🏢',name:BTYPES[k].name||k});}
+  const btn=(o)=>`<button class="ed-tool${cur===o.t?' active':''}" onclick="setTool('${o.t}')" title="${o.name}">${o.icon}</button>`;
+  let h='<div class="ed-head">🛠️ Editor mapy <span class="ed-hint">(sandbox — čas stojí)</span></div>';
+  h+='<div class="ed-row-label">Terén</div><div class="ed-row">'+terrain.map(btn).join('')+
+     `<button class="ed-tool ed-erase${cur==='ed_erase'?' active':''}" onclick="setTool('ed_erase')" title="Guma (srovnat na trávu)">🧹</button></div>`;
+  h+='<div class="ed-row-label">Budovy</div><div class="ed-row">'+blds.map(btn).join('')+'</div>';
+  h+='<div class="ed-foot"><button onclick="toggleEditor()">✓ Hotovo</button></div>';
+  el.innerHTML=h;el.style.display='block';
 }
 
 // ====== IXP STATUS ======

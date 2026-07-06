@@ -7,6 +7,20 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+#### 🛠️ Sandbox editor mapy (`js/editor.js`)
+- Volný editor ve 2D izometrii (klávesa **E** nebo tlačítko 🛠️ Editor): malování
+  terénu (tráva/silnice/voda/park), pokládání a bourání budov — bez peněz, bez limitů.
+- Klik i **tažení** maluje po dlaždicích; **hover náhled** ukazuje barvu podle nástroje.
+- Čas se v editoru automaticky **pozastaví** (a po vypnutí obnoví předchozí rychlost).
+- Plovoucí paleta dole uprostřed s terénem, všemi typy budov a gumou.
+
+#### 🧭 Přehlednější GUI
+- Horní lišta nově ukazuje **zákazníky (🔌)** a **průměrnou spokojenost (😊/😐/😟)**
+  barevně — rychlý přehled bez otevírání panelů.
+- Záporná hotovost se v liště zvýrazní červeně.
+
 ### Changed
 - **Výpadek už nevynuluje příjmy.** Fakturace je měsíční, takže výpadek se
   neprojeví okamžitou ztrátou celého příjmu. Místo toho se podle **délky výpadku**
@@ -16,7 +30,6 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
     (pro-rata za dny mimo provoz, strop 60 %);
   - **UPS** dopad zhruba půlí (udržuje část provozu).
   - Dny výpadku se sčítají per DC během měsíce; refundace se zúčtuje na konci měsíce.
-- `tests/outagerefund.test.js` — 10 assertů.
 
 ### Fixed
 - **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
@@ -29,6 +42,9 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 - **macOS trackpad**: dvouprstové posouvání teď **posouvá mapu** (dřív ho hra brala
   jako zoom, takže nešlo panovat). Zoom je nově na **pinch gestu** (sevření dvou
   prstů); kolečko myši zoomuje beze změny.
+
+### Tests
+- `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů.
 
 ## [0.6.0] — 2026-06-29
 
