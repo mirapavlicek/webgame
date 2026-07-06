@@ -96,6 +96,7 @@ function initInput(){
         const isOut=dc.outage&&dc.outage.active;
 
         let h=`<b>${dt.name} #${di+1}</b>`;
+        if(dc.waterCooled)h+=` <span style="color:#38bdf8">💧 vodní chlazení</span>`;
         if(isOut)h+=` <span style="color:#f85149">⚠️ VÝPADEK: ${dc.outage.cause} (${dc.outage.remaining}d)</span>`;
         h+=`<br>`;
         h+=`<div class="tr"><span>BW</span><span class="tv" style="color:${dl.ratio>.9?'#f85149':dl.ratio>.7?'#f59e0b':'#3fb950'}">${fmtBW(dl.usedBW)} / ${fmtBW(maxBW)} (${Math.round(dl.ratio*100)}%)</span></div>`;

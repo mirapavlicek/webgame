@@ -7,6 +7,13 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **💧 Velká DC na vodě s vodním chlazením.** Velké DC, Mega DC a Hyperscale
+  kampus lze nově stavět i **na vodní ploše**. Když stojí **celý půdorys na vodě**,
+  DC získá **vodní chlazení**: PUE −0,25 (floor 1,06 → výrazně levnější elektřina)
+  a **+2 jednotky chlazení** navíc (více slotů). Hover náhled hlásí „✓ 💧 vodní
+  chlazení", tooltip DC ukazuje 💧 badge. Malá/střední DC na vodu nesmí.
+
 ### Fixed
 - **Cloudová ekonomika — nesmyslná marže 100 %.** Náklady škálovaly jen s počtem
   instancí, ne s velikostí byznysu (20,9 M příjmů vs. 17 k nákladů). Nově

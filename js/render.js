@@ -436,17 +436,19 @@ function render(){
     if(tool.startsWith('dc_')){
       const dt=DC_T[tool];
       const fp=footprintTiles(hover.x,hover.y,(dt&&dt.tilesW)||1,(dt&&dt.tilesH)||1);
-      let ok=true;
+      let ok=true,allWater=fp.length>0;
       for(const t of fp){
         const inMap=t.x>=0&&t.x<MAP&&t.y>=0&&t.y<MAP;
         const tl=inMap?G.map[t.y][t.x]:null;
-        const free=inMap&&tl.type==='grass'&&!tl.bld&&dcIndexAt(t.x,t.y)<0;
+        const allowed=inMap&&(typeof dcTileAllowed==='function'?dcTileAllowed(tl.type,dt&&dt.waterBuild):tl.type==='grass');
+        const free=allowed&&!tl.bld&&dcIndexAt(t.x,t.y)<0;
         if(!free)ok=false;
+        if(!inMap||tl.type!=='water')allWater=false;
         drawDia(t.x,t.y,free?'rgba(63,185,80,.25)':'rgba(248,81,73,.3)',free?'#3fb950':'#f85149');
       }
       const s=toScr(hover.x,hover.y);
       ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';
-      ctx.fillText(ok?'✓':'✗',s.x,s.y-20);}
+      ctx.fillText(ok?(allWater?'✓ 💧 vodní chlazení':'✓'):'✗',s.x,s.y-20);}
     if(tool.startsWith('conn_')){const s=toScr(hover.x,hover.y),tile=G.map[hover.y][hover.x];
       const ok=tile.bld&&(!tile.bld.connected||(tile.bld.connType!==tool&&CONN_T[tool]&&CONN_T[tile.bld.connType]&&CONN_T[tool].maxBW>CONN_T[tile.bld.connType].maxBW));
       ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=ok?'#3fb950':'#f85149';

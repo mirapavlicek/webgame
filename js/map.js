@@ -77,6 +77,24 @@ function dcIndexAt(x,y){
 }
 function dcAt(x,y){const i=dcIndexAt(x,y);return i>=0?G.dcs[i]:null;}
 
+// Pure: smí DC stát na dlaždici daného typu? Tráva vždy; voda jen pro DC
+// s waterBuild (velká DC — vodní chlazení).
+function dcTileAllowed(tileType,waterBuild){
+  if(tileType==='grass')return true;
+  if(tileType==='water')return !!waterBuild;
+  return false;
+}
+// Pure: je DC vodně chlazené? Ano, když CELÝ půdorys stojí na vodě.
+function waterCooledFromTiles(tileTypes){
+  if(!tileTypes||!tileTypes.length)return false;
+  return tileTypes.every(t=>t==='water');
+}
+// Efektivní strop chlazení: vodní chlazení přidá +2 jednotky.
+function dcMaxCooling(dc){
+  const dt=(typeof DC_T!=='undefined')&&DC_T[dc.type];
+  return ((dt&&dt.maxCooling)||1)+(dc.waterCooled?2:0);
+}
+
 function isRoad(x,y){return x>=0&&x<MAP&&y>=0&&y<MAP&&G.map[y][x].type==='road';}
 
 function bfsPath(sx,sy,tx,ty){

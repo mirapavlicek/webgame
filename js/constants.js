@@ -151,9 +151,11 @@ const DC_T={
   // tilesW/tilesH — půdorys v dlaždicích (default 1×1); wScale — vizuální šířka.
   dc_small:{name:'Malé DC',cost:80000,mCost:5000,slots:4,baseBW:100,color:'#f59e0b',h:22,maxCooling:1},
   dc_medium:{name:'Střední DC',cost:250000,mCost:15000,slots:12,baseBW:1000,color:'#f97316',h:32,maxCooling:2},
-  dc_large:{name:'Velké DC',cost:800000,mCost:40000,slots:32,baseBW:10000,color:'#ef4444',h:42,maxCooling:4},
-  dc_mega:{name:'Mega DC',cost:2500000,mCost:100000,slots:64,baseBW:50000,color:'#dc2626',h:52,maxCooling:6,tilesW:2,tilesH:1,wScale:1.6},
-  dc_hyper:{name:'Hyperscale kampus',cost:8000000,mCost:300000,slots:128,baseBW:200000,color:'#a21caf',h:64,maxCooling:10,tilesW:2,tilesH:2,wScale:2.2},
+  // waterBuild — velká DC lze stavět i na vodě; celé DC na vodě = vodní chlazení
+  // (nižší PUE, +2 maxCooling).
+  dc_large:{name:'Velké DC',cost:800000,mCost:40000,slots:32,baseBW:10000,color:'#ef4444',h:42,maxCooling:4,waterBuild:true},
+  dc_mega:{name:'Mega DC',cost:2500000,mCost:100000,slots:64,baseBW:50000,color:'#dc2626',h:52,maxCooling:6,tilesW:2,tilesH:1,wScale:1.6,waterBuild:true},
+  dc_hyper:{name:'Hyperscale kampus',cost:8000000,mCost:300000,slots:128,baseBW:200000,color:'#a21caf',h:64,maxCooling:10,tilesW:2,tilesH:2,wScale:2.2,waterBuild:true},
 };
 
 const BW_UPGRADES=[

@@ -44,14 +44,18 @@ const EQ_POWER_KW = {
   eq_bgprouter:0.40, eq_loadbalancer:0.20,
 };
 
-// Aktuální PUE pro DC: base – (0.12 × počet eq_cooling), min 1.10
+// Aktuální PUE pro DC: base – (0.12 × počet eq_cooling), min 1.10.
+// Vodně chlazené DC (postavené celé na vodě): base −0.25 a floor 1.06 —
+// volná voda odvádí teplo skoro zadarmo (reálné offshore/sea-cooled DC).
 function dcPUE(dc){
-  const base = baseDCPUE(dc.type);
+  let base = baseDCPUE(dc.type);
+  let floor = 1.10;
+  if(dc.waterCooled){ base -= 0.25; floor = 1.06; }
   let red=0;
   for(const e of (dc.eq||[])){
     if(typeof EQ!=='undefined' && EQ[e] && EQ[e].eff==='cooling') red += 0.12;
   }
-  return Math.max(1.10, base - red);
+  return Math.max(floor, base - red);
 }
 
 // IT load daného DC (kW), škálováno podle momentální utilizace BW.
