@@ -8,6 +8,9 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **📶 Bezdrátový tým (`wifi`)** — nový typ zaměstnance. Automaticky připojuje
+  **nové domy přes WiFi** v dosahu AP (`wifiTeamMonthlyConnects` ≈ 4 domy/tým/měsíc,
+  preferuje zájemce, platí materiál conn_wifi, pauza při málu peněz).
 - **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — 🙂 Normál
   (výchozí) / 😰 Heavy (×0,65 růst, ×1,6 poruchy, ×1,5 náklady) / 💀 Hardcore
   (**1,33× tvrdší než Heavy**: ×0,53 / ×1,80 / ×1,67).
@@ -103,7 +106,8 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
   `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
   `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů;
-  `tests/perf.test.js` — 12 assertů; `tests/sidebar.test.js` — 10 assertů.
+  `tests/perf.test.js` — 12 assertů; `tests/sidebar.test.js` — 10 assertů;
+  `tests/wifiteam.test.js` — 8 assertů.
 
 ## [0.6.0] — 2026-06-29
 

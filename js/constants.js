@@ -393,6 +393,7 @@ const STAFF_T={
   noc:{name:'NOC operátor',cost:45000,icon:'📊',desc:'Prevence výpadků +25%, monitoring',eff:'noc'},
   dev:{name:'Vývojář',cost:55000,icon:'💻',desc:'Automatizace, lepší služby +sat',eff:'dev'},
   field:{name:'Výjezdová četa',cost:48000,icon:'🚐',desc:'Automaticky opravuje přerušené trasy (kabely) v terénu',eff:'field'},
+  wifi:{name:'Bezdrátový tým',cost:38000,icon:'📶',desc:'Automaticky připojuje nové domy přes WiFi v dosahu AP',eff:'wifi'},
 };
 
 // IXP Peering exchange
