@@ -8,6 +8,9 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — 🙂 Normál
+  (výchozí) / 😰 Heavy (×0,65 růst, ×1,6 poruchy, ×1,5 náklady) / 💀 Hardcore
+  (**1,33× tvrdší než Heavy**: ×0,53 / ×1,80 / ×1,67).
 - **🛰️ Řídící centrum (NOC) — nová nadstavba hry** (`js/controlcenter.js`).
   Grafické velení nad sítí v modálu (tlačítko 🛰️ nebo štít v liště):
   - **Prestiž providera (0–100)** — reputace řízená funkčností sítě (uptime,
@@ -84,7 +87,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 - `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
   `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
   `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
-  `tests/controlcenter.test.js` — 23 assertů.
+  `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů.
 
 ## [0.6.0] — 2026-06-29
 
