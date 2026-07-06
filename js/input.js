@@ -1,6 +1,6 @@
 // ====== INPUT HANDLING ======
 let cam={x:0,y:0,zoom:1},drag=false,dS={x:0,y:0},cS={x:0,y:0};
-let camDragLast={x:0,y:0,t:0},mmDrag=false;
+let camDragLast={x:0,y:0,t:0},mmDrag=false,edPainting=false;
 let tool='none',cableStart=null,selDC=null;
 let hover=null,lastT=0,tAcc=0;
 
@@ -13,6 +13,14 @@ function initInput(){
     if(e.button===1||e.button===2||(e.button===0&&e.shiftKey)){drag=true;dS={x:sx,y:sy};cS={x:cam.x,y:cam.y};camDragLast={x:cam.x,y:cam.y,t:performance.now()};if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}if(typeof camDragVel!=='undefined'){camDragVel.x=0;camDragVel.y=0;}e.preventDefault();return;}
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
+
+    // Editor mode: apply editor tool (paint terrain / place / erase)
+    if(typeof editorMode!=='undefined'&&editorMode){
+      if(typeof tool==='string'&&tool.startsWith('ed_')&&typeof applyEditorTool==='function'){
+        edPainting=true;applyEditorTool(tool,h.x,h.y);
+      }
+      return;
+    }
 
     // Cursor mode: select DC or show tile info
     if(tool==='none'){
@@ -61,6 +69,13 @@ function initInput(){
       render();return;
     }
     hover=fromIso(sx,sy);
+
+    // Editor: tažením maluj po dlaždicích
+    if(typeof editorMode!=='undefined'&&editorMode&&edPainting&&hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
+      if(typeof tool==='string'&&tool.startsWith('ed_')&&typeof applyEditorTool==='function'){applyEditorTool(tool,hover.x,hover.y);}
+      document.getElementById('tooltip').style.display='none';
+      return;
+    }
 
     // Tooltip logic
     const ox=e.clientX-cArea.getBoundingClientRect().left;
@@ -266,8 +281,9 @@ function initInput(){
       camInertia.y=Math.max(-3000,Math.min(3000,camDragVel.y));
     }
     drag=false;
+    edPainting=false;
   });
-  canvas.addEventListener('mouseleave',()=>{drag=false;document.getElementById('tooltip').style.display='none';});
+  canvas.addEventListener('mouseleave',()=>{drag=false;edPainting=false;document.getElementById('tooltip').style.display='none';});
 
   // ===== Minimapa: klik / tažení = skok kamery na dané místo =====
   if(typeof mmC!=='undefined'&&mmC){
@@ -311,6 +327,7 @@ function initInput(){
       case 'c':setTool('cable_copper');break;case 'f':setTool('cable_fiber');break;
       case 'd':setTool('dc_small');break;case 'x':setTool('demolish');break;
       case '+':case '=':zoomIn();break;case '-':zoomOut();break;
+      case 'e':case 'E':if(typeof toggleEditor==='function')toggleEditor();break;
       case 'Tab':{
         e.preventDefault();
         if(G.dcs&&G.dcs.length&&typeof nextDCIndex==='function'){
@@ -338,6 +355,7 @@ function setTool(t){
   if(!t.startsWith('cable_'))cableStart=null;
   if(typeof closeQuickMenu==='function')closeQuickMenu();
   updateToolButtons();
+  if(typeof updateEditorPanel==='function')updateEditorPanel();
 }
 
 function updateToolButtons(){

@@ -412,8 +412,21 @@ function render(){
     ctx.restore();
   }
 
+  // ====== EDITOR HOVER NÁHLED ======
+  if(typeof editorMode!=='undefined'&&editorMode&&hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
+    let col='rgba(245,165,36,.35)',stroke='#f5a524';
+    if(typeof tool==='string'){
+      if(tool==='ed_water'){col='rgba(56,140,220,.4)';stroke='#3f9fff';}
+      else if(tool==='ed_road'){col='rgba(120,130,145,.4)';stroke='#8b95a5';}
+      else if(tool==='ed_park'){col='rgba(60,160,60,.4)';stroke='#3fb950';}
+      else if(tool==='ed_grass'){col='rgba(80,160,80,.35)';stroke='#5ec96b';}
+      else if(tool==='ed_erase'){col='rgba(248,105,99,.35)';stroke='#f86963';}
+    }
+    drawDia(hover.x,hover.y,col,stroke);
+  }
+
   // ====== HOVER EFFECTS ======
-  if(hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
+  if((typeof editorMode==='undefined'||!editorMode)&&hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
     drawDia(hover.x,hover.y,'rgba(0,212,255,.1)','#00d4ff');
     if(tool.startsWith('cable_')&&cableStart){
       const ct=CAB_T[tool],s1=toScr(cableStart.x,cableStart.y),s2=toScr(hover.x,hover.y);

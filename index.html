@@ -306,10 +306,13 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div id="upgradeList"></div>
   </div>
 
+  <div id="editorPanel"></div>
+
   <div id="bottomBtns">
     <button onclick="saveGame()">💾 Uložit</button>
     <button onclick="loadGame()">📂 Načíst</button>
     <button onclick="showNewGame()">🆕 Nová</button>
+    <button onclick="toggleEditor()" title="Editor mapy (sandbox) — klávesa E">🛠️ Editor</button>
   </div>
 </div>
 
@@ -427,6 +430,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/renewable.js"></script>
 <script src="js/citygrowth.js"></script>
 <script src="js/objectives.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>
 <script src="js/render.js"></script>
