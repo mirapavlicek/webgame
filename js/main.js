@@ -765,6 +765,8 @@ function monthUp(){
   // Cíle/výzvy — vyhodnocení a odměny
   try{if(typeof objectivesMonthlyTick==='function')objectivesMonthlyTick();}catch(e){console.error('objectivesMonthlyTick:',e);}
   handleCustomerMigration();
+  // Plynulý hromadný upgrade přípojek výjezdovými četami (pokud zapnuto)
+  try{if(typeof autoUpgradeTick==='function')autoUpgradeTick();}catch(e){console.error('autoUpgradeTick:',e);}
   // Drobný měsíční růst města mezi ročními skoky (živé město)
   if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
   // Business tenant spawning (every 3 months)

@@ -14,6 +14,12 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   - kabelové řezy opravují rychle (7 bodů/den/četa, strop 28), u ostatních
     incidentů jen asistují (2/den, strop 8);
   - efekt se přičítá k dennímu progresu incidentů (vedle NOC).
+- **Program modernizace přípojek** — plynulý **hromadný upgrade** přípojek prováděný
+  zaměstnanci (výjezdové čety + technici). Přepínač v HR panelu; po zapnutí čety
+  každý měsíc zmodernizují několik **nejpomalejších drátových přípojek** o stupeň
+  výš (`nextWiredUpgrade` — nejbližší rychlejší typ dostupný v éře), v rámci
+  rozpočtu (2 přípojky/měs na osobu) a placeného materiálu. Při nedostatku hotovosti
+  se program pozastaví. Bezdrát/WiFi se neupgraduje (řídí věže/AP).
 
 #### 🛠️ Sandbox editor mapy (`js/editor.js`)
 - Volný editor ve 2D izometrii (klávesa **E** nebo tlačítko 🛠️ Editor): malování
@@ -51,7 +57,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Tests
 - `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
-  `tests/fieldcrew.test.js` — 12 assertů.
+  `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů.
 
 ## [0.6.0] — 2026-06-29
 

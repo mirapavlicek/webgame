@@ -177,6 +177,7 @@ function handleLoad(e){
       if(G.cloudOutageDaysM===undefined)G.cloudOutageDaysM=0;
       // Reset měsíčních počítadel dní výpadku na DC (pro refundace tarifů)
       if(Array.isArray(G.dcs))for(const dc of G.dcs){if(dc&&dc.outageDaysM===undefined)dc.outageDaysM=0;}
+      if(G.autoUpgrade===undefined)G.autoUpgrade=false;
       if(!G.cableCuts)G.cableCuts=[];
       if(!G.investigations)G.investigations=[];
       if(!G.investigationHistory)G.investigationHistory=[];
