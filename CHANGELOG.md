@@ -5,6 +5,19 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Výpadek už nevynuluje příjmy.** Fakturace je měsíční, takže výpadek se
+  neprojeví okamžitou ztrátou celého příjmu. Místo toho se podle **délky výpadku**
+  zákazníci **mohou i nemusí dožadovat vrácení části tarifu** (`outageRefundRate`):
+  - výpadek < 1 den se toleruje (bez refundace);
+  - s délkou roste jak pravděpodobnost, že si o vrácení řeknou, tak jeho výše
+    (pro-rata za dny mimo provoz, strop 60 %);
+  - **UPS** dopad zhruba půlí (udržuje část provozu).
+  - Dny výpadku se sčítají per DC během měsíce; refundace se zúčtuje na konci měsíce.
+- `tests/outagerefund.test.js` — 10 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

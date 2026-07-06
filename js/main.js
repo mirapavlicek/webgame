@@ -39,6 +39,8 @@ function advDay(){
     try{monthUp();}catch(e){console.error('monthUp error:',e);}
   }
   try{dailyTick();}catch(e){console.error('dailyTick error:',e);}
+  // Akumuluj dny výpadku per DC v aktuálním měsíci (pro výpočet refundace tarifů)
+  try{for(const dc of G.dcs){if(dc.outage&&dc.outage.active)dc.outageDaysM=(dc.outageDaysM||0)+1;}}catch(e){}
   // Daily incident progression (response actions shorten; natural decay)
   try{if(typeof incidentDailyTick==='function')incidentDailyTick();}catch(e){console.error('incidentDailyTick:',e);}
   try{if(typeof investigationDailyTick==='function')investigationDailyTick();}catch(e){console.error('investigationDailyTick:',e);}
@@ -547,16 +549,34 @@ function monthUp(){
   updateOutages();
 
   let inc=0,cust=0;
+  // Příjem z tarifů per DC — fakturace je měsíční, výpadek příjem NEVYNULUJE.
+  // Místo toho se níže spočítá případná refundace podle délky výpadku.
+  const dcTariffRev=new Array(G.dcs.length).fill(0);
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const b=G.map[y][x].bld;
     if(!b||!b.connected||b.customers<=0)continue;
-    const dc=G.dcs[b.dcIdx];
-    const isOutage=dc&&dc.outage&&dc.outage.active;
-    const hasUPS=dc&&dc.eq&&dc.eq.includes('eq_ups');
-    let bldRev=calcBldRevenue(b);
-    if(isOutage)bldRev=Math.round(bldRev*(hasUPS?0.5:0));
+    const bldRev=calcBldRevenue(b);
     inc+=bldRev;
+    if(b.dcIdx>=0&&b.dcIdx<dcTariffRev.length)dcTariffRev[b.dcIdx]+=bldRev;
     cust+=b.customers;
+  }
+  // Refundace za výpadky: podle nasčítaných dní výpadku daného DC se zákazníci
+  // mohou (a nemusí) dožadovat vrácení části tarifu (outageRefundRate).
+  for(let di=0;di<G.dcs.length;di++){
+    const dc=G.dcs[di];if(!dc)continue;
+    const odays=dc.outageDaysM||0;
+    if(odays>0&&dcTariffRev[di]>0){
+      const hasUPS=dc.eq&&dc.eq.includes('eq_ups');
+      const rate=(typeof outageRefundRate==='function')?outageRefundRate(odays,hasUPS,Math.random):0;
+      if(rate>0){
+        const refund=Math.round(dcTariffRev[di]*rate);
+        if(refund>0){
+          inc-=refund;
+          notify(`💸 DC#${di+1}: refundace ${fmtKc(refund)} za výpadek (${odays} ${odays===1?'den':odays<5?'dny':'dní'}, ${Math.round(rate*100)}% tarifu)`,'bad');
+        }
+      }
+    }
+    dc.outageDaysM=0; // reset měsíčního počítadla
   }
 
   // Service revenue: from actual subscribers (not flat adopt rate)
