@@ -15,14 +15,22 @@ function gameLoop(ts){
       }
     }
     calcCapacityIfDirty();
-    if(typeof updateCamera==='function')updateCamera(dt);
-    if(typeof updateFloaters==='function')updateFloaters(dt);
-    render();
-    // WebGL overlay — bloom/glow/particles (safe no-op if PixiJS failed to load)
-    if(typeof renderPixiFx==='function')renderPixiFx();
+    // Vizuál překreslujeme jen v cílové kadenci (FPS cap) — šetří CPU na
+    // vysokofrekvenčních displejích. Simulace výše běží každý RAF snímek.
+    const _cap=(typeof shouldRenderFrame==='function');
+    const _minI=_cap?perfMinInterval():0;
+    if(!_cap||shouldRenderFrame(ts,_lastRenderAt,_minI)){
+      const rdt=ts-_lastRenderAt;_lastRenderAt=ts;
+      if(typeof updateCamera==='function')updateCamera(rdt);
+      if(typeof updateFloaters==='function')updateFloaters(rdt);
+      render();
+      // WebGL overlay — bloom/glow/particles (safe no-op if PixiJS failed to load)
+      if(typeof renderPixiFx==='function')renderPixiFx();
+    }
   }catch(e){console.error('gameLoop error:',e);}
   requestAnimationFrame(gameLoop);
 }
+let _lastRenderAt=0;
 
 function advDay(){
   G.date.d++;

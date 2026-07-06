@@ -66,7 +66,7 @@ function initInput(){
       cam.x=ndx;cam.y=ndy;
       if(typeof camTarget!=='undefined'){camTarget.x=ndx;camTarget.y=ndy;}
       camDragLast={x:ndx,y:ndy,t:now};
-      render();return;
+      return; // herní smyčka překreslí v cílové kadenci (FPS cap)
     }
     hover=fromIso(sx,sy);
 
@@ -227,7 +227,7 @@ function initInput(){
             h+=`<button onclick="event.stopPropagation();demolishObj(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🗑️ Odstranit</button>`;
             h+=`</div>`;
             tt.innerHTML=h;tt.style.display='block';tt.style.left=(ox+15)+'px';tt.style.top=(oy+15)+'px';
-            render();return;
+            return;
           }
         }
         // Check WiFi AP at this location
@@ -261,8 +261,8 @@ function initInput(){
     } else {
       document.getElementById('tooltip').style.display='none';
     }
-
-    render();
+    // Nevoláme render() při každém pohybu myši — herní smyčka překresluje
+    // v cílové kadenci (FPS cap), takže hover/zvýraznění se projeví do ~25 ms.
   });
 
   canvas.addEventListener('dblclick',e=>{
@@ -330,7 +330,7 @@ function initInput(){
       if(typeof camTarget!=='undefined'){camTarget.x=cam.x;camTarget.y=cam.y;}
       if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}
     }
-    render();
+    // render zajistí herní smyčka v cílové kadenci (FPS cap)
   },{passive:false});
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',e=>{

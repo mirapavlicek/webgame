@@ -83,11 +83,25 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   technici škálují hlavně **počtem přípojek** (1 jednotka ≈ 800 přípojek / 800
   kabelů), DC a HW jen drobně. **10 techniků teď pohodlně zvládne 2000+ přípojek.**
 
+### Performance
+- **Vyladění výkonu — hra méně žere CPU** (`js/perf.js`). Canvas 2D se dřív
+  překresloval při **každém** snímku requestAnimationFrame (na 120Hz ProMotion
+  Macu 120 plných redrawů/s). Nově:
+  - **FPS cap vykreslování na 40** (nastavitelné `setTargetFps(15–120)`) —
+    simulace běží dál každý snímek, ale plný redraw jen v cílové kadenci.
+    Na 120Hz displeji to je ~**3× méně** CPU práce v renderu.
+  - **Nevykreslujeme při každém pohybu myši / tažení / kolečku** — herní smyčka
+    překreslí v cílové kadenci (do ~25 ms). Zmizí desítky zbytečných redrawů/s
+    při najíždění myší a tažení mapy.
+  - GPU vrstva (PixiJS glow/particles) běží ve stejném rytmu → víc práce na GPU,
+    méně na CPU.
+
 ### Tests
 - `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
   `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
   `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
-  `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů.
+  `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů;
+  `tests/perf.test.js` — 12 assertů.
 
 ## [0.6.0] — 2026-06-29
 
