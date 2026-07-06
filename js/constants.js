@@ -196,7 +196,10 @@ const EQ={
   eq_storage_big:{name:'Enterprise storage',cost:180000,mCost:4000,eff:'storage',val:100,icon:'🗄️',storageTB:50},
   eq_cloudnode:{name:'Cloud uzel',cost:95000,mCost:2500,eff:'cloud',val:0,icon:'☁️',vCPU:32,ramGB:128},
   eq_cloudnode_big:{name:'Cloud cluster',cost:280000,mCost:7000,eff:'cloud',val:0,icon:'🌩️',vCPU:128,ramGB:512},
-  eq_bgprouter:{name:'BGP router',cost:45000,mCost:1000,eff:'routing',val:0,icon:'🔀',bgpCap:100000,desc:'Sdílí BW mezi propojenými DC. Max 100 Gbps na router.'},
+  eq_bgprouter:{name:'BGP router 100G',cost:45000,mCost:1000,eff:'routing',val:0,icon:'🔀',bgpCap:100000,desc:'Sdílí BW mezi propojenými DC. Max 100 Gbps na router.'},
+  eq_bgprouter_400:{name:'BGP router 400G',cost:140000,mCost:3200,eff:'routing',val:0,icon:'🔀',bgpCap:400000,desc:'Výkonnější BGP směrování. Max 400 Gbps na router.'},
+  eq_bgprouter_1t:{name:'BGP router 1T',cost:320000,mCost:7000,eff:'routing',val:0,icon:'🧭',bgpCap:1000000,desc:'Terabitová třída. Max 1 Tbps na router.'},
+  eq_bgprouter_2t:{name:'BGP router 2.4T',cost:700000,mCost:14000,eff:'routing',val:0,icon:'🧭',bgpCap:2400000,desc:'Hyperscale peering. Max 2.4 Tbps na router.'},
   eq_loadbalancer:{name:'Load balancer',cost:35000,mCost:800,eff:'lb',val:0,icon:'⚖️',desc:'Aktivně rozděluje provoz mezi paralelní trasy do DC podle volné kapacity. Omezuje potřebu stackování.'},
   eq_solar_roof:{name:'Solární panely (střecha)',cost:150000,mCost:400,eff:'solar',val:0,icon:'🌞',desc:'Solární panely na střeše DC. Sníží fakturu za elektřinu ~2 kW (sezónní). Žádné stínění, nízká údržba.'},
 };
