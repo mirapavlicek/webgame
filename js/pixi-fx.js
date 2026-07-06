@@ -17,6 +17,8 @@ let _pixiSky=null;
 let _pixiGlowGfx=null;
 let _pixiParticles=[];
 const _PIXI_MAX_PARTICLES=300;
+let _pixiWeatherGfx=null;   // screen-space vrstva pro počasí (déšť, mlha, vedro)
+let _rainDrops=[];
 
 // Smooth camera state
 let _camSmooth={x:0,y:0,zoom:1,init:false};
@@ -57,6 +59,10 @@ function initPixiFx(){
     // Glow graphics object (redrawn each frame)
     _pixiGlowGfx=new PIXI.Graphics();
     _pixiLayerGlow.addChild(_pixiGlowGfx);
+
+    // Weather layer — screen-space (bez kamerové transformace), navrch
+    _pixiWeatherGfx=new PIXI.Graphics();
+    _pixiApp.stage.addChild(_pixiWeatherGfx);
 
     // Apply bloom filter to glow layer if pixi-filters is available — try several known names
     let bloom=null;
@@ -194,10 +200,61 @@ function renderPixiFx(){
 
     // ====== DATA FLOW PARTICLES (WebGL batched) ======
     updatePixiParticles();
+
+    // ====== WEATHER FX (screen-space, GPU) ======
+    drawPixiWeather();
   }catch(e){
     // Silently swallow render errors so game keeps running
     console.warn('[pixi-fx] render error:',e);
   }
+}
+
+// GPU počasí: déšť/bouře (částicové čáry), mlha a horký opar (překryvy).
+function _newRainDrop(W,H,storm){
+  return {
+    x:Math.random()*(W+60),
+    y:Math.random()*H,
+    len:storm?14+Math.random()*12:8+Math.random()*6,
+    speed:storm?15+Math.random()*9:9+Math.random()*5,
+  };
+}
+function drawPixiWeather(){
+  if(!_pixiWeatherGfx||!_pixiApp)return;
+  const g=_pixiWeatherGfx;g.clear();
+  const W=_pixiApp.screen.width,H=_pixiApp.screen.height;
+  const wt=(typeof currentWeather==='function')?currentWeather():'clear';
+  const sev=(typeof currentWeatherSeverity==='function')?currentWeatherSeverity():1;
+  const sevK=0.55+0.45*sev; // intenzita škáluje hustotu/sílu efektu
+  if(wt==='fog'){
+    g.beginFill(0xaeb8c8,0.15);g.drawRect(0,0,W,H);g.endFill();
+    for(let i=0;i<5;i++){g.beginFill(0xc8d2e0,0.035);g.drawRect(0,(i/5)*H,W,H*0.13);g.endFill();}
+    _rainDrops.length=0;return;
+  }
+  if(wt==='heatwave'){
+    g.beginFill(0xff8a3d,0.07);g.drawRect(0,0,W,H);g.endFill();
+    g.beginFill(0xffd070,0.05);g.drawRect(0,0,W,H*0.35);g.endFill();
+    _rainDrops.length=0;return;
+  }
+  if(wt==='rain'||wt==='storm'){
+    const storm=wt==='storm';
+    const target=Math.round((storm?170:85)*sevK);
+    while(_rainDrops.length<target)_rainDrops.push(_newRainDrop(W,H,storm));
+    if(_rainDrops.length>target)_rainDrops.length=target;
+    const slant=storm?6:2;
+    const col=storm?0x9fb4d8:0x8fa6c8;
+    g.lineStyle({width:storm?1.4:1,color:col,alpha:storm?0.5:0.4});
+    for(const d of _rainDrops){
+      g.moveTo(d.x,d.y);g.lineTo(d.x-slant,d.y+d.len);
+      d.y+=d.speed;d.x-=slant*0.4;
+      if(d.y>H){d.y=-d.len;d.x=Math.random()*(W+60);}
+    }
+    if(storm){
+      g.beginFill(0x0a0f1c,0.18);g.drawRect(0,0,W,H);g.endFill();   // ztmavení
+      if(Math.random()<0.012){g.beginFill(0xffffff,0.20);g.drawRect(0,0,W,H);g.endFill();} // blesk
+    }
+    return;
+  }
+  _rainDrops.length=0;
 }
 
 // Draw sky gradient that respects time of day

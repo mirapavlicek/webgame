@@ -520,6 +520,58 @@ function render(){
     }
   }
 
+  // ====== INDIKÁTOR POČASÍ ======
+  if(typeof currentWeather==='function'&&typeof WEATHER_T!=='undefined'){
+    const wt=currentWeather();
+    if(wt&&wt!=='clear'&&WEATHER_T[wt]){
+      const def=WEATHER_T[wt];
+      const sev=(typeof currentWeatherSeverity==='function')?currentWeatherSeverity():1;
+      const sevLbl=sev>0.8?' · silné':sev<0.55?' · slabé':'';
+      const txt=`${def.icon} ${def.name}${sevLbl}`;
+      ctx.save();
+      ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+      const tw=ctx.measureText(txt).width+18;
+      const bx=12,by=15;
+      ctx.fillStyle='rgba(14,20,34,.78)';
+      roundRect(ctx,bx,by-10,tw,21,10);ctx.fill();
+      ctx.strokeStyle='rgba(120,150,220,.45)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#cdd6f4';ctx.fillText(txt,bx+9,by);
+      ctx.restore();
+    }
+  }
+
+  // ====== HUD CÍLŮ ======
+  if(typeof ensureObjectives==='function'&&typeof objectiveProgress==='function'){
+    let objs=[];try{objs=ensureObjectives();}catch(e){objs=[];}
+    if(objs&&objs.length){
+      const weatherShown=(typeof currentWeather==='function'&&currentWeather()!=='clear');
+      const px=12, pw=216, lineH=17, top=(weatherShown?34:12);
+      const ph=20+objs.length*lineH;
+      ctx.save();
+      ctx.fillStyle='rgba(14,20,34,.72)';
+      roundRect(ctx,px,top,pw,ph,9);ctx.fill();
+      ctx.strokeStyle='rgba(120,150,220,.35)';ctx.lineWidth=1;ctx.stroke();
+      ctx.textBaseline='middle';ctx.textAlign='left';
+      ctx.font='bold 11px sans-serif';ctx.fillStyle='#a9b6d6';
+      ctx.fillText('🎯 Cíle',px+9,top+11);
+      ctx.font='11px sans-serif';
+      for(let i=0;i<objs.length;i++){
+        const o=objs[i],y=top+24+i*lineH;
+        const prog=objectiveProgress(o,G),done=prog>=o.target;
+        let pStr;
+        if(o.type==='profit'||o.type==='cash')pStr=(typeof fmtKc==='function'?fmtKc(Math.round(prog)):Math.round(prog))+' / '+(typeof fmtKc==='function'?fmtKc(o.target):o.target);
+        else pStr=Math.min(Math.round(prog),o.target)+' / '+o.target;
+        ctx.fillStyle='#cdd6f4';
+        ctx.fillText(`${o.icon||'•'} ${o.desc}`,px+9,y);
+        ctx.textAlign='right';
+        ctx.fillStyle=done?'#3fb950':'#8b949e';
+        ctx.fillText(pStr,px+pw-9,y);
+        ctx.textAlign='left';
+      }
+      ctx.restore();
+    }
+  }
+
   renderMM();
 }
 
@@ -700,8 +752,8 @@ function drawBld(x,y,b){
     // Per-type pattern parameters — rows (floors) × cols (window columns)
     let rowStep=5,colStep=5,litChance=.40,slitHt=1.4,slitPad=.6,ribbon=false;
     if(btype==='skyscraper'){rowStep=4;colStep=3.2;litChance=.55;slitHt=1.8;slitPad=.3;ribbon=true;}
-    else if(btype==='panel'){rowStep=5;colStep=4.5;litChance=.45;slitHt=1.8;slitPad=.5;}
-    else if(btype==='bigcorp'){rowStep=6;colStep=3.5;litChance=.32;slitHt=2.2;slitPad=.4;ribbon=true;}
+    else if(btype==='panel'||btype==='university'||btype==='mall'){rowStep=5;colStep=4.5;litChance=.45;slitHt=1.8;slitPad=.5;}
+    else if(btype==='bigcorp'||btype==='hotel'||btype==='hospital'){rowStep=6;colStep=3.5;litChance=.32;slitHt=2.2;slitPad=.4;ribbon=true;}
     else if(btype==='public'){rowStep=8;colStep=7;litChance=.40;slitHt=3.2;slitPad=.8;}
 
     const litCol='rgba(255,218,140,.82)';
@@ -979,7 +1031,7 @@ function drawBld(x,y,b){
     ctx.fillStyle='#ef4444';
     ctx.fillRect(s.x+.5,topY-8,3+flag*.8,2);
   }
-  else if(type==='panel'||type==='bigcorp'){
+  else if(type==='panel'||type==='bigcorp'||type==='hotel'||type==='hospital'||type==='university'||type==='mall'){
     // Flat roof — HVAC iso cube + parapet
     // HVAC: placed off-center-left on the roof
     isoBox(s.x-hw*.35,topE-1,3.5,3.5,shade(baseColor,-35));

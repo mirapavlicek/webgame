@@ -5,6 +5,87 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-06-29
+
+Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
+
+### Added
+
+#### 🌩️ Počasí: intenzita + degradace bezdrátu
+- Každé počasí má **intenzitu (severity)**, která škáluje jeho dopady
+  (slabá vs. silná bouře). HUD ukazuje „slabé/silné".
+- **Déšť a bouře degradují bezdrát** — snižují efektivní kapacitu věží,
+  nejvíc vysokofrekvenční pásma (mmWave / sub-THz / 6G). Za bouře tak roste
+  kongesce bezdrátových zákazníků (přes stávající tower-overload mechaniku).
+- GPU vrstva: hustota deště se škáluje s intenzitou.
+
+#### 🎯 Cíle / výzvy (`js/objectives.js`)
+- Vždy **3 aktivní cíle** dávají hře směr a odměny (hotovost + nárůst poptávky):
+  získej zákazníky, připoj budovy, postav DC/vysílače, odemkni technologii,
+  připoj nemocnici/univerzitu, dosáhni měsíčního zisku.
+- Po splnění se odměna vyplatí a vygeneruje se nový škálovaný cíl.
+- **HUD panel** vlevo nahoře ukazuje cíle s průběhem (X / Y).
+
+#### 🎲 Víc generovaných událostí
+- Nové události provázané se systémy: vlna veder / sněhová kalamita (vynutí
+  počasí), tendr nemocnice, rozšíření kampusu (růst města), 6G pilot, aukce
+  spektra, velký zákazník, výpadek konkurence — vážené dle éry a kontextu.
+
+### Tests
+- `tests/weather.test.js` rozšířen na 20 assertů (degradace bezdrátu, škálování intenzitou).
+- `tests/objectives.test.js` — 15 assertů (metriky průběhu, splnění, generování).
+
+## [0.5.0] — 2026-06-29
+
+Živé město, dynamické počasí, víc technologií a nové typy budov.
+
+### Added
+
+#### 🌦️ Dynamické počasí (`js/weather.js`)
+- Sezónní počasí: jasno / déšť / mlha / **bouře** / **vedro** s váženými přechody
+  podle ročního období.
+- Herní efekty: **vedro** → vyšší zátěž chlazení DC = dražší elektřina;
+  **bouře/vedro** → vyšší riziko výpadku; bouře občas poškodí kabely.
+- **GPU vrstva (PixiJS)**: déšť/bouře jako částicové čáry, mlha a horký opar
+  jako překryvy, občasný blesk. HUD indikátor aktuálního počasí.
+
+#### 🔬 Víc technologií — 50G/100G PON a 6G
+- Nové éry `TECHS`: **50G PON** (2028), **100G PON** (2032), **6G** (2035).
+- Drátové přípojky `conn_fiber50g` / `conn_fiber100g` (i v quick-connect menu).
+- 6G věže `tower_6g` (FR3) a `tower_6g_thz` (sub-THz).
+- Nové tarify: Fiber 50G/100G + mobilní 6G Ultra/Extreme.
+
+#### 🏥 Nové typy budov
+- **Nemocnice**, **univerzita**, **nákupní centrum**, **hotel** — každá s vlastním
+  profilem poptávky/citlivosti; objevují se **organickým růstem města** podle zóny.
+- Napojeno na veřejnou poptávku a B2B nájemce (telemedicína → nemocnice,
+  e-learning → univerzita, banka → centrum/hotel).
+
+#### 🏙️ Organický růst města (`js/citygrowth.js`)
+- Město už neroste jako pravidelný čtverec — postupně se **zahušťuje kolem
+  stávající zástavby** (shlukování na frontieru) a **prorazí si nové ulice**
+  do volné plochy, čímž otevírá nové čtvrti (nepravidelný, živý půdorys).
+- Tempo růstu **škáluje s prosperitou** hráče (počet zákazníků) a dobou —
+  úspěšný ISP přitahuje developery. Roční skok (`cityGrowthTick` v `yearUp`)
+  + drobný měsíční přírůstek.
+- Respektuje vodu, parky, elektrárny, DC i existující budovy; nové budovy mají
+  vizuální efekt umístění.
+
+#### 🎲 Chytřejší generované události (`js/events.js`)
+- `randEvent` přepsán na **vážený výběr závislý na éře a kontextu**
+  (`weightedPick`): pozdní/specifické události (DDoS, kyber, smart city) se
+  neobjeví na startu (`minYear`); bouře jsou pravděpodobnější u rozsáhlé sítě,
+  regulace u velkého hráče, cenové války až při dostatku zákazníků atd.
+- Nové **události růstu města**: „🏘️ Rozvoj nové čtvrti", „🏭 Nová průmyslová
+  zóna" — proženou organický růst a posunou poptávku.
+
+### Tests
+- `tests/weather.test.js` — 11 assertů (sezónní váhy, výběr počasí, násobiče).
+- `tests/citygrowth.test.js` — 9 assertů (výběr typu budovy dle jádra/periferie/roku,
+  škálování objemu růstu, meze).
+- `tests/events.test.js` — 10 assertů (vážený los: degenerované vstupy,
+  determinismus, přeskočení nulových vah, statistický poměr).
+
 ## [0.4.0] — 2026-06-25
 
 Vylepšení herních mechanik, ovládání kamery, vizuálního pocitu a GPU akcelerace.

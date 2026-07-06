@@ -80,7 +80,11 @@ function dailyTick(){
     if(!tt){towerLoads.push({clients:0,max:0,ratio:0});continue;}
     const cl=getTowerClients(ti);
     tw.clients=cl; // update stored value
-    towerLoads.push({clients:cl,max:tt.maxClients,ratio:tt.maxClients>0?cl/tt.maxClients:0});
+    // Počasí degraduje bezdrát — déšť/bouře snižují efektivní kapacitu (nejvíc mmWave/6G)
+    const hf=/mmW|THz|6G/.test(tt.gen||'')||/mmWave|26GHz|60GHz|140GHz|sub-THz/.test(tt.band||'');
+    const wf=(typeof currentWirelessFactor==='function')?currentWirelessFactor(hf):1;
+    const effMax=tt.maxClients*wf;
+    towerLoads.push({clients:cl,max:tt.maxClients,ratio:effMax>0?cl/effMax:0});
   }
 
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
@@ -129,7 +133,7 @@ function dailyTick(){
       if(hasPeering)qb+=.08;
       // Extra demand boost for public buildings with městské partnerství
       let demandBoost=0;
-      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'))demandBoost=.15;
+      if(hasPublicDemand&&(b.type==='public'||b.type==='skyscraper'||b.type==='hospital'||b.type==='university'))demandBoost=.15;
 
       let priceFactor=0;
       const connMax=b.connType&&CONN_T[b.connType]?CONN_T[b.connType].maxBW:20;
@@ -736,7 +740,13 @@ function monthUp(){
     if(Math.random()<.003&&b.pop>BTYPES[b.type].pop[0])b.pop--;
   }
 
+  // Počasí — sezónní změna + okamžité efekty (bouře)
+  try{if(typeof weatherMonthlyTick==='function')weatherMonthlyTick();}catch(e){console.error('weatherMonthlyTick:',e);}
+  // Cíle/výzvy — vyhodnocení a odměny
+  try{if(typeof objectivesMonthlyTick==='function')objectivesMonthlyTick();}catch(e){console.error('objectivesMonthlyTick:',e);}
   handleCustomerMigration();
+  // Drobný měsíční růst města mezi ročními skoky (živé město)
+  if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
   // Business tenant spawning (every 3 months)
   if(G.date.m%3===0)spawnBizTenants();
   if(G.upgrades.includes('brand1')&&Math.random()<.05)boostDemand(.05);
@@ -839,6 +849,8 @@ function yearUp(){
   try{if(typeof financeYearlyTick==='function')financeYearlyTick();}catch(e){console.error('financeYearlyTick:',e);}
   // Cash flow yearly close — přesun YTD CapEx do historického poolu
   try{if(typeof cashflowYearlyClose==='function')cashflowYearlyClose();}catch(e){console.error('cashflowYearlyClose:',e);}
+  // Organický růst města — nové budovy a občas nová ulice/čtvrť
+  try{if(typeof cityGrowthTick==='function')cityGrowthTick();}catch(e){console.error('cityGrowthTick:',e);}
 }
 
 window.addEventListener('load',()=>{

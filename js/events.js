@@ -1,35 +1,73 @@
 // ====== EVENTS & POWER OUTAGES ======
 
+// Pure: vybere index podle vah (vážený los). r ∈ [0,1) (volitelné). -1 když nic.
+function weightedPick(weights, r){
+  let total=0;
+  for(const w of weights)total+=Math.max(0,w||0);
+  if(total<=0)return -1;
+  let x=(r==null?Math.random():r)*total;
+  for(let i=0;i<weights.length;i++){
+    const w=Math.max(0,weights[i]||0);
+    if(x<w)return i;
+    x-=w;
+  }
+  return weights.length-1;
+}
+
+// Generované události — vážený výběr závislý na éře (minYear) a kontextu (w jako
+// funkce stavu). Pozdní/specifické události (DDoS, kyber) se neobjeví na startu;
+// bouře jsou pravděpodobnější u rozsáhlé sítě, regulace u velkého hráče atd.
 function randEvent(){
+  const year=(G&&G.date)?G.date.y:2005;
+  const cables=(G&&G.cables)?G.cables.length:0;
+  const cust=(G&&G.stats)?(G.stats.cust||0):0;
+  const dcs=(G&&G.dcs)?G.dcs.length:0;
   const e=[
-    {t:'💰 EU dotace +30k!',f:()=>{G.cash+=30000;},g:1},
-    {t:'⛈️ Bouřka -12k!',f:()=>{G.cash-=12000;},g:0},
-    {t:'📰 Dobrý článek!',f:()=>{boostDemand(.08);},g:1},
-    {t:'🔧 Havárie -20k!',f:()=>{G.cash-=20000;},g:0},
-    {t:'🏗️ Nová zástavba!',f:()=>{addBlds(3);},g:1},
-    {t:'📡 Levnější transit!',f:()=>{G.cash+=5000;},g:1},
-    {t:'📊 Konkurent snížil ceny!',f:()=>{churn(.03);},g:0},
-    {t:'🎓 Tendr na internet!',f:()=>{boostDemand(.06);},g:1},
-    {t:'🔴 DDoS útok!',f:()=>{if(G.dcs.length)triggerDDoS(Math.floor(Math.random()*G.dcs.length));},g:0},
-    {t:'🔓 Bezpečnostní hrozba!',f:()=>{triggerSecurityBreach();},g:0},
-    {t:'📈 Dotace na digitalizaci!',f:()=>{G.cash+=80000;},g:1},
-    {t:'🏙️ Smart City projekt!',f:()=>{boostDemand(.1);G.cash+=20000;},g:1},
-    // ====== NEW EVENTS ======
-    {t:'🌪️ Vichřice! Poškozeny kabely',f:()=>{triggerStormDamage();},g:0},
-    {t:'🎥 Viral video o vašem ISP!',f:()=>{triggerViralGrowth();},g:1},
-    {t:'🏛️ Regulační kontrola',f:()=>{triggerRegulatoryCheck();},g:0},
-    {t:'⚡ Blackout regionu',f:()=>{triggerBlackout();},g:0},
-    {t:'🎉 Nový byznys park!',f:()=>{addBlds(5);boostDemand(.12);},g:1},
-    {t:'🤝 Partnerství s konkurencí',f:()=>{G.cash+=Math.round(Math.max(20000,G.stats.cust*50));},g:1},
-    {t:'💸 Daňová kontrola',f:()=>{G.cash-=Math.round(Math.max(10000,G.cash*0.03));},g:0},
-    {t:'🔬 Inovační grant',f:()=>{G.cash+=50000;notify('→ +50k Kč na výzkum','good');},g:1},
-    {t:'🌐 Nový CDN peering',f:()=>{triggerCDNBoost();},g:1},
-    {t:'🐀 Kabel překousán!',f:()=>{triggerCableDamage(1);},g:0},
-    {t:'🪓 Přerušený optický kabel!',f:()=>{if(typeof triggerCableCut==='function')triggerCableCut();},g:0},
-    {t:'🏆 Anketa zákazníků: 1. místo!',f:()=>{triggerReputationBoost();},g:1},
-    {t:'📉 Konkurence na vašem území',f:()=>{triggerCompetitorPush();},g:0},
+    {t:'💰 EU dotace +30k!',f:()=>{G.cash+=30000;},g:1,w:1},
+    {t:'⛈️ Bouřka -12k!',f:()=>{G.cash-=12000;},g:0,w:1},
+    {t:'📰 Dobrý článek!',f:()=>{boostDemand(.08);},g:1,w:1},
+    {t:'🔧 Havárie -20k!',f:()=>{G.cash-=20000;},g:0,w:1},
+    {t:'🏗️ Nová zástavba!',f:()=>{addBlds(3);},g:1,w:1.3},
+    {t:'📡 Levnější transit!',f:()=>{G.cash+=5000;},g:1,w:1},
+    {t:'📊 Konkurent snížil ceny!',f:()=>{churn(.03);},g:0,w:()=>cust>200?1.2:0.4},
+    {t:'🎓 Tendr na internet!',f:()=>{boostDemand(.06);},g:1,w:1},
+    {t:'🔴 DDoS útok!',f:()=>{if(G.dcs.length)triggerDDoS(Math.floor(Math.random()*G.dcs.length));},g:0,minYear:2010,w:()=>dcs>0?1:0},
+    {t:'🔓 Bezpečnostní hrozba!',f:()=>{triggerSecurityBreach();},g:0,minYear:2009,w:()=>dcs>0?1:0},
+    {t:'📈 Dotace na digitalizaci!',f:()=>{G.cash+=80000;},g:1,minYear:2014,w:1},
+    {t:'🏙️ Smart City projekt!',f:()=>{boostDemand(.1);G.cash+=20000;},g:1,minYear:2012,w:1},
+    {t:'🌪️ Vichřice! Poškozeny kabely',f:()=>{triggerStormDamage();},g:0,w:()=>cables>20?1.4:0.5},
+    {t:'🎥 Viral video o vašem ISP!',f:()=>{triggerViralGrowth();},g:1,minYear:2008,w:()=>cust>100?1.1:0.3},
+    {t:'🏛️ Regulační kontrola',f:()=>{triggerRegulatoryCheck();},g:0,w:()=>cust>400?1.3:0.3},
+    {t:'⚡ Blackout regionu',f:()=>{triggerBlackout();},g:0,w:()=>dcs>1?1:0.3},
+    {t:'🎉 Nový byznys park!',f:()=>{addBlds(5);boostDemand(.12);},g:1,minYear:2010,w:1},
+    {t:'🤝 Partnerství s konkurencí',f:()=>{G.cash+=Math.round(Math.max(20000,G.stats.cust*50));},g:1,w:()=>cust>150?1:0.4},
+    {t:'💸 Daňová kontrola',f:()=>{G.cash-=Math.round(Math.max(10000,G.cash*0.03));},g:0,w:1},
+    {t:'🔬 Inovační grant',f:()=>{G.cash+=50000;notify('→ +50k Kč na výzkum','good');},g:1,minYear:2011,w:1},
+    {t:'🌐 Nový CDN peering',f:()=>{triggerCDNBoost();},g:1,minYear:2009,w:1},
+    {t:'🐀 Kabel překousán!',f:()=>{triggerCableDamage(1);},g:0,w:()=>cables>5?1:0.2},
+    {t:'🪓 Přerušený optický kabel!',f:()=>{if(typeof triggerCableCut==='function')triggerCableCut();},g:0,w:()=>cables>10?1:0.2},
+    {t:'🏆 Anketa zákazníků: 1. místo!',f:()=>{triggerReputationBoost();},g:1,w:()=>cust>300?1.1:0.3},
+    {t:'📉 Konkurence na vašem území',f:()=>{triggerCompetitorPush();},g:0,w:()=>cust>200?1.1:0.3},
+    // ====== GENEROVANÉ UDÁLOSTI RŮSTU MĚSTA ======
+    {t:'🏘️ Rozvoj nové čtvrti!',f:()=>{const r=(typeof extendRoads==='function')?extendRoads(2):0;const b=(typeof growCity==='function')?growCity(6):0;notify(`   → +${b} budov${r>0?' a nové ulice':''}`,'good');},g:1,minYear:2007,w:()=>cust>120?1.3:0.5},
+    {t:'🏭 Nová průmyslová zóna',f:()=>{const b=(typeof growCity==='function')?growCity(4):0;boostDemand(.05);notify(`   → +${b} budov, +5% poptávka`,'good');},g:1,minYear:2008,w:()=>cust>150?1:0.3},
+    // ====== PROVÁZANÉ S NOVÝMI SYSTÉMY (počasí, budovy, 6G) ======
+    {t:'🌡️ Vlna veder',f:()=>{if(typeof setWeather==='function')setWeather('heatwave',0.9);notify('   → DC se přehřívají, vyšší náklady na chlazení','warn');},g:0,minYear:2006,w:0.8},
+    {t:'❄️ Sněhová kalamita',f:()=>{if(typeof setWeather==='function')setWeather('storm',0.95);if(typeof triggerStormDamage==='function')triggerStormDamage();},g:0,w:()=>cables>15?1:0.4},
+    {t:'🏥 Tendr nemocnice na konektivitu',f:()=>{boostDemand(.06);notify('   → zdravotnictví poptává spolehlivou síť','good');},g:1,minYear:2010,w:()=>cust>200?1:0.4},
+    {t:'🎓 Univerzitní kampus se rozšiřuje',f:()=>{const b=(typeof growCity==='function')?growCity(3):0;boostDemand(.05);notify(`   → +${b} budov v okolí kampusu`,'good');},g:1,minYear:2009,w:0.7},
+    {t:'🛰️ 6G pilotní projekt!',f:()=>{boostDemand(.12);G.cash+=60000;notify('   → +12% poptávka, +60k grant na 6G','good');},g:1,minYear:2035,w:1.4},
+    {t:'📡 Aukce spektra',f:()=>{const fee=Math.round(Math.max(40000,G.stats.cust*40));G.cash-=fee;notify(`   → licenční poplatek ${fmtKc(fee)}`,'bad');},g:0,minYear:2013,w:()=>(G.towers&&G.towers.length>2)?1:0.3},
+    {t:'💼 Velký zákazník hledá ISP',f:()=>{const bonus=Math.round(Math.max(50000,G.stats.cust*120));G.cash+=bonus;notify(`   → jednorázová zakázka +${fmtKc(bonus)}`,'good');},g:1,minYear:2008,w:()=>cust>250?1.1:0.3},
+    {t:'🔌 Výpadek konkurence v regionu',f:()=>{let c=0;for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){const b=G.map[y][x].bld;if(b&&!b.want&&!b.connected&&Math.random()<0.25){b.want=true;c++;}}notify(`   → ${c} budov hledá nového providera`,'good');},g:1,minYear:2009,w:()=>cust>150?1:0.4},
   ];
-  const ev=e[Math.floor(Math.random()*e.length)];
+  const weights=e.map(ev=>{
+    if(ev.minYear&&year<ev.minYear)return 0;
+    return (typeof ev.w==='function')?ev.w():(ev.w==null?1:ev.w);
+  });
+  const idx=weightedPick(weights);
+  if(idx<0)return;
+  const ev=e[idx];
   notify(ev.t,ev.g?'good':'bad');
   ev.f();
 }
@@ -209,8 +247,10 @@ function triggerPowerOutage(dcIdx){
 }
 
 function checkRandomOutages(){
+  // Počasí ovlivňuje riziko výpadku (bouře/vedro = vyšší)
+  const wMult=(typeof weatherOutageMultiplier==='function')?weatherOutageMultiplier():1;
   for(let di=0;di<G.dcs.length;di++){
-    if(Math.random()<0.01){
+    if(Math.random()<0.01*wMult){
       triggerPowerOutage(di);
     }
   }
