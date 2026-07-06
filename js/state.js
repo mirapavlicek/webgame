@@ -44,6 +44,8 @@ function createGame(nm){
     bindingContracts:[], // aktivní opravdové kontrakty [{id,...,remaining}]
     bindingHistory:[], // historie kontraktů [{id,outcome:'won'|'failed',reward?,penalty?,...}]
     companyRating:1,   // 1-5 stars
+    prestige:55,       // 0-100 reputace (řídící centrum)
+    qosProfile:'off',  // QoS politika: off | managed | strict
     competitorsEnabled:false,
     competitors:[],    // AI competitors [{name,color,cash,dcs,cables,customers}]
     survivedOutage:false,
@@ -178,6 +180,8 @@ function handleLoad(e){
       // Reset měsíčních počítadel dní výpadku na DC (pro refundace tarifů)
       if(Array.isArray(G.dcs))for(const dc of G.dcs){if(dc&&dc.outageDaysM===undefined)dc.outageDaysM=0;}
       if(G.autoUpgrade===undefined)G.autoUpgrade=false;
+      if(G.prestige===undefined)G.prestige=55;
+      if(!G.qosProfile)G.qosProfile='off';
       if(!G.cableCuts)G.cableCuts=[];
       if(!G.investigations)G.investigations=[];
       if(!G.investigationHistory)G.investigationHistory=[];

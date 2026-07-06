@@ -330,6 +330,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div id="popDisplay">👥 0</div>
     <div id="custDisplay" title="Zákazníci">🔌 0</div>
     <div id="satDisplay" title="Průměrná spokojenost">😊 –</div>
+    <div id="prestigeDisplay" title="Prestiž providera — klikni pro Řídící centrum" onclick="openControlCenter()" style="cursor:pointer">🛡️ –</div>
     <div id="bwDisplay">📡 0/0 Mbps</div>
     <div id="moneyDisplay">500 000 Kč</div>
   </div>
@@ -355,6 +356,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button onclick="zoomReset()" title="Reset" style="font-size:12px">⌂</button>
     <button onclick="pixiTogglable()" title="WebGL efekty ZAP/VYP" style="font-size:12px">✨</button>
     <button id="btnHeatmap" onclick="cycleHeatmap()" title="Heatmap: pokrytí → utilizace → spokojenost → vypnuto" style="font-size:12px">🌡️</button>
+    <button onclick="openControlCenter()" title="Řídící centrum (NOC)" style="font-size:12px">🛰️</button>
   </div>
   <canvas id="minimap"></canvas>
   <div id="infoPanel"></div>
@@ -374,6 +376,17 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button onclick="startNewGame()">🚀 Založit firmu</button>
   </div>
 </div>
+<!-- Řídící centrum (NOC) Modal -->
+<div class="cc-overlay" id="ccModal" onclick="if(event.target===this)closeControlCenter()">
+  <div class="cc-panel">
+    <div class="cc-header">
+      <h2>🛰️ Řídící centrum</h2>
+      <button class="cc-close" onclick="closeControlCenter()">✕</button>
+    </div>
+    <div class="cc-body" id="ccBody"><!-- rendered dynamically --></div>
+  </div>
+</div>
+
 <!-- DC Interior Modal -->
 <div class="dc-modal-overlay" id="dcModal">
   <div class="dc-modal">
@@ -434,6 +447,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/objectives.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/uigate.js"></script>
+<script src="js/controlcenter.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>
 <script src="js/render.js"></script>

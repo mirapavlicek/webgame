@@ -60,6 +60,8 @@ function dailyTick(){
   // Sales staff boost
   const salesCount=getStaffEffect('sales');
   if(salesCount>0)gm+=salesCount*.15;
+  // Prestiž providera — dobrá reputace přitahuje zákazníky
+  if(typeof prestigeGrowthMultiplier==='function'&&G.prestige!=null)gm*=prestigeGrowthMultiplier(G.prestige);
   let satBonus=0;
   if(G.upgrades.includes('support1'))satBonus+=10;
   if(G.upgrades.includes('support2'))satBonus+=20;
@@ -99,6 +101,8 @@ function dailyTick(){
       const dl=dcLoads[cn.di];
       if(dl&&dl.ratio>.8)congPenalty+=.2*(dl.ratio-.8)/.2;
       if(dl&&dl.ratio>1)congPenalty+=.4;
+      // QoS aktivně tlumí dopad kongesce na růst
+      if(typeof qosCongestionFactor==='function')congPenalty*=qosCongestionFactor(G.qosProfile);
     }
     // Tower overload penalty — if building is in range of an overloaded tower
     let towerOverload=0;
@@ -764,6 +768,8 @@ function monthUp(){
   try{if(typeof weatherMonthlyTick==='function')weatherMonthlyTick();}catch(e){console.error('weatherMonthlyTick:',e);}
   // Cíle/výzvy — vyhodnocení a odměny
   try{if(typeof objectivesMonthlyTick==='function')objectivesMonthlyTick();}catch(e){console.error('objectivesMonthlyTick:',e);}
+  // Řídící centrum — prestiž + QoS náklady
+  try{if(typeof controlCenterMonthlyTick==='function')controlCenterMonthlyTick();}catch(e){console.error('controlCenterMonthlyTick:',e);}
   handleCustomerMigration();
   // Plynulý hromadný upgrade přípojek výjezdovými četami (pokud zapnuto)
   try{if(typeof autoUpgradeTick==='function')autoUpgradeTick();}catch(e){console.error('autoUpgradeTick:',e);}

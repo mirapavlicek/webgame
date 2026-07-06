@@ -96,6 +96,8 @@ function updUI(){
   calcCapacityIfDirty();
   refreshBuildPaletteCosts();
   if(typeof gateBuildPalette==='function')try{gateBuildPalette();}catch(e){}
+  if(typeof updatePrestigeHUD==='function')updatePrestigeHUD();
+  if(typeof renderControlCenter==='function'){const cc=document.getElementById('ccModal');if(cc&&cc.style.display==='flex')try{renderControlCenter();}catch(e){}}
 
   // Stats
   updStats();
@@ -1360,6 +1362,99 @@ function updateEditorPanel(){
   h+='<div class="ed-foot"><button onclick="toggleEditor()">✓ Hotovo</button></div>';
   el.innerHTML=h;el.style.display='block';
 }
+
+// ====== ŘÍDÍCÍ CENTRUM (NOC) ======
+function prestigeColor(p){return p>=75?'#3fb950':p>=50?'#f5a524':'#f86963';}
+function prestigeLabel(p){return p>=85?'Špičkový':p>=70?'Výborný':p>=50?'Solidní':p>=30?'Slabý':'Kritický';}
+
+function updatePrestigeHUD(){
+  const el=document.getElementById('prestigeDisplay');if(!el||typeof G==='undefined'||!G)return;
+  const p=Math.round(G.prestige!=null?G.prestige:55);
+  el.textContent='🛡️ '+p;
+  el.style.color=prestigeColor(p);
+}
+
+function openControlCenter(){
+  const m=document.getElementById('ccModal');if(!m)return;
+  m.style.display='flex';
+  renderControlCenter();
+}
+function closeControlCenter(){const m=document.getElementById('ccModal');if(m)m.style.display='none';}
+
+function renderControlCenter(){
+  const el=document.getElementById('ccBody');if(!el||!G)return;
+  if(typeof ccEnsure==='function')ccEnsure();
+  const p=Math.round(G.prestige!=null?G.prestige:55);
+  const metrics=(typeof ccMetrics==='function')?ccMetrics():{};
+  const plan=metrics.plan||{total:0,used:0,free:0,util:0,headroom:0};
+
+  // Prestiž gauge
+  let h='<div class="cc-grid">';
+  h+=`<div class="cc-card cc-span2">`;
+  h+=`<div class="cc-card-h">🛡️ Prestiž providera</div>`;
+  h+=`<div style="display:flex;align-items:center;gap:14px">`;
+  h+=`<div style="font-size:34px;font-weight:800;color:${prestigeColor(p)};min-width:64px;text-align:center">${p}</div>`;
+  h+=`<div style="flex:1">`;
+  h+=`<div class="cc-bar"><div class="cc-bar-fill" style="width:${p}%;background:${prestigeColor(p)}"></div></div>`;
+  h+=`<div style="font-size:11px;color:var(--tx-3);margin-top:5px">${prestigeLabel(p)} — reputace ovlivňuje růst zákazníků a kvalitu nabídek. Udrž síť funkční (uptime, nízká kongesce, spokojenost, dost IP), a poroste.</div>`;
+  h+=`</div></div></div>`;
+
+  // Stav sítě
+  h+=`<div class="cc-card"><div class="cc-card-h">📊 Stav sítě</div>`;
+  h+=ccRow('Uptime',metrics.anyOutage?'⚠️ výpadek':'✓ v provozu',metrics.anyOutage?'#f86963':'#3fb950');
+  h+=ccRow('Nejhorší kongesce',Math.round((metrics.congestion01||0)*100)+'%',(metrics.congestion01||0)>0.9?'#f86963':(metrics.congestion01||0)>0.7?'#f5a524':'#3fb950');
+  h+=ccRow('Spokojenost',Math.round((metrics.satisfaction01||0)*100)+'%');
+  h+=ccRow('Datacentra',(G.dcs||[]).length+'');
+  h+=`</div>`;
+
+  // QoS
+  h+=`<div class="cc-card"><div class="cc-card-h">🎚️ QoS politika</div>`;
+  h+=`<div style="font-size:10px;color:var(--tx-3);margin-bottom:6px">Aktivní řízení provozu tlumí dopad kongesce na růst — za měsíční poplatek na DC.</div>`;
+  if(typeof QOS_PROFILES!=='undefined'){
+    for(const k in QOS_PROFILES){
+      const q=QOS_PROFILES[k],on=G.qosProfile===k;
+      const cost=(typeof qosMonthlyCost==='function')?qosMonthlyCost(k,(G.dcs||[]).length):0;
+      h+=`<button class="cc-qos${on?' active':''}" onclick="setQosProfile('${k}')">`;
+      h+=`<span>${q.icon} ${q.name}</span><span style="color:var(--tx-4);font-size:10px">${cost>0?fmtKc(cost)+'/měs':'zdarma'}</span></button>`;
+    }
+  }
+  h+=`</div>`;
+
+  // Adresní plán
+  const utilPct=Math.round(plan.util*100);
+  const uClr=utilPct>90?'#f86963':utilPct>70?'#f5a524':'#3fb950';
+  h+=`<div class="cc-card"><div class="cc-card-h">🌐 Adresní plán (IP)</div>`;
+  h+=ccRow('Celkem IP',fmt(plan.total));
+  h+=ccRow('Využito',fmt(plan.used)+' ('+utilPct+'%)',uClr);
+  h+=ccRow('Volné',fmt(plan.free));
+  h+=`<div class="cc-bar" style="margin-top:5px"><div class="cc-bar-fill" style="width:${utilPct}%;background:${uClr}"></div></div>`;
+  if(plan.total===0)h+=`<div style="font-size:10px;color:#f5a524;margin-top:5px">⚠️ Nemáš žádný IP blok — kup ho v panelu Síť (sekce BGP/IP).</div>`;
+  else if(plan.util>0.9)h+=`<div style="font-size:10px;color:#f86963;margin-top:5px">⚠️ Docházejí adresy — přikup další IP blok.</div>`;
+  h+=`</div>`;
+
+  // WiFi & vysílače přehled
+  h+=`<div class="cc-card"><div class="cc-card-h">📶 Bezdrát</div>`;
+  h+=ccRow('WiFi AP',(G.wifiAPs||[]).length+'');
+  h+=ccRow('Vysílače',(G.towers||[]).length+'');
+  h+=`</div>`;
+
+  // Aktivní výpadky / incidenty
+  const inc=(typeof getActiveIncidents==='function')?getActiveIncidents():[];
+  h+=`<div class="cc-card cc-span2"><div class="cc-card-h">🚨 Aktivní incidenty (${inc.length})</div>`;
+  if(!inc.length){h+=`<div style="font-size:11px;color:#3fb950">✓ Žádné aktivní incidenty — síť běží.</div>`;}
+  else{
+    for(const i of inc.slice(0,6)){
+      h+=`<div class="cc-inc"><span>DC#${(i.dcIdx!=null?i.dcIdx+1:'?')} · ${i.severity||''} · ${(i.causeId||'')}</span>`;
+      h+=`<span style="color:#f5a524">zbývá ${Math.round(i.remaining||0)}</span></div>`;
+    }
+    h+=`<div style="font-size:10px;color:var(--tx-4);margin-top:5px">Řeš je v panelu Mgmt → Incidenty (nebo najmi výjezdové čety pro auto-opravy tras).</div>`;
+  }
+  h+=`</div>`;
+
+  h+='</div>';
+  el.innerHTML=h;
+}
+function ccRow(l,v,clr){return `<div class="cc-row"><span>${l}</span><span style="color:${clr||'var(--tx-1)'};font-weight:600">${v}</span></div>`;}
 
 // ====== IXP STATUS ======
 function buildIXPStatus(){
