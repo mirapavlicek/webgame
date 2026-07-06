@@ -38,6 +38,9 @@ function staffWorkloadUnits(type, m){
     return services + cloud * 2;
   } else if(type === 'cloudadmin'){
     return (m.cloudCust || 0) / 250;   // 1 správce ~ 250 cloud zákazníků
+  } else if(type === 'install' || type === 'wifi'){
+    // Instalační/bezdrátové týmy: práce roste s velikostí připojené sítě
+    return conns / 600;
   }
   return dcs;
 }

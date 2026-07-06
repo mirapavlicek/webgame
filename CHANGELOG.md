@@ -8,6 +8,12 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **🪛 Instalační tým (`install`)** — nový typ zaměstnance (42 000 Kč/měs).
+  Automaticky připojuje nepřipojené budovy **pevnou přípojkou** tam, kam dosáhne
+  DC kabelem — stejně jako bezdrátový tým u WiFi. 3 přípojky/tým/měsíc,
+  preferuje zájemce, respektuje router/porty/vybavení DC. Standardně instaluje
+  nejrychlejší typ do 25 000 Kč dle éry (ADSL→VDSL→optika 100M→1G); dražší
+  business tiery nechává na hráči. Platí materiál; při málu peněz pauza.
 - **🧭 Rychlostní verze BGP routerů** — 100 Gbps bylo málo. Nově 4 tiery:
   **100G** (stávající, přejmenován), **400G** (140 k), **1T** (320 k) a
   **2.4T** (700 k). Kapacity se při více kusech sčítají (stack). Požadavky
