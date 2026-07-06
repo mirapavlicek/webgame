@@ -8,6 +8,12 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **⚡ Posílené polní load balancery.** Aktivní polní LB nově chytrým řízením
+  front zvedá **efektivní kapacitu svých 4 přilehlých segmentů o +20 %**
+  (`LB_SEG_BOOST`). Boost se počítá před stavbou DC-linek a routingem, takže se
+  projeví všude (kapacita tras, kongesce, heatmapa). Segment sousedící s více
+  LB dostane boost jen jednou; pozastavený LB neboostuje. Tooltip kabelu
+  ukazuje „⚡LB", tooltip uzlu benefit vypisuje.
 - **🏗️ Velký závod** — multi-tile průmyslový gigant (**2×2 pole**), vzniká
   organickým růstem města **od roku 2015** na okraji (vzácně, u velkého města).
   Náročný B2B klient:

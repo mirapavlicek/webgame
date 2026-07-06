@@ -232,7 +232,7 @@ const WIFI_T={
 // to "weighted by current free capacity" (active balancing).
 const JUNCTION_T={
   junction_lb:{name:'Polní Load Balancer',cost:28000,mCost:350,icon:'⚖️',color:'#a78bfa',
-    desc:'Aktivní rozdělovač provozu na odbočce sítě. Váží zátěž podle volné kapacity, ne jen podle max. kapacity kabelu.'},
+    desc:'Aktivní rozdělovač provozu na odbočce sítě. Váží zátěž podle volné kapacity a chytrým řízením front zvedá efektivní kapacitu přilehlých segmentů o +20 %.'},
   junction_switch:{name:'Polní přepínač',cost:12000,mCost:150,icon:'🔀',color:'#38bdf8',
     desc:'Pasivní přepínač pro rozbočení. Slouží jako anchor, ale rozděluje staticky.'},
 };

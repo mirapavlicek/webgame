@@ -233,6 +233,7 @@ function initInput(){
             h+=`<div class="tr"><span>Provoz</span><span style="color:#f85149">${fmtKc(jt.mCost)}/měs</span></div>`;
             if(jn.type==='junction_lb'){
               h+=`<div style="color:#a78bfa;font-size:9px;margin-top:3px">⚖️ Váží trasy přes volnou kapacitu místo statického max.</div>`;
+              if(jn.active!==false)h+=`<div style="color:#3fb950;font-size:9px">⚡ +20 % efektivní kapacita přilehlých segmentů</div>`;
             } else {
               h+=`<div style="color:#38bdf8;font-size:9px;margin-top:3px">🔀 Pasivní přepínač, staticky rozbočuje provoz.</div>`;
             }
@@ -277,7 +278,7 @@ function initInput(){
           if(cabHere.length){
             let h='<b>Kabely:</b><br>';
             for(const seg of cabHere){
-              h+=`${seg.types.map(t=>CAB_T[t]?.name||t).join('+')}: <span style="color:${seg.ratio>.9?'#f85149':seg.ratio>.7?'#f59e0b':'#3fb950'}">${fmtBW(seg.used)}/${fmtBW(seg.max)}</span> (${Math.round(seg.ratio*100)}%)<br>`;
+              h+=`${seg.types.map(t=>CAB_T[t]?.name||t).join('+')}: <span style="color:${seg.ratio>.9?'#f85149':seg.ratio>.7?'#f59e0b':'#3fb950'}">${fmtBW(seg.used)}/${fmtBW(seg.max)}</span> (${Math.round(seg.ratio*100)}%)${seg.lbBoost?' <span style="color:#a78bfa">⚡LB</span>':''}<br>`;
             }
             tt.innerHTML=h;tt.style.display='block';tt.style.left=(ox+15)+'px';tt.style.top=(oy+15)+'px';
           } else {
