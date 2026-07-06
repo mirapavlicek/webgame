@@ -5,6 +5,18 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Přehlednější stavební paleta (ve stylu Apple).** Paleta nově **skrývá prvky,
+  které nejdou v aktuální éře postavit** (přípojky/vysílače nad úroveň technologie)
+  i prázdné kategorie — odemykají se automaticky s postupem technologie
+  (`isToolAvailable`/`gateBuildPalette`). Méně šumu, jen relevantní volby.
+- **Ovládání ve skupinách:** rychlost hry je nově **segmentovaný přepínač**
+  (jedna skupina se sdíleným pozadím). Stavební tlačítka a hlavičky kategorií
+  mají čistší, vzdušnější „grouped" vzhled.
+- `tests/uigate.test.js` — 17 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
