@@ -5,6 +5,15 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **📶 Bezdrátový tým (`wifi`)** — nový typ zaměstnance. Automaticky připojuje
+  **nové domy přes WiFi** v dosahu AP (jejichž DC má router). Škáluje s počtem
+  týmů (`wifiTeamMonthlyConnects` ≈ 4 domy/tým/měsíc), preferuje zájemce, platí
+  materiál (conn_wifi); při nedostatku hotovosti se pozastaví.
+- `tests/wifiteam.test.js` — 8 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
