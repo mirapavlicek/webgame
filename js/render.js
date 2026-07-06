@@ -138,19 +138,19 @@ function render(){
 
   // (no yellow lane markings — roads are kept clean like OpenTTD)
 
-  // ====== WIFI COVERAGE ======
-  for(const ap of G.wifiAPs){
-    const wt=WIFI_T[ap.type],s=toScr(ap.x,ap.y);
-    ctx.fillStyle=wt.color+'1a';ctx.beginPath();ctx.arc(s.x,s.y,wt.range*(TW/2),0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=wt.color+'55';ctx.lineWidth=1;ctx.stroke();
-  }
-
-  // ====== TOWER COVERAGE ======
-  for(const tw of(G.towers||[])){
-    const tt=TOWER_T[tw.type];if(!tt)continue;
-    const s=toScr(tw.x,tw.y);
-    ctx.fillStyle=tt.color+'14';ctx.beginPath();ctx.arc(s.x,s.y,tt.range*(TW/2),0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=tt.color+'40';ctx.lineWidth=1.5;ctx.stroke();
+  // ====== WIFI + TOWER COVERAGE (kruhy pokrytí — lze vypnout tlačítkem ⭕) ======
+  if(typeof coverageEnabled!=='function'||coverageEnabled()){
+    for(const ap of G.wifiAPs){
+      const wt=WIFI_T[ap.type],s=toScr(ap.x,ap.y);
+      ctx.fillStyle=wt.color+'1a';ctx.beginPath();ctx.arc(s.x,s.y,wt.range*(TW/2),0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=wt.color+'55';ctx.lineWidth=1;ctx.stroke();
+    }
+    for(const tw of(G.towers||[])){
+      const tt=TOWER_T[tw.type];if(!tt)continue;
+      const s=toScr(tw.x,tw.y);
+      ctx.fillStyle=tt.color+'14';ctx.beginPath();ctx.arc(s.x,s.y,tt.range*(TW/2),0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=tt.color+'40';ctx.lineWidth=1.5;ctx.stroke();
+    }
   }
 
   // ====== CABLES ======
