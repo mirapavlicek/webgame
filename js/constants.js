@@ -405,6 +405,7 @@ const STAFF_T={
   dev:{name:'Vývojář',cost:55000,icon:'💻',desc:'Automatizace, lepší služby +sat',eff:'dev'},
   field:{name:'Výjezdová četa',cost:48000,icon:'🚐',desc:'Automaticky opravuje přerušené trasy (kabely) v terénu',eff:'field'},
   wifi:{name:'Bezdrátový tým',cost:38000,icon:'📶',desc:'Automaticky připojuje nové domy přes WiFi v dosahu AP',eff:'wifi'},
+  cloudadmin:{name:'Správce cloudu',cost:52000,icon:'☁️',desc:'Provozuje cloudovou platformu — 1 správce na ~250 cloud zákazníků. Bez nich reputace a náklady trpí',eff:'cloudadmin'},
 };
 
 // IXP Peering exchange

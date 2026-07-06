@@ -36,6 +36,8 @@ function staffWorkloadUnits(type, m){
     return cust / 300;              // 1 support ~ 300 zákazníků
   } else if(type === 'dev'){
     return services + cloud * 2;
+  } else if(type === 'cloudadmin'){
+    return (m.cloudCust || 0) / 250;   // 1 správce ~ 250 cloud zákazníků
   }
   return dcs;
 }
@@ -56,6 +58,7 @@ function calcStaffLoad(type){
     incidents:(G.incidents||[]).filter(i=>!i.resolved).length,
     services:(G.services||[]).length,
     cloud:(G.cloudInstances||[]).length,
+    cloudCust:(typeof getTotalCloudCustomers==='function')?getTotalCloudCustomers():0,
   };
   return staffWorkloadUnits(type,m)/count; // load per head
 }
