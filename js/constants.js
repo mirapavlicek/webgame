@@ -33,6 +33,11 @@ const BTYPES={
   university:{name:'Univerzita',clr:'#5c6bc0',h:30,units:[10,30],pop:[60,250],demand:.88,icon:'🎓',tPref:2,growth:.01,bwRatio:.90,priceSens:.35,qualSens:.65},
   mall:      {name:'Nákupní centrum',clr:'#ffa726',h:24,units:[6,20],pop:[20,120],demand:.82,icon:'🛒',tPref:1,growth:.015,bwRatio:.90,priceSens:.45,qualSens:.55},
   hotel:     {name:'Hotel',clr:'#26a69a',h:36,units:[10,40],pop:[30,180],demand:.85,icon:'🏨',tPref:2,growth:.01,bwRatio:.80,priceSens:.40,qualSens:.60},
+  // Velký závod — multi-tile průmyslový gigant (2×2 pole). Vzniká později
+  // (minYear) a vyžaduje napojení PŘÍMO do páteře: přípojku ≥10 Gbps a páteřní
+  // kabel (100G+) u půdorysu; páteř ze 2+ směrů = redundance a bonus tržeb.
+  megafactory:{name:'Velký závod',clr:'#8d6e63',h:46,units:[40,80],pop:[100,250],demand:.95,icon:'🏗️',tPref:3,growth:.005,bwRatio:1.5,priceSens:.10,qualSens:.90,
+    tilesW:2,tilesH:2,wScale:2.0,minYear:2015,reqBackbone:true,minConnBW:10000},
 };
 
 // Specialized business tenants — buildings can spawn these demanding extra BW + revenue

@@ -7,6 +7,19 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **🏗️ Velký závod** — multi-tile průmyslový gigant (**2×2 pole**), vzniká
+  organickým růstem města **od roku 2015** na okraji (vzácně, u velkého města).
+  Náročný B2B klient:
+  - vyžaduje **přípojku ≥ 10 Gbps** a **páteřní kabel (100G+) přímo u půdorysu**
+    — bez páteře ho nejde připojit;
+  - **páteř ze 2+ směrů = redundance a +30 % tržeb** (přepočítává se měsíčně,
+    tooltip ukazuje směry napájení N/J/V/Z);
+  - masivní spotřeba BW (150 % tarifu), extrémní důraz na kvalitu.
+  - Anchor+annex architektura: klik/tooltip/připojení fungují z kterékoli
+    dlaždice půdorysu; růst města ani události na půdorys nestaví; bourání
+    v editoru odstraní celý závod.
+
 ### Fixed
 - **Pevná linka jen s kabelem u budovy.** Upgrade přípojky obcházel fyzickou
   vrstvu: klient připojený přes **5G/WiFi šel „upgradovat" na optiku i bez

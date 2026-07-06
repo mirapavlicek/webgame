@@ -77,6 +77,50 @@ function dcIndexAt(x,y){
 }
 function dcAt(x,y){const i=dcIndexAt(x,y);return i>=0?G.dcs[i]:null;}
 
+// ====== MULTI-TILE BUDOVY (velký závod) ======
+// Anchor dlaždice nese bld; ostatní dlaždice půdorysu mají tile.annex={ax,ay}.
+// Kliknutí/připojení na annex se řeší přes resolveBldAnchor.
+function resolveBldAnchor(x,y){
+  const t=G.map[y]&&G.map[y][x];
+  if(!t)return{x,y,b:null};
+  if(t.bld)return{x,y,b:t.bld};
+  if(t.annex){
+    const a=G.map[t.annex.ay]&&G.map[t.annex.ay][t.annex.ax];
+    if(a&&a.bld)return{x:t.annex.ax,y:t.annex.ay,b:a.bld};
+  }
+  return{x,y,b:null};
+}
+
+// Pure: směry (N/J/V/Z), ze kterých vede páteřní kabel k půdorysu budovy.
+// hasBackbone(x1,y1,x2,y2) → bool: na segmentu je kabel páteřní třídy.
+function backboneFeedDirs(ax,ay,w,h,hasBackbone){
+  const dirs={N:false,J:false,V:false,Z:false};
+  for(const t of footprintTiles(ax,ay,w||1,h||1)){
+    if(t.y===ay&&hasBackbone(t.x,t.y,t.x,t.y-1))dirs.N=true;
+    if(t.y===ay+(h||1)-1&&hasBackbone(t.x,t.y,t.x,t.y+1))dirs.J=true;
+    if(t.x===ax+(w||1)-1&&hasBackbone(t.x,t.y,t.x+1,t.y))dirs.V=true;
+    if(t.x===ax&&hasBackbone(t.x,t.y,t.x-1,t.y))dirs.Z=true;
+  }
+  return Object.keys(dirs).filter(k=>dirs[k]);
+}
+// Pure: bonus tržeb za redundantní páteřní napájení (2+ směry = +30 %).
+function backboneRedundancyBonus(feedCount){return (feedCount||0)>=2?1.3:1.0;}
+
+// Wrapper nad stavem hry: má segment kabel páteřní třídy (tier ≥ 3, 100G+)?
+function hasBackboneSeg(x1,y1,x2,y2){
+  if(typeof G==='undefined'||!G||!G.cables)return false;
+  for(const c of G.cables){
+    if(!((c.x1===x1&&c.y1===y1&&c.x2===x2&&c.y2===y2)||(c.x1===x2&&c.y1===y2&&c.x2===x1&&c.y2===y1)))continue;
+    const ct=(typeof CAB_T!=='undefined')&&CAB_T[c.t];
+    if(ct&&(ct.tier||0)>=3)return true;
+  }
+  return false;
+}
+// Směry páteřního napájení budovy na (x,y) dle jejího typu.
+function getBldBackboneFeeds(x,y,bt){
+  return backboneFeedDirs(x,y,(bt&&bt.tilesW)||1,(bt&&bt.tilesH)||1,hasBackboneSeg);
+}
+
 // Pure: smí DC stát na dlaždici daného typu? Tráva vždy; voda jen pro DC
 // s waterBuild (velká DC — vodní chlazení).
 function dcTileAllowed(tileType,waterBuild){
