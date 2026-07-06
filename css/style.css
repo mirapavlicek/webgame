@@ -242,6 +242,8 @@ canvas#pixiCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-
 .tb.active{background:linear-gradient(135deg,#3a2d6a,#4a3582);border-color:var(--ac-violet);color:var(--ac-cyan);box-shadow:inset 0 0 0 1px rgba(139,92,246,.35),var(--sh-violet)}
 #dateDisplay{font-size:13px;color:var(--ac-cyan);font-weight:600;text-shadow:0 0 10px rgba(56,213,245,.35);letter-spacing:.01em}
 #popDisplay{font-size:11.5px;color:var(--tx-3);margin-left:7px;font-variant-numeric:tabular-nums}
+#custDisplay{font-size:11.5px;color:var(--ac-cyan);margin-left:7px;font-variant-numeric:tabular-nums}
+#satDisplay{font-size:11.5px;color:var(--tx-2);margin-left:7px;font-variant-numeric:tabular-nums}
 #moneyDisplay{margin-left:auto;font-size:14.5px;font-weight:700;color:var(--ac-green);text-shadow:0 0 10px rgba(78,201,107,.3);font-variant-numeric:tabular-nums;letter-spacing:.01em}
 #bwDisplay{font-size:11.5px;color:var(--ac-amber);margin-right:8px;font-variant-numeric:tabular-nums}
 

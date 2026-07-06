@@ -5,6 +5,25 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### 🛠️ Sandbox editor mapy (`js/editor.js`)
+- Volný editor ve 2D izometrii (klávesa **E** nebo tlačítko 🛠️ Editor): malování
+  terénu (tráva/silnice/voda/park), pokládání a bourání budov — bez peněz, bez limitů.
+- Klik i **tažení** maluje po dlaždicích; **hover náhled** ukazuje barvu podle nástroje.
+- Čas se v editoru automaticky **pozastaví** (a po vypnutí obnoví předchozí rychlost).
+- Plovoucí paleta dole uprostřed s terénem, všemi typy budov a gumou.
+
+#### 🧭 Přehlednější GUI
+- Horní lišta nově ukazuje **zákazníky (🔌)** a **průměrnou spokojenost (😊/😐/😟)**
+  barevně — rychlý přehled bez otevírání panelů.
+- Záporná hotovost se v liště zvýrazní červeně.
+
+### Tests
+- `tests/editor.test.js` — 22 assertů (setTile, makeBuilding, placeBuilding, bulldoze).
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

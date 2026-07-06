@@ -24,8 +24,17 @@ function updStats(){
   document.getElementById('sCov').textContent=bldCount>0?Math.round(connCount/bldCount*100)+'%':'0%';
   document.getElementById('sSat').textContent=satN>0?Math.round(satSum/satN)+'%':'–';
   document.getElementById('sPop').textContent=fmt(pop);
-  document.getElementById('moneyDisplay').textContent=fmtKc(G.cash);
+  const moneyEl=document.getElementById('moneyDisplay');
+  moneyEl.textContent=fmtKc(G.cash);
+  moneyEl.style.color=G.cash<0?'var(--ac-red)':'';
   document.getElementById('popDisplay').textContent='👥 '+fmt(pop);
+  const custEl=document.getElementById('custDisplay');if(custEl)custEl.textContent='🔌 '+fmt(cust);
+  const satEl=document.getElementById('satDisplay');
+  if(satEl){
+    const avgSat=satN>0?Math.round(satSum/satN):-1;
+    satEl.textContent=(avgSat>=0?(avgSat>=70?'😊 ':avgSat>=40?'😐 ':'😟 ')+avgSat+'%':'😊 –');
+    satEl.style.color=avgSat<0?'':(avgSat>=70?'var(--ac-green)':avgSat>=40?'var(--ac-amber)':'var(--ac-red)');
+  }
 
   const dcTotal=dcLoads.reduce((s,dl)=>s+dl.maxBW,0);
   const dcUsed=dcLoads.reduce((s,dl)=>s+dl.usedBW,0);
