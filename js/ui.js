@@ -1951,7 +1951,7 @@ function renderDCModal(){
   sh+=`<div style="font-size:9.5px;color:#6e7681;margin-bottom:8px">Klikni pro instalaci. Na obsazený slot klikni pro odebrání (50% refund).</div>`;
 
   const eqCats={
-    network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_switch24','eq_switch48','eq_bgprouter','eq_loadbalancer']},
+    network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_router_carrier','eq_router_tera','eq_switch24','eq_switch48','eq_switch96','eq_switch256','eq_bgprouter','eq_loadbalancer']},
     compute:{name:'🖥️ Výpočetní',items:['eq_server','eq_cloudnode','eq_cloudnode_big']},
     storage:{name:'💿 Storage',items:['eq_storage','eq_storage_big','eq_backup']},
     security:{name:'🛡️ Bezpečnost',items:['eq_firewall','eq_firewall_pro','eq_firewall_ent']},

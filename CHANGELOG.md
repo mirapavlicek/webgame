@@ -8,6 +8,11 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Multi-tile datová centra** — 🏯 **Mega DC** (2 pole: 64 slotů, 50 Gbps) a
+  🏰 **Hyperscale kampus** (2×2 pole: 128 slotů, 200 Gbps). Umisťování validuje
+  celý půdorys; výběr/demolice/kabely/BFS fungují z kterékoli dlaždice půdorysu.
+- **Nová generace hardwaru:** kabely **1.6T/3.2T**, switche **96p/šasi 256p**,
+  routery **Carrier-Max (250)/Tera (600 přípojek)**, transity **+1.6T/+3.2T**.
 - **📶 Bezdrátový tým (`wifi`)** — nový typ zaměstnance. Automaticky připojuje
   **nové domy přes WiFi** v dosahu AP (`wifiTeamMonthlyConnects` ≈ 4 domy/tým/měsíc,
   preferuje zájemce, platí materiál conn_wifi, pauza při málu peněz).
@@ -107,7 +112,7 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
   `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů;
   `tests/perf.test.js` — 12 assertů; `tests/sidebar.test.js` — 10 assertů;
-  `tests/wifiteam.test.js` — 8 assertů.
+  `tests/wifiteam.test.js` — 8 assertů; `tests/megadc.test.js` — 23 assertů.
 
 ## [0.6.0] — 2026-06-29
 

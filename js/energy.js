@@ -19,6 +19,8 @@ const DC_POWER_KW = {
   dc_small: 8,
   dc_medium: 35,
   dc_large: 150,
+  dc_mega: 450,
+  dc_hyper: 1400,
 };
 
 // Základní PUE podle velikosti (menší = vyšší ztráty)
