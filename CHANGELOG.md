@@ -22,8 +22,6 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   - **Adresní plán (IP)** — přehled využití IP adres (přípojky + věže + AP vs.
     koupené bloky), varování při docházení adres (`addressingPlan`).
   - Přehled bezdrátu a **seznam aktivních incidentů** s odkazem na řešení.
-- **Rozvoj kabelových technologií** — kabely mají nově `minTech` a odemykají se
-  s postupem éry; `placeCable` vyšší kabel bez potřebné technologie odmítne.
 - **Výjezdová četa (`field`)** — nový typ zaměstnance (🚐). Technické týmy
   **automaticky opravují přerušené trasy** (kabelové řezy) v terénu bez nutnosti
   ručně reagovat na každý incident. `fieldCrewRemedy`:
