@@ -143,13 +143,20 @@ function expandMap(dir){
 }
 
 function placeDC(x,y,type){
-  if(G.map[y][x].type!=='grass'){notify('❌ DC jen na trávu!','bad');return;}
-  if(G.map[y][x].bld){notify('❌ Obsazeno!','bad');return;}
-  if(G.dcs.some(d=>d.x===x&&d.y===y)){notify('❌ Již stojí DC!','bad');return;}
+  const dt0=DC_T[type];
+  // Multi-tile DC: zvaliduj celý půdorys (tráva, bez budov, bez jiného DC, v mapě)
+  const fp=footprintTiles(x,y,(dt0&&dt0.tilesW)||1,(dt0&&dt0.tilesH)||1);
+  for(const t of fp){
+    if(t.x<0||t.x>=MAP||t.y<0||t.y>=MAP){notify('❌ Půdorys DC přesahuje mapu!','bad');return;}
+    if(G.map[t.y][t.x].type!=='grass'){notify('❌ DC jen na trávu (celý půdorys)!','bad');return;}
+    if(G.map[t.y][t.x].bld){notify('❌ V půdorysu stojí budova!','bad');return;}
+    if(dcIndexAt(t.x,t.y)>=0){notify('❌ Již stojí DC!','bad');return;}
+    if(typeof hasPowerPlant==='function'&&hasPowerPlant(t.x,t.y)){notify('❌ V půdorysu je elektrárna!','bad');return;}
+  }
   const dt=DC_T[type];
   const cost=inflComponentCost(dt.cost);
   if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
-  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
+  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''},outageDaysM:0});G.cash-=cost;
   if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
   if(typeof addPulse==='function')addPulse(x,y,dt.color||'#00d4ff');
@@ -288,10 +295,11 @@ function toggleJunction(x,y){
 }
 
 function placeCable(x1,y1,x2,y2,type){
-  const ok1=isRoad(x1,y1)||G.dcs.some(d=>d.x===x1&&d.y===y1);
-  const ok2=isRoad(x2,y2)||G.dcs.some(d=>d.x===x2&&d.y===y2);
+  const ok1=isRoad(x1,y1)||dcIndexAt(x1,y1)>=0;
+  const ok2=isRoad(x2,y2)||dcIndexAt(x2,y2)>=0;
   if(!ok1||!ok2){notify('❌ Jen po silnicích/z DC!','bad');return;}
-  const segs=pathSegs(x1,y1,x2,y2),ct=CAB_T[type];let ns=0,upgN=0,upgCost=0,stackN=0;
+  const ct=CAB_T[type];
+  const segs=pathSegs(x1,y1,x2,y2);let ns=0,upgN=0,upgCost=0,stackN=0;
   for(const s of segs){
     // Check for lower-tier cables that can be upgraded
     let upgraded=false;
@@ -336,6 +344,74 @@ function quickConnectOptions(connT,tech,cash,inflFn){
   }
   out.sort((a,b)=>a.maxBW-b.maxBW);
   return out;
+}
+
+// Pure: další drátový upgrade přípojky o jeden stupeň výš (nejbližší rychlejší
+// typ dostupný v aktuální éře). Bezdrátové (LTE/5G) a WiFi se neupgradují —
+// ty řídí věže/AP. Vrací klíč cílové přípojky, nebo null.
+function nextWiredUpgrade(currentType, connT, tech){
+  if(!currentType||!connT)return null;
+  const c=connT[currentType];if(!c)return null;
+  if(currentType==='conn_wifi'||currentType.startsWith('conn_lte')||currentType.startsWith('conn_5g'))return null;
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g','conn_fiber50g','conn_fiber100g'];
+  let best=null;
+  for(const k of wired){
+    const cc=connT[k];if(!cc)continue;
+    if((cc.minTech||0)>tech)continue;
+    if(cc.maxBW<=c.maxBW)continue;                 // musí být rychlejší
+    if(!best||cc.maxBW<connT[best].maxBW)best=k;    // vyber nejbližší vyšší tier
+  }
+  return best;
+}
+
+// Plynulý hromadný upgrade přípojek prováděný výjezdovými četami. Každý měsíc
+// zmodernizují několik nejpomalejších drátových přípojek o stupeň výš (v rámci
+// rozpočtu). Zapíná se přepínačem; vyžaduje zaměstnance (field crews).
+function toggleAutoUpgrade(){
+  G.autoUpgrade=!G.autoUpgrade;
+  notify(G.autoUpgrade?'🔧 Program modernizace přípojek ZAPNUT (výjezdové čety)':'🔧 Program modernizace vypnut',G.autoUpgrade?'good':'');
+  if(typeof buildStaffList==='function')try{buildStaffList();}catch(e){}
+}
+
+// Počet lidí schopných dělat plynulý upgrade tras: výjezdové čety + technici.
+function getUpgradeCrewCount(){
+  let n=0;
+  if(typeof getStaffCount==='function')n=getStaffCount('field')+getStaffCount('tech');
+  return n;
+}
+
+function autoUpgradeTick(){
+  if(!G||!G.autoUpgrade)return 0;
+  const crews=getUpgradeCrewCount();
+  if(crews<=0)return 0;
+  let budget=crews*2;                               // přípojek/měsíc na osoby
+  const cands=[];
+  for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+    const b=G.map[y][x].bld;
+    if(!b||!b.connected||!b.connType)continue;
+    const target=nextWiredUpgrade(b.connType,CONN_T,G.tech);
+    if(!target)continue;
+    cands.push({x,y,b,target,bw:CONN_T[b.connType].maxBW});
+  }
+  cands.sort((a,b)=>a.bw-b.bw);                      // od nejpomalejších
+  let done=0,spent=0;
+  for(const cand of cands){
+    if(budget<=0)break;
+    const ct=CONN_T[cand.target];
+    const cost=(typeof inflComponentCost==='function')?inflComponentCost(ct.cost):ct.cost;
+    if(G.cash<cost)break;                            // došly peníze → pauza
+    // DC musí mít potřebné vybavení pro cílovou přípojku
+    const cn=G.conns.find(c=>c.bx===cand.x&&c.by===cand.y);
+    if(cn){const dc=G.dcs[cn.di];if(dc&&typeof getMissingEq==='function'){const m=getMissingEq(dc,ct.reqEq);if(m.length)continue;}}
+    const oldType=cand.b.connType;
+    cand.b.connType=cand.target;
+    G.cash-=cost;spent+=cost;
+    if(typeof recordCapex==='function')recordCapex('connection',cost,`auto-upgrade → ${ct.name}`);
+    if(typeof triggerTariffUpgradeWave==='function')triggerTariffUpgradeWave(cand.b,cand.x,cand.y,ct.maxBW,oldType,cand.target);
+    done++;budget--;
+  }
+  if(done>0){markCapDirty();notify(`🔧 Výjezdové čety zmodernizovaly ${done} přípojek (${fmtKc(spent)})`,'good');}
+  return done;
 }
 
 function connectBld(x,y,connType){
@@ -829,7 +905,7 @@ function placeTower(x,y,type){
   if(G.tech<tt.minTech){notify(`❌ Potřeba ${TECHS[tt.minTech].name}!`,'bad');return;}
   // Small cells can be placed on buildings too (facade-mounted), macro towers only on roads/DC
   const hasBld=G.map[y]&&G.map[y][x]&&G.map[y][x].bld;
-  const onRoadOrDC=isRoad(x,y)||G.dcs.some(d=>d.x===x&&d.y===y);
+  const onRoadOrDC=isRoad(x,y)||dcIndexAt(x,y)>=0;
   if(tt.small){
     if(!onRoadOrDC&&!hasBld){notify('❌ Small cell na silnici, DC nebo budovu!','bad');return;}
   } else {
@@ -1499,7 +1575,7 @@ function doIPO(){
 
 function demolishObj(x,y){
   if(x<0||x>=MAP||y<0||y>=MAP)return;
-  const dc=G.dcs.findIndex(d=>d.x===x&&d.y===y);
+  const dc=dcIndexAt(x,y);
   if(dc>=0){
     G.dcs.splice(dc,1);
     G.conns=G.conns.filter(c=>c.di!==dc&&(c.di>dc?true:true));

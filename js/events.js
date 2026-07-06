@@ -53,7 +53,7 @@ function randEvent(){
     {t:'🏭 Nová průmyslová zóna',f:()=>{const b=(typeof growCity==='function')?growCity(4):0;boostDemand(.05);notify(`   → +${b} budov, +5% poptávka`,'good');},g:1,minYear:2008,w:()=>cust>150?1:0.3},
     // ====== PROVÁZANÉ S NOVÝMI SYSTÉMY (počasí, budovy, 6G) ======
     {t:'🌡️ Vlna veder',f:()=>{if(typeof setWeather==='function')setWeather('heatwave',0.9);notify('   → DC se přehřívají, vyšší náklady na chlazení','warn');},g:0,minYear:2006,w:0.8},
-    {t:'❄️ Sněhová kalamita',f:()=>{if(typeof setWeather==='function')setWeather('storm',0.95);if(typeof triggerStormDamage==='function')triggerStormDamage();},g:0,w:()=>cables>15?1:0.4},
+    {t:'❄️ Sněhová kalamita',f:()=>{if(typeof setWeather==='function')setWeather('storm',0.95);notify('   → silná bouře, hlídej síť','warn');},g:0,w:()=>cables>15?1:0.4},
     {t:'🏥 Tendr nemocnice na konektivitu',f:()=>{boostDemand(.06);notify('   → zdravotnictví poptává spolehlivou síť','good');},g:1,minYear:2010,w:()=>cust>200?1:0.4},
     {t:'🎓 Univerzitní kampus se rozšiřuje',f:()=>{const b=(typeof growCity==='function')?growCity(3):0;boostDemand(.05);notify(`   → +${b} budov v okolí kampusu`,'good');},g:1,minYear:2009,w:0.7},
     {t:'🛰️ 6G pilotní projekt!',f:()=>{boostDemand(.12);G.cash+=60000;notify('   → +12% poptávka, +60k grant na 6G','good');},g:1,minYear:2035,w:1.4},
@@ -74,10 +74,23 @@ function randEvent(){
 
 // ====== NEW EVENT HANDLERS ======
 
-// Storm damages 2-5 random cable segments (removes them)
-function triggerStormDamage(){
+// Pure: kolik kabelových segmentů bouře poškodí. Šetrné vůči malé síti
+// (nikdy víc než ~8 % kabelů) i velké (strop). opts.count = požadovaný počet
+// (default 1–2), total = počet kabelů v síti.
+function stormDamageCount(total, requested, rnd){
+  if(!total||total<=0)return 0;
+  rnd=rnd||Math.random;
+  let count=(requested!=null)?requested:(1+Math.floor(rnd()*2)); // 1–2
+  const cap=Math.max(1,Math.round(total*0.08));                  // max ~8 % sítě
+  return Math.max(0,Math.min(count,cap,total));
+}
+
+// Storm damages a few random cable segments (removes them). Vyváženo tak, aby
+// ani opakovaná bouře nezdecimovala síť — viz stormDamageCount.
+function triggerStormDamage(opts){
+  opts=opts||{};
   if(!G.cables||G.cables.length===0){notify('   (žádné kabely k poškození)','warn');return;}
-  const count=2+Math.floor(Math.random()*4);
+  const count=stormDamageCount(G.cables.length,opts.count,Math.random);
   let removed=0,cost=0;
   for(let i=0;i<count&&G.cables.length>0;i++){
     const idx=Math.floor(Math.random()*G.cables.length);
@@ -89,7 +102,7 @@ function triggerStormDamage(){
   }
   G.cash-=cost;
   markCapDirty();
-  notify(`   → ${removed} segmentů zničeno, oprava ${fmtKc(cost)}`,'bad');
+  if(removed>0)notify(`   → ${removed} ${removed===1?'segment':'segmenty'} poškozeny, oprava ${fmtKc(cost)}`,'bad');
 }
 
 // 1 specific cable destroyed
@@ -249,11 +262,33 @@ function triggerPowerOutage(dcIdx){
 function checkRandomOutages(){
   // Počasí ovlivňuje riziko výpadku (bouře/vedro = vyšší)
   const wMult=(typeof weatherOutageMultiplier==='function')?weatherOutageMultiplier():1;
+  // Obtížnost — Heavy/Hardcore = víc poruch
+  const dMult=(typeof diffIncidentMult==='function')?diffIncidentMult():1;
   for(let di=0;di<G.dcs.length;di++){
-    if(Math.random()<0.01*wMult){
+    if(Math.random()<0.01*wMult*dMult){
       triggerPowerOutage(di);
     }
   }
+}
+
+// Pure: míra refundace tarifu za výpadek (0..~0.6 podílu měsíčního příjmu).
+// Fakturace je měsíční, takže výpadek příjem NEVYNULUJE — ale podle délky se
+// zákazníci mohou (a nemusí) dožadovat vrácení části peněz:
+//   * < 1 den    → tolerováno, žádná refundace
+//   * roste pravděpodobnost i výše s délkou (pro-rata za dny mimo provoz)
+//   * UPS drží část služby → zhruba poloviční dopad
+// rnd() ∈ [0,1) (volitelné) rozhoduje, zda si o vrácení vůbec řeknou.
+function outageRefundRate(outageDays, hasUPS, rnd){
+  rnd = rnd || Math.random;
+  if(!outageDays || outageDays < 1) return 0;      // krátký výpadek se toleruje
+  const monthDays = 30;
+  // Pravděpodobnost dožadování: 1 den ~15 %, 3 dny ~43 %, 7+ dní ~95 %
+  const demandProb = Math.min(0.95, 0.15 + (outageDays - 1) * 0.14);
+  if(rnd() >= demandProb) return 0;                // "nemusí se dožadovat"
+  let rate = Math.min(1, outageDays / monthDays);  // pro-rata podíl výpadku
+  if(hasUPS) rate *= 0.5;                            // UPS = částečný provoz
+  rate = Math.min(0.6, rate * 1.3);                 // mírný goodwill navrch, strop 60 %
+  return rate;
 }
 
 function updateOutages(){
@@ -299,7 +334,7 @@ function addBlds(n){
   let c=0;
   for(let a=0;a<200&&c<n;a++){
     const x=Math.floor(Math.random()*MAP),y=Math.floor(Math.random()*MAP);
-    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&(typeof hasPowerPlant!=='function'||!hasPowerPlant(x,y))&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
+    if(G.map[y][x].type==='grass'&&!G.map[y][x].bld&&(typeof hasPowerPlant!=='function'||!hasPowerPlant(x,y))&&(typeof dcIndexAt!=='function'||dcIndexAt(x,y)<0)&&nb(x,y).some(([ax,ay])=>ax>=0&&ax<MAP&&ay>=0&&ay<MAP&&G.map[ay][ax].type==='road')){
       const r=Math.random(),bt=r<.4?'house':r<.6?'rowhouse':r<.8?'panel':'shop';
       const b=BTYPES[bt],units=b.units[0]+Math.floor(Math.random()*(b.units[1]-b.units[0]+1)),pop=b.pop[0]+Math.floor(Math.random()*(b.pop[1]-b.pop[0]+1));
       G.map[y][x].bld={type:bt,units,pop,maxPop:Math.round(pop*1.5),connected:false,connType:null,customers:0,sat:0,tariff:null,want:Math.random()<b.demand,dcIdx:-1};

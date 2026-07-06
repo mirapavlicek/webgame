@@ -325,13 +325,26 @@ function investigationDailyTick(){
 }
 
 // Daily tick — decrement incident timers
+// Pure: denní oprava, kterou přidají výjezdové čety. Terénní čety opravují
+// hlavně přerušené trasy (kabely) — tam mají plný výkon; u ostatních incidentů
+// jen menší asistenci. crews = počet čet. Vrací body remedy/den.
+function fieldCrewRemedy(crews, isCable){
+  if(!crews||crews<=0)return 0;
+  const perCrew=isCable?7:2;        // kabelové řezy opravují rychle, jinak jen pomáhají
+  const cap=isCable?28:8;           // diminishing returns (strop výkonu)
+  return Math.min(cap,crews*perCrew);
+}
+
 function incidentDailyTick(){
   if(!G.incidents||G.incidents.length===0)return;
+  const field=getStaffCount?getStaffCount('field'):0;
   for(const inc of G.incidents){
     if(inc.resolved)continue;
     // Natural decay — slower if no response, faster with NOC
     const noc=getStaffCount?getStaffCount('noc'):0;
-    const decay=0.5+noc*0.2;
+    let decay=0.5+noc*0.2;
+    // Výjezdové čety automaticky opravují trasy (nejvíc kabelové řezy)
+    decay+=fieldCrewRemedy(field,inc.causeId==='cable');
     inc.remaining=Math.max(0,inc.remaining-decay);
     // Revenue loss accumulator (per day)
     const sev=INCIDENT_SEVERITY.find(s=>s.id===inc.severity)||INCIDENT_SEVERITY[0];
@@ -356,6 +369,8 @@ function incidentMonthlyRoll(){
     // Global learnings
     const totalLearnings=Object.values(G.incidentLearnings||{}).reduce((s,v)=>s+v,0);
     prob*=Math.max(0.5,1-totalLearnings*0.02);
+    // Obtížnost — Heavy/Hardcore = víc incidentů
+    if(typeof diffIncidentMult==='function')prob*=diffIncidentMult();
     if(Math.random()<prob){
       spawnIncident(di);
     }

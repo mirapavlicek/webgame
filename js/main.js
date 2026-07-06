@@ -15,14 +15,22 @@ function gameLoop(ts){
       }
     }
     calcCapacityIfDirty();
-    if(typeof updateCamera==='function')updateCamera(dt);
-    if(typeof updateFloaters==='function')updateFloaters(dt);
-    render();
-    // WebGL overlay — bloom/glow/particles (safe no-op if PixiJS failed to load)
-    if(typeof renderPixiFx==='function')renderPixiFx();
+    // Vizuál překreslujeme jen v cílové kadenci (FPS cap) — šetří CPU na
+    // vysokofrekvenčních displejích. Simulace výše běží každý RAF snímek.
+    const _cap=(typeof shouldRenderFrame==='function');
+    const _minI=_cap?perfMinInterval():0;
+    if(!_cap||shouldRenderFrame(ts,_lastRenderAt,_minI)){
+      const rdt=ts-_lastRenderAt;_lastRenderAt=ts;
+      if(typeof updateCamera==='function')updateCamera(rdt);
+      if(typeof updateFloaters==='function')updateFloaters(rdt);
+      render();
+      // WebGL overlay — bloom/glow/particles (safe no-op if PixiJS failed to load)
+      if(typeof renderPixiFx==='function')renderPixiFx();
+    }
   }catch(e){console.error('gameLoop error:',e);}
   requestAnimationFrame(gameLoop);
 }
+let _lastRenderAt=0;
 
 function advDay(){
   G.date.d++;
@@ -39,6 +47,8 @@ function advDay(){
     try{monthUp();}catch(e){console.error('monthUp error:',e);}
   }
   try{dailyTick();}catch(e){console.error('dailyTick error:',e);}
+  // Akumuluj dny výpadku per DC v aktuálním měsíci (pro výpočet refundace tarifů)
+  try{for(const dc of G.dcs){if(dc.outage&&dc.outage.active)dc.outageDaysM=(dc.outageDaysM||0)+1;}}catch(e){}
   // Daily incident progression (response actions shorten; natural decay)
   try{if(typeof incidentDailyTick==='function')incidentDailyTick();}catch(e){console.error('incidentDailyTick:',e);}
   try{if(typeof investigationDailyTick==='function')investigationDailyTick();}catch(e){console.error('investigationDailyTick:',e);}
@@ -58,6 +68,10 @@ function dailyTick(){
   // Sales staff boost
   const salesCount=getStaffEffect('sales');
   if(salesCount>0)gm+=salesCount*.15;
+  // Prestiž providera — dobrá reputace přitahuje zákazníky
+  if(typeof prestigeGrowthMultiplier==='function'&&G.prestige!=null)gm*=prestigeGrowthMultiplier(G.prestige);
+  // Obtížnost — Heavy/Hardcore ztěžuje akvizici zákazníků
+  if(typeof diffGrowthMult==='function')gm*=diffGrowthMult();
   let satBonus=0;
   if(G.upgrades.includes('support1'))satBonus+=10;
   if(G.upgrades.includes('support2'))satBonus+=20;
@@ -97,6 +111,8 @@ function dailyTick(){
       const dl=dcLoads[cn.di];
       if(dl&&dl.ratio>.8)congPenalty+=.2*(dl.ratio-.8)/.2;
       if(dl&&dl.ratio>1)congPenalty+=.4;
+      // QoS aktivně tlumí dopad kongesce na růst
+      if(typeof qosCongestionFactor==='function')congPenalty*=qosCongestionFactor(G.qosProfile);
     }
     // Tower overload penalty — if building is in range of an overloaded tower
     let towerOverload=0;
@@ -547,16 +563,34 @@ function monthUp(){
   updateOutages();
 
   let inc=0,cust=0;
+  // Příjem z tarifů per DC — fakturace je měsíční, výpadek příjem NEVYNULUJE.
+  // Místo toho se níže spočítá případná refundace podle délky výpadku.
+  const dcTariffRev=new Array(G.dcs.length).fill(0);
   for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
     const b=G.map[y][x].bld;
     if(!b||!b.connected||b.customers<=0)continue;
-    const dc=G.dcs[b.dcIdx];
-    const isOutage=dc&&dc.outage&&dc.outage.active;
-    const hasUPS=dc&&dc.eq&&dc.eq.includes('eq_ups');
-    let bldRev=calcBldRevenue(b);
-    if(isOutage)bldRev=Math.round(bldRev*(hasUPS?0.5:0));
+    const bldRev=calcBldRevenue(b);
     inc+=bldRev;
+    if(b.dcIdx>=0&&b.dcIdx<dcTariffRev.length)dcTariffRev[b.dcIdx]+=bldRev;
     cust+=b.customers;
+  }
+  // Refundace za výpadky: podle nasčítaných dní výpadku daného DC se zákazníci
+  // mohou (a nemusí) dožadovat vrácení části tarifu (outageRefundRate).
+  for(let di=0;di<G.dcs.length;di++){
+    const dc=G.dcs[di];if(!dc)continue;
+    const odays=dc.outageDaysM||0;
+    if(odays>0&&dcTariffRev[di]>0){
+      const hasUPS=dc.eq&&dc.eq.includes('eq_ups');
+      const rate=(typeof outageRefundRate==='function')?outageRefundRate(odays,hasUPS,Math.random):0;
+      if(rate>0){
+        const refund=Math.round(dcTariffRev[di]*rate);
+        if(refund>0){
+          inc-=refund;
+          notify(`💸 DC#${di+1}: refundace ${fmtKc(refund)} za výpadek (${odays} ${odays===1?'den':odays<5?'dny':'dní'}, ${Math.round(rate*100)}% tarifu)`,'bad');
+        }
+      }
+    }
+    dc.outageDaysM=0; // reset měsíčního počítadla
   }
 
   // Service revenue: from actual subscribers (not flat adopt rate)
@@ -605,10 +639,12 @@ function monthUp(){
   }
   // IP block costs
   for(const blk of(G.ipBlocks||[]))hwExp+=blk.mCost;
-  let exp=inflComponentCost(hwExp);
+  // Obtížnost — Heavy/Hardcore zdražuje provoz ("dražší služby")
+  const _diffCost=(typeof diffCostMult==='function')?diffCostMult():1;
+  let exp=inflComponentCost(hwExp)*_diffCost;
   // Per-customer servisní náklady (25 Kč/zák.) = support/billing/SG&A.
   // Rostou se salaryInflation — je to primárně lidský náklad (call centrum, fakturace, NOC).
-  exp+=inflSalaryCost(cust*25);
+  exp+=inflSalaryCost(cust*25)*_diffCost;
   // Cloud revenue — from actual cloud customers (real customers × demand mix × inflation × reputation)
   const cloudRev=calcCloudRevenue();
   inc+=cloudRev;
@@ -744,7 +780,13 @@ function monthUp(){
   try{if(typeof weatherMonthlyTick==='function')weatherMonthlyTick();}catch(e){console.error('weatherMonthlyTick:',e);}
   // Cíle/výzvy — vyhodnocení a odměny
   try{if(typeof objectivesMonthlyTick==='function')objectivesMonthlyTick();}catch(e){console.error('objectivesMonthlyTick:',e);}
+  // Řídící centrum — prestiž + QoS náklady
+  try{if(typeof controlCenterMonthlyTick==='function')controlCenterMonthlyTick();}catch(e){console.error('controlCenterMonthlyTick:',e);}
   handleCustomerMigration();
+  // Plynulý hromadný upgrade přípojek výjezdovými četami (pokud zapnuto)
+  try{if(typeof autoUpgradeTick==='function')autoUpgradeTick();}catch(e){console.error('autoUpgradeTick:',e);}
+  // Bezdrátový tým — automaticky připojuje nové domy přes WiFi v dosahu AP
+  try{if(typeof wifiTeamTick==='function')wifiTeamTick();}catch(e){console.error('wifiTeamTick:',e);}
   // Drobný měsíční růst města mezi ročními skoky (živé město)
   if(typeof growCity==='function'&&Math.random()<0.30){try{growCity(1+Math.floor(Math.random()*2));}catch(e){console.error('growCity:',e);}}
   // Business tenant spawning (every 3 months)
@@ -856,6 +898,8 @@ function yearUp(){
 window.addEventListener('load',()=>{
   initRender();
   initInput();
+  if(typeof initCollapsibleSections==='function')initCollapsibleSections();
+  if(typeof initTheme==='function')initTheme();
   if(typeof initCameraKeys==='function')initCameraKeys();
   // Initialize WebGL FX overlay (safe — fails silently if PIXI missing)
   if(typeof initPixiFx==='function')initPixiFx();

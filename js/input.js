@@ -1,6 +1,6 @@
 // ====== INPUT HANDLING ======
 let cam={x:0,y:0,zoom:1},drag=false,dS={x:0,y:0},cS={x:0,y:0};
-let camDragLast={x:0,y:0,t:0},mmDrag=false;
+let camDragLast={x:0,y:0,t:0},mmDrag=false,edPainting=false;
 let tool='none',cableStart=null,selDC=null;
 let hover=null,lastT=0,tAcc=0;
 
@@ -14,9 +14,17 @@ function initInput(){
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
 
+    // Editor mode: apply editor tool (paint terrain / place / erase)
+    if(typeof editorMode!=='undefined'&&editorMode){
+      if(typeof tool==='string'&&tool.startsWith('ed_')&&typeof applyEditorTool==='function'){
+        edPainting=true;applyEditorTool(tool,h.x,h.y);
+      }
+      return;
+    }
+
     // Cursor mode: select DC or show tile info
     if(tool==='none'){
-      const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+      const di=dcIndexAt(h.x,h.y);
       if(di>=0){selDC=di;updUI();return;}
       selDC=null;
       const b=G.map[h.y]&&G.map[h.y][h.x]&&G.map[h.y][h.x].bld;
@@ -30,7 +38,7 @@ function initInput(){
     if(tool.startsWith('conn_')){connectBld(h.x,h.y,tool);return;}
     // Equipment: click on a DC on the map to install
     if(tool.startsWith('eq_')){
-      const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+      const di=dcIndexAt(h.x,h.y);
       if(di>=0){
         placeEq(di,tool);
         selDC=di;
@@ -58,16 +66,23 @@ function initInput(){
       cam.x=ndx;cam.y=ndy;
       if(typeof camTarget!=='undefined'){camTarget.x=ndx;camTarget.y=ndy;}
       camDragLast={x:ndx,y:ndy,t:now};
-      render();return;
+      return; // herní smyčka překreslí v cílové kadenci (FPS cap)
     }
     hover=fromIso(sx,sy);
+
+    // Editor: tažením maluj po dlaždicích
+    if(typeof editorMode!=='undefined'&&editorMode&&edPainting&&hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
+      if(typeof tool==='string'&&tool.startsWith('ed_')&&typeof applyEditorTool==='function'){applyEditorTool(tool,hover.x,hover.y);}
+      document.getElementById('tooltip').style.display='none';
+      return;
+    }
 
     // Tooltip logic
     const ox=e.clientX-cArea.getBoundingClientRect().left;
     const oy=e.clientY-cArea.getBoundingClientRect().top;
     if(hover&&hover.x>=0&&hover.x<MAP&&hover.y>=0&&hover.y<MAP){
       const tile=G.map[hover.y][hover.x];
-      const dc=G.dcs.find(d=>d.x===hover.x&&d.y===hover.y);
+      const dc=dcAt(hover.x,hover.y);
       const tt=document.getElementById('tooltip');
 
       if(dc){
@@ -212,7 +227,7 @@ function initInput(){
             h+=`<button onclick="event.stopPropagation();demolishObj(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🗑️ Odstranit</button>`;
             h+=`</div>`;
             tt.innerHTML=h;tt.style.display='block';tt.style.left=(ox+15)+'px';tt.style.top=(oy+15)+'px';
-            render();return;
+            return;
           }
         }
         // Check WiFi AP at this location
@@ -246,8 +261,8 @@ function initInput(){
     } else {
       document.getElementById('tooltip').style.display='none';
     }
-
-    render();
+    // Nevoláme render() při každém pohybu myši — herní smyčka překresluje
+    // v cílové kadenci (FPS cap), takže hover/zvýraznění se projeví do ~25 ms.
   });
 
   canvas.addEventListener('dblclick',e=>{
@@ -256,7 +271,7 @@ function initInput(){
     const sx=e.clientX-r.left,sy=e.clientY-r.top;
     const h=fromIso(sx,sy);
     if(h.x<0||h.x>=MAP||h.y<0||h.y>=MAP)return;
-    const di=G.dcs.findIndex(d=>d.x===h.x&&d.y===h.y);
+    const di=dcIndexAt(h.x,h.y);
     if(di>=0){openDCModal(di);e.preventDefault();}
   });
   canvas.addEventListener('mouseup',()=>{
@@ -266,8 +281,9 @@ function initInput(){
       camInertia.y=Math.max(-3000,Math.min(3000,camDragVel.y));
     }
     drag=false;
+    edPainting=false;
   });
-  canvas.addEventListener('mouseleave',()=>{drag=false;document.getElementById('tooltip').style.display='none';});
+  canvas.addEventListener('mouseleave',()=>{drag=false;edPainting=false;document.getElementById('tooltip').style.display='none';});
 
   // ===== Minimapa: klik / tažení = skok kamery na dané místo =====
   if(typeof mmC!=='undefined'&&mmC){
@@ -289,16 +305,32 @@ function initInput(){
   canvas.addEventListener('wheel',e=>{
     e.preventDefault();
     const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-    const f=e.deltaY<0?1.12:.89;
-    if(typeof camZoomTo==='function'){
-      const base=(typeof camTarget!=='undefined')?camTarget.zoom:cam.zoom;
-      camZoomTo(base*f,mx,my);
+    // macOS trackpad: pinch-to-zoom přijde jako wheel s ctrlKey=true; myš má
+    // typicky velké skokové deltaY (řádek/stránka). Dvouprstové posouvání na
+    // trackpadu je wheel bez ctrlKey → posouváme mapu místo zoomu.
+    const isPinch=e.ctrlKey;
+    const isMouseWheel=e.deltaMode!==0||Math.abs(e.deltaY)>=50; // řádkový/stránkový režim = kolečko myši
+    if(isPinch||isMouseWheel){
+      // ZOOM k bodu pod kurzorem
+      let f;
+      if(isPinch)f=Math.pow(0.99,e.deltaY);         // plynulé pinch (malá delta)
+      else f=e.deltaY<0?1.15:0.87;                   // pevný krok pro kolečko myši
+      if(typeof camZoomTo==='function'){
+        const base=(typeof camTarget!=='undefined')?camTarget.zoom:cam.zoom;
+        camZoomTo(base*f,mx,my);
+      }else{
+        const nz=Math.max(.15,Math.min(6,cam.zoom*f));
+        cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
+        cam.zoom=nz;
+      }
     }else{
-      const nz=Math.max(.15,Math.min(6,cam.zoom*f));
-      cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
-      cam.zoom=nz;
+      // PAN — dvouprstové posouvání na trackpadu (posune cíl i aktuální kameru)
+      const dx=e.deltaX,dy=e.deltaY;
+      cam.x-=dx;cam.y-=dy;
+      if(typeof camTarget!=='undefined'){camTarget.x=cam.x;camTarget.y=cam.y;}
+      if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}
     }
-    render();
+    // render zajistí herní smyčka v cílové kadenci (FPS cap)
   },{passive:false});
   canvas.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',e=>{
@@ -311,6 +343,7 @@ function initInput(){
       case 'c':setTool('cable_copper');break;case 'f':setTool('cable_fiber');break;
       case 'd':setTool('dc_small');break;case 'x':setTool('demolish');break;
       case '+':case '=':zoomIn();break;case '-':zoomOut();break;
+      case 'e':case 'E':if(typeof toggleEditor==='function')toggleEditor();break;
       case 'Tab':{
         e.preventDefault();
         if(G.dcs&&G.dcs.length&&typeof nextDCIndex==='function'){
@@ -338,6 +371,7 @@ function setTool(t){
   if(!t.startsWith('cable_'))cableStart=null;
   if(typeof closeQuickMenu==='function')closeQuickMenu();
   updateToolButtons();
+  if(typeof updateEditorPanel==='function')updateEditorPanel();
 }
 
 function updateToolButtons(){

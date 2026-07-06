@@ -148,9 +148,12 @@ const DEF_TARIFFS=[
 const DC_T={
   // maxCooling — kolik `eq_cooling` jednotek lze max. nainstalovat (každá dává +4 sloty).
   // Limit brání nekonečnému růstu malých DC přes cooling stacking.
+  // tilesW/tilesH — půdorys v dlaždicích (default 1×1); wScale — vizuální šířka.
   dc_small:{name:'Malé DC',cost:80000,mCost:5000,slots:4,baseBW:100,color:'#f59e0b',h:22,maxCooling:1},
   dc_medium:{name:'Střední DC',cost:250000,mCost:15000,slots:12,baseBW:1000,color:'#f97316',h:32,maxCooling:2},
   dc_large:{name:'Velké DC',cost:800000,mCost:40000,slots:32,baseBW:10000,color:'#ef4444',h:42,maxCooling:4},
+  dc_mega:{name:'Mega DC',cost:2500000,mCost:100000,slots:64,baseBW:50000,color:'#dc2626',h:52,maxCooling:6,tilesW:2,tilesH:1,wScale:1.6},
+  dc_hyper:{name:'Hyperscale kampus',cost:8000000,mCost:300000,slots:128,baseBW:200000,color:'#a21caf',h:64,maxCooling:10,tilesW:2,tilesH:2,wScale:2.2},
 };
 
 const BW_UPGRADES=[
@@ -161,6 +164,8 @@ const BW_UPGRADES=[
   {name:'+100 Gbps transit',bw:100000,cost:2000000,mCost:120000},
   {name:'+400 Gbps transit',bw:400000,cost:6000000,mCost:350000},
   {name:'+800 Gbps transit',bw:800000,cost:12000000,mCost:600000},
+  {name:'+1.6 Tbps transit',bw:1600000,cost:22000000,mCost:1100000},
+  {name:'+3.2 Tbps transit',bw:3200000,cost:40000000,mCost:1900000},
 ];
 
 const EQ={
@@ -168,8 +173,12 @@ const EQ={
   eq_router_mid:{name:'Router Pro',cost:22000,mCost:700,eff:'cap',val:15,icon:'📡',connCap:15,desc:'Středový router. 15 přípojek.'},
   eq_router_big:{name:'Router Core',cost:55000,mCost:1500,eff:'cap',val:40,icon:'📡',connCap:40,desc:'Páteřní router. 40 přípojek.'},
   eq_router_edge:{name:'Edge Router',cost:120000,mCost:3500,eff:'cap',val:100,icon:'📡',connCap:100,desc:'Carrier-grade. 100 přípojek.'},
+  eq_router_carrier:{name:'Router Carrier-Max',cost:260000,mCost:7000,eff:'cap',val:250,icon:'🛰️',connCap:250,desc:'Nová generace. 250 přípojek, terabitový backplane.'},
+  eq_router_tera:{name:'Router Tera',cost:550000,mCost:14000,eff:'cap',val:600,icon:'🛰️',connCap:600,desc:'Hyperscale třída. 600 přípojek, fotonika.'},
   eq_switch24:{name:'Switch 24p',cost:8000,mCost:200,eff:'ports',val:24,icon:'🔀',desc:'24 portů pro přípojky, BW uplinky a věže.'},
   eq_switch48:{name:'Switch 48p',cost:14000,mCost:350,eff:'ports',val:48,icon:'🔀',desc:'48 portů. Více přípojek, větší síť.'},
+  eq_switch96:{name:'Switch 96p',cost:26000,mCost:600,eff:'ports',val:96,icon:'🔀',desc:'96 portů. Hustý agregační switch.'},
+  eq_switch256:{name:'Switch šasi 256p',cost:60000,mCost:1200,eff:'ports',val:256,icon:'🧮',desc:'Modulární šasi, 256 portů. Pro mega/hyperscale DC.'},
   eq_server:{name:'Server',cost:35000,mCost:800,eff:'quality',val:10,icon:'🖥️'},
   eq_firewall:{name:'Firewall Basic',cost:25000,mCost:600,eff:'security',val:15,icon:'🛡️',fwTier:1,ddosBlock:.3},
   eq_firewall_pro:{name:'Firewall Pro',cost:65000,mCost:1500,eff:'security',val:25,icon:'🛡️',fwTier:2,ddosBlock:.6},
@@ -197,6 +206,8 @@ const CAB_T={
   cable_backbone:{name:'Páteřní 100G',cost:40000,mCost:250,maxBW:100000,clr:'#a855f7',w:4,tier:3},
   cable_400g:{name:'Páteřní 400G',cost:120000,mCost:800,maxBW:400000,clr:'#c084fc',w:5,tier:4},
   cable_800g:{name:'Páteřní 800G',cost:300000,mCost:2000,maxBW:800000,clr:'#e879f9',w:6,tier:5},
+  cable_1600g:{name:'Páteřní 1.6T',cost:700000,mCost:4500,maxBW:1600000,clr:'#f0abfc',w:7,tier:6},
+  cable_3200g:{name:'Páteřní 3.2T',cost:1600000,mCost:9000,maxBW:3200000,clr:'#fde68a',w:8,tier:7},
 };
 
 const WIFI_T={
@@ -392,6 +403,8 @@ const STAFF_T={
   sales:{name:'Obchodník',cost:40000,icon:'💼',desc:'+15% růst zákazníků',eff:'sales'},
   noc:{name:'NOC operátor',cost:45000,icon:'📊',desc:'Prevence výpadků +25%, monitoring',eff:'noc'},
   dev:{name:'Vývojář',cost:55000,icon:'💻',desc:'Automatizace, lepší služby +sat',eff:'dev'},
+  field:{name:'Výjezdová četa',cost:48000,icon:'🚐',desc:'Automaticky opravuje přerušené trasy (kabely) v terénu',eff:'field'},
+  wifi:{name:'Bezdrátový tým',cost:38000,icon:'📶',desc:'Automaticky připojuje nové domy přes WiFi v dosahu AP',eff:'wifi'},
 };
 
 // IXP Peering exchange

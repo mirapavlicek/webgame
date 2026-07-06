@@ -75,6 +75,8 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button class="bb" data-tool="dc_small"><span class="ico">🏢</span><span class="inf"><span class="nm">Malé DC</span><br><span class="cs">80 000 Kč · 4 sloty · 100 Mbps</span></span></button>
     <button class="bb" data-tool="dc_medium"><span class="ico">🏗️</span><span class="inf"><span class="nm">Střední DC</span><br><span class="cs">250 000 Kč · 12 slotů · 1 Gbps</span></span></button>
     <button class="bb" data-tool="dc_large"><span class="ico">🏭</span><span class="inf"><span class="nm">Velké DC</span><br><span class="cs">800 000 Kč · 32 slotů · 10 Gbps</span></span></button>
+    <button class="bb" data-tool="dc_mega"><span class="ico">🏯</span><span class="inf"><span class="nm">Mega DC (2 pole)</span><br><span class="cs">2 500 000 Kč · 64 slotů · 50 Gbps</span><br><span class="desc">Zabírá 2 pole vedle sebe (východně od kliknutí)</span></span></button>
+    <button class="bb" data-tool="dc_hyper"><span class="ico">🏰</span><span class="inf"><span class="nm">Hyperscale kampus (4 pole)</span><br><span class="cs">8 000 000 Kč · 128 slotů · 200 Gbps</span><br><span class="desc">Zabírá 2×2 pole (JV od kliknutí)</span></span></button>
     <div class="build-cat">Kabely (po silnicích / z DC) · lze stackovat</div>
     <button class="bb" data-tool="cable_copper"><span class="ico">🔌</span><span class="inf"><span class="nm">Měděný kabel</span><br><span class="cs">1 500 Kč/seg · kap. 100 Mbps</span></span></button>
     <button class="bb" data-tool="cable_fiber"><span class="ico">💎</span><span class="inf"><span class="nm">Optický kabel</span><br><span class="cs">4 000 Kč/seg · kap. 1 Gbps</span></span></button>
@@ -82,6 +84,8 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button class="bb" data-tool="cable_backbone"><span class="ico">🌐</span><span class="inf"><span class="nm">Páteřní 100G</span><br><span class="cs">40 000 Kč/seg · kap. 100 Gbps</span></span></button>
     <button class="bb" data-tool="cable_400g"><span class="ico">💜</span><span class="inf"><span class="nm">Páteřní 400G</span><br><span class="cs">120 000 Kč/seg · kap. 400 Gbps</span></span></button>
     <button class="bb" data-tool="cable_800g"><span class="ico">🔮</span><span class="inf"><span class="nm">Páteřní 800G</span><br><span class="cs">300 000 Kč/seg · kap. 800 Gbps</span></span></button>
+    <button class="bb" data-tool="cable_1600g"><span class="ico">🌌</span><span class="inf"><span class="nm">Páteřní 1.6T</span><br><span class="cs">700 000 Kč/seg · kap. 1.6 Tbps</span></span></button>
+    <button class="bb" data-tool="cable_3200g"><span class="ico">✨</span><span class="inf"><span class="nm">Páteřní 3.2T</span><br><span class="cs">1 600 000 Kč/seg · kap. 3.2 Tbps</span></span></button>
     <div class="build-cat">🧭 Síťové uzly na odbočkách (místo stackování)</div>
     <button class="bb" data-tool="junction_switch"><span class="ico">🔀</span><span class="inf"><span class="nm">Polní přepínač</span><br><span class="cs">12 000 Kč · pasivní rozbočení</span><br><span class="desc">Umisti na odbočku — základní přepojení bez balancu</span></span></button>
     <button class="bb" data-tool="junction_lb"><span class="ico">⚖️</span><span class="inf"><span class="nm">Polní Load Balancer</span><br><span class="cs">28 000 Kč · aktivní vyvažování</span><br><span class="desc">Posílá data různými částmi sítě podle volné kapacity</span></span></button>
@@ -132,6 +136,10 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button class="bb" data-tool="eq_router"><span class="ico">📡</span><span class="inf"><span class="nm">Router</span><br><span class="cs">15 000 Kč · povinný pro provoz</span></span></button>
     <button class="bb" data-tool="eq_switch24"><span class="ico">🔀</span><span class="inf"><span class="nm">Switch 24p</span><br><span class="cs">8 000 Kč · +24 portů</span></span></button>
     <button class="bb" data-tool="eq_switch48"><span class="ico">🔀</span><span class="inf"><span class="nm">Switch 48p</span><br><span class="cs">14 000 Kč · +48 portů</span></span></button>
+    <button class="bb" data-tool="eq_switch96"><span class="ico">🔀</span><span class="inf"><span class="nm">Switch 96p</span><br><span class="cs">26 000 Kč · +96 portů</span></span></button>
+    <button class="bb" data-tool="eq_switch256"><span class="ico">🧮</span><span class="inf"><span class="nm">Switch šasi 256p</span><br><span class="cs">60 000 Kč · +256 portů</span><br><span class="desc">Pro mega/hyperscale DC</span></span></button>
+    <button class="bb" data-tool="eq_router_carrier"><span class="ico">🛰️</span><span class="inf"><span class="nm">Router Carrier-Max</span><br><span class="cs">260 000 Kč · 250 přípojek</span></span></button>
+    <button class="bb" data-tool="eq_router_tera"><span class="ico">🛰️</span><span class="inf"><span class="nm">Router Tera</span><br><span class="cs">550 000 Kč · 600 přípojek</span></span></button>
     <button class="bb" data-tool="eq_server"><span class="ico">🖥️</span><span class="inf"><span class="nm">Server</span><br><span class="cs">35 000 Kč · DNS/DHCP/cache</span><br><span class="desc">Pro: tarify 100+ Mbps, cloud, IPTV</span></span></button>
     <button class="bb" data-tool="eq_firewall"><span class="ico">🛡️</span><span class="inf"><span class="nm">Firewall Basic</span><br><span class="cs">25 000 Kč · 30% DDoS ochrana</span><br><span class="desc">Pro: Business tarify, VPN</span></span></button>
     <button class="bb" data-tool="eq_firewall_pro"><span class="ico">🛡️</span><span class="inf"><span class="nm">Firewall Pro</span><br><span class="cs">65 000 Kč · 60% DDoS ochrana</span><br><span class="desc">Pokročilá bezpečnost</span></span></button>
@@ -306,10 +314,13 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div id="upgradeList"></div>
   </div>
 
+  <div id="editorPanel"></div>
+
   <div id="bottomBtns">
     <button onclick="saveGame()">💾 Uložit</button>
     <button onclick="loadGame()">📂 Načíst</button>
     <button onclick="showNewGame()">🆕 Nová</button>
+    <button onclick="toggleEditor()" title="Editor mapy (sandbox) — klávesa E">🛠️ Editor</button>
   </div>
 </div>
 
@@ -325,6 +336,9 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     </div>
     <div id="dateDisplay">1. ledna 2005</div>
     <div id="popDisplay">👥 0</div>
+    <div id="custDisplay" title="Zákazníci">🔌 0</div>
+    <div id="satDisplay" title="Průměrná spokojenost">😊 –</div>
+    <div id="prestigeDisplay" title="Prestiž providera — klikni pro Řídící centrum" onclick="openControlCenter()" style="cursor:pointer">🛡️ –</div>
     <div id="bwDisplay">📡 0/0 Mbps</div>
     <div id="moneyDisplay">500 000 Kč</div>
   </div>
@@ -350,6 +364,9 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button onclick="zoomReset()" title="Reset" style="font-size:12px">⌂</button>
     <button onclick="pixiTogglable()" title="WebGL efekty ZAP/VYP" style="font-size:12px">✨</button>
     <button id="btnHeatmap" onclick="cycleHeatmap()" title="Heatmap: pokrytí → utilizace → spokojenost → vypnuto" style="font-size:12px">🌡️</button>
+    <button onclick="openControlCenter()" title="Řídící centrum (NOC)" style="font-size:12px">🛰️</button>
+    <button id="btnCoverage" onclick="toggleCoverage()" title="Kruhy pokrytí WiFi/vysílačů ZAP/VYP" style="font-size:12px">⭕</button>
+    <button id="btnTheme" onclick="toggleTheme()" title="Světlý/tmavý design" style="font-size:12px">☀️</button>
   </div>
   <canvas id="minimap"></canvas>
   <div id="infoPanel"></div>
@@ -364,11 +381,28 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <p style="font-size:11px;color:#a78bfa">Služby: IPTV, VoIP, VPN, Cloud a další. WiFi pokrytí bez kabelů. DC interconnection pro spolehlivost.</p>
     <p style="color:#e0e0e0">Název společnosti:</p>
     <input type="text" id="inputName" value="MíraNet">
+    <p style="color:#e0e0e0;margin-top:8px">Obtížnost:</p>
+    <select id="inputDifficulty" style="width:100%;padding:7px 8px;background:#0d1117;color:#e6edf3;border:1px solid #2d3650;border-radius:6px;font-size:12px;cursor:pointer">
+      <option value="normal" selected>🙂 Normál — vyvážená hra</option>
+      <option value="heavy">😰 Heavy — hůř zákazníci, víc poruch, dražší provoz</option>
+      <option value="hardcore">💀 Hardcore — 1,33× tvrdší než Heavy</option>
+    </select>
     <label style="display:flex;align-items:center;gap:8px;margin:8px 0;color:#8b949e;font-size:12px;cursor:pointer;justify-content:center"><input type="checkbox" id="inputCompetitors" style="accent-color:#7c3aed;width:16px;height:16px"> AI konkurenti (3 soupeři)</label>
     <label style="display:flex;align-items:center;gap:8px;margin:8px 0;color:#f85149;font-size:12px;cursor:pointer;justify-content:center" title="500 000 Kč v hotovosti, ale zároveň 500 000 Kč úvěr s 10% p.a. na 60 měsíců"><input type="checkbox" id="inputHard" style="accent-color:#f85149;width:16px;height:16px"> 💀 HARD režim (startovní dluh 500 000 Kč)</label>
     <button onclick="startNewGame()">🚀 Založit firmu</button>
   </div>
 </div>
+<!-- Řídící centrum (NOC) Modal -->
+<div class="cc-overlay" id="ccModal" onclick="if(event.target===this)closeControlCenter()">
+  <div class="cc-panel">
+    <div class="cc-header">
+      <h2>🛰️ Řídící centrum</h2>
+      <button class="cc-close" onclick="closeControlCenter()">✕</button>
+    </div>
+    <div class="cc-body" id="ccBody"><!-- rendered dynamically --></div>
+  </div>
+</div>
+
 <!-- DC Interior Modal -->
 <div class="dc-modal-overlay" id="dcModal">
   <div class="dc-modal">
@@ -427,6 +461,10 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/renewable.js"></script>
 <script src="js/citygrowth.js"></script>
 <script src="js/objectives.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/uigate.js"></script>
+<script src="js/controlcenter.js"></script>
+<script src="js/difficulty.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>
 <script src="js/render.js"></script>
@@ -438,6 +476,9 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/input.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/palette.js"></script>
+<script src="js/perf.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

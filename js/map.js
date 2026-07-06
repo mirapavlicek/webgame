@@ -51,6 +51,32 @@ function genMap(){
 
 function nb(x,y){return[[x-1,y],[x+1,y],[x,y-1],[x,y+1]];}
 
+// ====== DC FOOTPRINT (multi-tile datová centra) ======
+// DC může zabírat víc polí (DC_T.tilesW × DC_T.tilesH, default 1×1). Kotva
+// dc.x/dc.y je levý-horní roh půdorysu. Všechny dotazy na "je tady DC?" jdou
+// přes tyto helpery, aby multi-tile DC fungovala v celé hře.
+
+// Pure: seznam dlaždic půdorysu od kotvy (ax,ay) o rozměru w×h.
+function footprintTiles(ax,ay,w,h){
+  const out=[];
+  for(let dy=0;dy<(h||1);dy++)for(let dx=0;dx<(w||1);dx++)out.push({x:ax+dx,y:ay+dy});
+  return out;
+}
+function dcTilesW(dc){const t=(typeof DC_T!=='undefined')&&DC_T[dc.type];return (t&&t.tilesW)||1;}
+function dcTilesH(dc){const t=(typeof DC_T!=='undefined')&&DC_T[dc.type];return (t&&t.tilesH)||1;}
+// Pure vůči dc+rozměrům: pokrývá DC (kotva dc.x/dc.y, w×h) dlaždici (x,y)?
+function coversTile(ax,ay,w,h,x,y){
+  return x>=ax&&x<ax+(w||1)&&y>=ay&&y<ay+(h||1);
+}
+function dcCoversTile(dc,x,y){return coversTile(dc.x,dc.y,dcTilesW(dc),dcTilesH(dc),x,y);}
+// Index DC pokrývajícího dlaždici (x,y), nebo -1.
+function dcIndexAt(x,y){
+  if(typeof G==='undefined'||!G||!G.dcs)return -1;
+  for(let i=0;i<G.dcs.length;i++)if(dcCoversTile(G.dcs[i],x,y))return i;
+  return -1;
+}
+function dcAt(x,y){const i=dcIndexAt(x,y);return i>=0?G.dcs[i]:null;}
+
 function isRoad(x,y){return x>=0&&x<MAP&&y>=0&&y<MAP&&G.map[y][x].type==='road';}
 
 function bfsPath(sx,sy,tx,ty){

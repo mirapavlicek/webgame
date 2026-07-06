@@ -24,8 +24,17 @@ function updStats(){
   document.getElementById('sCov').textContent=bldCount>0?Math.round(connCount/bldCount*100)+'%':'0%';
   document.getElementById('sSat').textContent=satN>0?Math.round(satSum/satN)+'%':'–';
   document.getElementById('sPop').textContent=fmt(pop);
-  document.getElementById('moneyDisplay').textContent=fmtKc(G.cash);
+  const moneyEl=document.getElementById('moneyDisplay');
+  moneyEl.textContent=fmtKc(G.cash);
+  moneyEl.style.color=G.cash<0?'var(--ac-red)':'';
   document.getElementById('popDisplay').textContent='👥 '+fmt(pop);
+  const custEl=document.getElementById('custDisplay');if(custEl)custEl.textContent='🔌 '+fmt(cust);
+  const satEl=document.getElementById('satDisplay');
+  if(satEl){
+    const avgSat=satN>0?Math.round(satSum/satN):-1;
+    satEl.textContent=(avgSat>=0?(avgSat>=70?'😊 ':avgSat>=40?'😐 ':'😟 ')+avgSat+'%':'😊 –');
+    satEl.style.color=avgSat<0?'':(avgSat>=70?'var(--ac-green)':avgSat>=40?'var(--ac-amber)':'var(--ac-red)');
+  }
 
   const dcTotal=dcLoads.reduce((s,dl)=>s+dl.maxBW,0);
   const dcUsed=dcLoads.reduce((s,dl)=>s+dl.usedBW,0);
@@ -86,6 +95,9 @@ function updUI(){
   updDate();
   calcCapacityIfDirty();
   refreshBuildPaletteCosts();
+  if(typeof gateBuildPalette==='function')try{gateBuildPalette();}catch(e){}
+  if(typeof updatePrestigeHUD==='function')updatePrestigeHUD();
+  if(typeof renderControlCenter==='function'){const cc=document.getElementById('ccModal');if(cc&&cc.style.display==='flex')try{renderControlCenter();}catch(e){}}
 
   // Stats
   updStats();
@@ -900,6 +912,18 @@ function buildStaffList(){
     list.innerHTML+=sh;
   }
 
+  // Program modernizace přípojek — dostupný když má hráč výjezdové čety / techniky
+  const crews=(typeof getUpgradeCrewCount==='function')?getUpgradeCrewCount():getStaffCount('field');
+  if(crews>0){
+    const on=!!G.autoUpgrade;
+    let uh=`<div style="background:${on?'#0a1a0a':'#0d1117'};border:1px solid ${on?'#3fb950':'#21262d'};border-radius:5px;padding:6px 8px;margin-bottom:8px;font-size:9px">`;
+    uh+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
+    uh+=`<span style="font-weight:600;color:${on?'#3fb950':'#8b949e'}">🔧 Modernizace přípojek</span>`;
+    uh+=`<button onclick="event.stopPropagation();toggleAutoUpgrade()" style="padding:2px 8px;background:${on?'#0a1a0a':'#1a1040'};border:1px solid ${on?'#3fb950':'#7c3aed'};border-radius:4px;color:${on?'#3fb950':'#a78bfa'};cursor:pointer;font-size:9px">${on?'✓ ZAP':'Zapnout'}</button></div>`;
+    uh+=`<div style="color:#8b949e;margin-top:3px">Technici plynule upgradují nejpomalejší přípojky (${crews*2}/měs). Platí se materiál.</div></div>`;
+    list.innerHTML+=uh;
+  }
+
   for(const type in STAFF_T){
     const st=STAFF_T[type];
     const count=getStaffCount(type);
@@ -1315,6 +1339,122 @@ function quickConnect(x,y,key){
   closeQuickMenu();
   if(typeof connectBld==='function')connectBld(x,y,key);
 }
+
+// ====== SANDBOX EDITOR PANEL ======
+// Plovoucí paleta editoru — terén, budovy, guma. Zobrazí se jen v editor módu.
+function updateEditorPanel(){
+  const el=document.getElementById('editorPanel');if(!el)return;
+  if(typeof editorMode==='undefined'||!editorMode){el.style.display='none';el.innerHTML='';return;}
+  const cur=(typeof tool!=='undefined')?tool:'';
+  const terrain=[
+    {t:'ed_grass',icon:'🟩',name:'Tráva'},
+    {t:'ed_road',icon:'🛣️',name:'Silnice'},
+    {t:'ed_water',icon:'💧',name:'Voda'},
+    {t:'ed_park',icon:'🌳',name:'Park'},
+  ];
+  const blds=[];
+  if(typeof BTYPES!=='undefined')for(const k in BTYPES){blds.push({t:'ed_bld_'+k,icon:BTYPES[k].icon||'🏢',name:BTYPES[k].name||k});}
+  const btn=(o)=>`<button class="ed-tool${cur===o.t?' active':''}" onclick="setTool('${o.t}')" title="${o.name}">${o.icon}</button>`;
+  let h='<div class="ed-head">🛠️ Editor mapy <span class="ed-hint">(sandbox — čas stojí)</span></div>';
+  h+='<div class="ed-row-label">Terén</div><div class="ed-row">'+terrain.map(btn).join('')+
+     `<button class="ed-tool ed-erase${cur==='ed_erase'?' active':''}" onclick="setTool('ed_erase')" title="Guma (srovnat na trávu)">🧹</button></div>`;
+  h+='<div class="ed-row-label">Budovy</div><div class="ed-row">'+blds.map(btn).join('')+'</div>';
+  h+='<div class="ed-foot"><button onclick="toggleEditor()">✓ Hotovo</button></div>';
+  el.innerHTML=h;el.style.display='block';
+}
+
+// ====== ŘÍDÍCÍ CENTRUM (NOC) ======
+function prestigeColor(p){return p>=75?'#3fb950':p>=50?'#f5a524':'#f86963';}
+function prestigeLabel(p){return p>=85?'Špičkový':p>=70?'Výborný':p>=50?'Solidní':p>=30?'Slabý':'Kritický';}
+
+function updatePrestigeHUD(){
+  const el=document.getElementById('prestigeDisplay');if(!el||typeof G==='undefined'||!G)return;
+  const p=Math.round(G.prestige!=null?G.prestige:55);
+  el.textContent='🛡️ '+p;
+  el.style.color=prestigeColor(p);
+}
+
+function openControlCenter(){
+  const m=document.getElementById('ccModal');if(!m)return;
+  m.style.display='flex';
+  renderControlCenter();
+}
+function closeControlCenter(){const m=document.getElementById('ccModal');if(m)m.style.display='none';}
+
+function renderControlCenter(){
+  const el=document.getElementById('ccBody');if(!el||!G)return;
+  if(typeof ccEnsure==='function')ccEnsure();
+  const p=Math.round(G.prestige!=null?G.prestige:55);
+  const metrics=(typeof ccMetrics==='function')?ccMetrics():{};
+  const plan=metrics.plan||{total:0,used:0,free:0,util:0,headroom:0};
+
+  // Prestiž gauge
+  let h='<div class="cc-grid">';
+  h+=`<div class="cc-card cc-span2">`;
+  h+=`<div class="cc-card-h">🛡️ Prestiž providera</div>`;
+  h+=`<div style="display:flex;align-items:center;gap:14px">`;
+  h+=`<div style="font-size:34px;font-weight:800;color:${prestigeColor(p)};min-width:64px;text-align:center">${p}</div>`;
+  h+=`<div style="flex:1">`;
+  h+=`<div class="cc-bar"><div class="cc-bar-fill" style="width:${p}%;background:${prestigeColor(p)}"></div></div>`;
+  h+=`<div style="font-size:11px;color:var(--tx-3);margin-top:5px">${prestigeLabel(p)} — reputace ovlivňuje růst zákazníků a kvalitu nabídek. Udrž síť funkční (uptime, nízká kongesce, spokojenost, dost IP), a poroste.</div>`;
+  h+=`</div></div></div>`;
+
+  // Stav sítě
+  h+=`<div class="cc-card"><div class="cc-card-h">📊 Stav sítě</div>`;
+  h+=ccRow('Uptime',metrics.anyOutage?'⚠️ výpadek':'✓ v provozu',metrics.anyOutage?'#f86963':'#3fb950');
+  h+=ccRow('Nejhorší kongesce',Math.round((metrics.congestion01||0)*100)+'%',(metrics.congestion01||0)>0.9?'#f86963':(metrics.congestion01||0)>0.7?'#f5a524':'#3fb950');
+  h+=ccRow('Spokojenost',Math.round((metrics.satisfaction01||0)*100)+'%');
+  h+=ccRow('Datacentra',(G.dcs||[]).length+'');
+  h+=`</div>`;
+
+  // QoS
+  h+=`<div class="cc-card"><div class="cc-card-h">🎚️ QoS politika</div>`;
+  h+=`<div style="font-size:10px;color:var(--tx-3);margin-bottom:6px">Aktivní řízení provozu tlumí dopad kongesce na růst — za měsíční poplatek na DC.</div>`;
+  if(typeof QOS_PROFILES!=='undefined'){
+    for(const k in QOS_PROFILES){
+      const q=QOS_PROFILES[k],on=G.qosProfile===k;
+      const cost=(typeof qosMonthlyCost==='function')?qosMonthlyCost(k,(G.dcs||[]).length):0;
+      h+=`<button class="cc-qos${on?' active':''}" onclick="setQosProfile('${k}')">`;
+      h+=`<span>${q.icon} ${q.name}</span><span style="color:var(--tx-4);font-size:10px">${cost>0?fmtKc(cost)+'/měs':'zdarma'}</span></button>`;
+    }
+  }
+  h+=`</div>`;
+
+  // Adresní plán
+  const utilPct=Math.round(plan.util*100);
+  const uClr=utilPct>90?'#f86963':utilPct>70?'#f5a524':'#3fb950';
+  h+=`<div class="cc-card"><div class="cc-card-h">🌐 Adresní plán (IP)</div>`;
+  h+=ccRow('Celkem IP',fmt(plan.total));
+  h+=ccRow('Využito',fmt(plan.used)+' ('+utilPct+'%)',uClr);
+  h+=ccRow('Volné',fmt(plan.free));
+  h+=`<div class="cc-bar" style="margin-top:5px"><div class="cc-bar-fill" style="width:${utilPct}%;background:${uClr}"></div></div>`;
+  if(plan.total===0)h+=`<div style="font-size:10px;color:#f5a524;margin-top:5px">⚠️ Nemáš žádný IP blok — kup ho v panelu Síť (sekce BGP/IP).</div>`;
+  else if(plan.util>0.9)h+=`<div style="font-size:10px;color:#f86963;margin-top:5px">⚠️ Docházejí adresy — přikup další IP blok.</div>`;
+  h+=`</div>`;
+
+  // WiFi & vysílače přehled
+  h+=`<div class="cc-card"><div class="cc-card-h">📶 Bezdrát</div>`;
+  h+=ccRow('WiFi AP',(G.wifiAPs||[]).length+'');
+  h+=ccRow('Vysílače',(G.towers||[]).length+'');
+  h+=`</div>`;
+
+  // Aktivní výpadky / incidenty
+  const inc=(typeof getActiveIncidents==='function')?getActiveIncidents():[];
+  h+=`<div class="cc-card cc-span2"><div class="cc-card-h">🚨 Aktivní incidenty (${inc.length})</div>`;
+  if(!inc.length){h+=`<div style="font-size:11px;color:#3fb950">✓ Žádné aktivní incidenty — síť běží.</div>`;}
+  else{
+    for(const i of inc.slice(0,6)){
+      h+=`<div class="cc-inc"><span>DC#${(i.dcIdx!=null?i.dcIdx+1:'?')} · ${i.severity||''} · ${(i.causeId||'')}</span>`;
+      h+=`<span style="color:#f5a524">zbývá ${Math.round(i.remaining||0)}</span></div>`;
+    }
+    h+=`<div style="font-size:10px;color:var(--tx-4);margin-top:5px">Řeš je v panelu Mgmt → Incidenty (nebo najmi výjezdové čety pro auto-opravy tras).</div>`;
+  }
+  h+=`</div>`;
+
+  h+='</div>';
+  el.innerHTML=h;
+}
+function ccRow(l,v,clr){return `<div class="cc-row"><span>${l}</span><span style="color:${clr||'var(--tx-1)'};font-weight:600">${v}</span></div>`;}
 
 // ====== IXP STATUS ======
 function buildIXPStatus(){
@@ -1811,7 +1951,7 @@ function renderDCModal(){
   sh+=`<div style="font-size:9.5px;color:#6e7681;margin-bottom:8px">Klikni pro instalaci. Na obsazený slot klikni pro odebrání (50% refund).</div>`;
 
   const eqCats={
-    network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_switch24','eq_switch48','eq_bgprouter','eq_loadbalancer']},
+    network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_router_carrier','eq_router_tera','eq_switch24','eq_switch48','eq_switch96','eq_switch256','eq_bgprouter','eq_loadbalancer']},
     compute:{name:'🖥️ Výpočetní',items:['eq_server','eq_cloudnode','eq_cloudnode_big']},
     storage:{name:'💿 Storage',items:['eq_storage','eq_storage_big','eq_backup']},
     security:{name:'🛡️ Bezpečnost',items:['eq_firewall','eq_firewall_pro','eq_firewall_ent']},

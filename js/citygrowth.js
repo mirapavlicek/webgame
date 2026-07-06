@@ -80,7 +80,7 @@ function growCity(n){
     const t = G.map[y][x];
     if(t.type !== 'grass' || t.bld) continue;
     if(typeof hasPowerPlant === 'function' && hasPowerPlant(x, y)) continue;
-    if(G.dcs && G.dcs.some(d => d.x === x && d.y === y)) continue;
+    if(typeof dcIndexAt === 'function' && dcIndexAt(x, y) >= 0) continue;
     if(!nb(x, y).some(([ax, ay]) => isRoad(ax, ay))) continue;
     // "development score" = počet sousedních budov v okolí 3×3
     let dev = 0;

@@ -8,32 +8,56 @@ const MORALE_THRESHOLDS={
   high:80,      // bonus effectiveness
 };
 
+// Pure: kolik "pracovních jednotek" znamená daný typ štábu pro danou
+// infrastrukturu. Kalibrováno tak, aby rozumně velký tým stačil (jeden technik
+// zvládne stovky přípojek, ne jednotky). m = metriky infrastruktury.
+function staffWorkloadUnits(type, m){
+  m = m || {};
+  const dcs = m.dcs || 0;
+  const cables = m.cables || 0;
+  const conns = m.connections || 0;
+  const cust = m.customers || 0;
+  const eqTotal = m.eqTotal || 0;
+  const incidents = m.incidents || 0;
+  const services = m.services || 0;
+  const cloud = m.cloud || 0;
+  if(type === 'noc'){
+    // NOC: dohled nad DC + aktivní incidenty (ty jsou náročné)
+    return dcs + incidents * 2;
+  } else if(type === 'tech' || type === 'repair'){
+    // Technici: fyzická údržba sítě řízená hlavně počtem přípojek. Reálně jeden
+    // technik obslouží stovky přípojek → velkorysý poměr. 1 jednotka práce ~
+    // 800 přípojek nebo 800 kabelů; DC a HW jen drobný příspěvek. Takže 10
+    // techniků pohodlně zvládne 2000+ přípojek (viz workload.test.js).
+    return conns / 800 + cables / 800 + dcs * 0.5 + eqTotal / 100;
+  } else if(type === 'sales'){
+    return cust / 400;              // 1 obchodník ~ 400 zákazníků
+  } else if(type === 'support'){
+    return cust / 300;              // 1 support ~ 300 zákazníků
+  } else if(type === 'dev'){
+    return services + cloud * 2;
+  }
+  return dcs;
+}
+
 // Compute infrastructure load per staff type — measures how overworked the team is
 function calcStaffLoad(type){
   if(!G)return 0;
   const count=getStaffCount(type);
   if(count<=0)return 999; // if you have none, you're infinitely underwater
-  let workload=0;
-  if(type==='noc'){
-    // NOC: DCs × 1 + active incidents × 3
-    workload=G.dcs.length+(G.incidents||[]).filter(i=>!i.resolved).length*3;
-  } else if(type==='tech'||type==='repair'){
-    // Tech: sum of DCs' equipment + cables/100
-    for(const dc of G.dcs)workload+=(dc.eq||[]).length;
-    workload+=Math.floor(G.cables.length/80);
-  } else if(type==='sales'){
-    // Sales: customer count
-    workload=Math.floor((G.stats.cust||0)/200);
-  } else if(type==='support'){
-    // Support: customer count
-    workload=Math.floor((G.stats.cust||0)/150);
-  } else if(type==='dev'){
-    // Dev: services + cloud
-    workload=(G.services||[]).length+(G.cloudInstances||[]).length*2;
-  } else {
-    workload=G.dcs.length;
-  }
-  return workload/count; // load per head
+  let eqTotal=0;
+  for(const dc of (G.dcs||[]))eqTotal+=(dc.eq||[]).length;
+  const m={
+    dcs:(G.dcs||[]).length,
+    cables:(G.cables||[]).length,
+    connections:(G.conns||[]).length,
+    customers:(G.stats&&G.stats.cust)||0,
+    eqTotal,
+    incidents:(G.incidents||[]).filter(i=>!i.resolved).length,
+    services:(G.services||[]).length,
+    cloud:(G.cloudInstances||[]).length,
+  };
+  return staffWorkloadUnits(type,m)/count; // load per head
 }
 
 // Ensure staffDetail has entry for each type

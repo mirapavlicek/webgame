@@ -5,6 +5,118 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **⭕ Vypínač kruhů pokrytí** (WiFi/vysílače) a **☀️ světlý design** — tlačítka
+  v ovládání mapy, preference se pamatují (localStorage).
+- **Multi-tile datová centra** — 🏯 **Mega DC** (2 pole: 64 slotů, 50 Gbps) a
+  🏰 **Hyperscale kampus** (2×2 pole: 128 slotů, 200 Gbps). Umisťování validuje
+  celý půdorys; výběr/demolice/kabely/BFS fungují z kterékoli dlaždice půdorysu.
+- **Nová generace hardwaru:** kabely **1.6T/3.2T**, switche **96p/šasi 256p**,
+  routery **Carrier-Max (250)/Tera (600 přípojek)**, transity **+1.6T/+3.2T**.
+- **📶 Bezdrátový tým (`wifi`)** — nový typ zaměstnance. Automaticky připojuje
+  **nové domy přes WiFi** v dosahu AP (`wifiTeamMonthlyConnects` ≈ 4 domy/tým/měsíc,
+  preferuje zájemce, platí materiál conn_wifi, pauza při málu peněz).
+- **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — 🙂 Normál
+  (výchozí) / 😰 Heavy (×0,65 růst, ×1,6 poruchy, ×1,5 náklady) / 💀 Hardcore
+  (**1,33× tvrdší než Heavy**: ×0,53 / ×1,80 / ×1,67).
+- **🛰️ Řídící centrum (NOC) — nová nadstavba hry** (`js/controlcenter.js`).
+  Grafické velení nad sítí v modálu (tlačítko 🛰️ nebo štít v liště):
+  - **Prestiž providera (0–100)** — reputace řízená funkčností sítě (uptime,
+    kongesce, spokojenost, dostatek IP, QoS). Udržíš-li síť funkční, **roste**;
+    při výpadcích a přetížení **klesá**. Prestiž mírně ovlivňuje růst zákazníků
+    (`prestigeGrowthMultiplier` 0,9–1,15). V horní liště je barevný ukazatel 🛡️.
+  - **QoS politika** (Bez QoS / Řízené / Přísné) — aktivní řízení provozu tlumí
+    dopad kongesce na růst za měsíční poplatek na DC (`qosCongestionFactor`).
+  - **Adresní plán (IP)** — přehled využití IP adres (přípojky + věže + AP vs.
+    koupené bloky), varování při docházení adres (`addressingPlan`).
+  - Přehled bezdrátu a **seznam aktivních incidentů** s odkazem na řešení.
+- **Výjezdová četa (`field`)** — nový typ zaměstnance (🚐). Technické týmy
+  **automaticky opravují přerušené trasy** (kabelové řezy) v terénu bez nutnosti
+  ručně reagovat na každý incident. `fieldCrewRemedy`:
+  - kabelové řezy opravují rychle (7 bodů/den/četa, strop 28), u ostatních
+    incidentů jen asistují (2/den, strop 8);
+  - efekt se přičítá k dennímu progresu incidentů (vedle NOC).
+- **Program modernizace přípojek** — plynulý **hromadný upgrade** přípojek prováděný
+  zaměstnanci (výjezdové čety + technici). Přepínač v HR panelu; po zapnutí čety
+  každý měsíc zmodernizují několik **nejpomalejších drátových přípojek** o stupeň
+  výš (`nextWiredUpgrade` — nejbližší rychlejší typ dostupný v éře), v rámci
+  rozpočtu (2 přípojky/měs na osobu) a placeného materiálu. Při nedostatku hotovosti
+  se program pozastaví. Bezdrát/WiFi se neupgraduje (řídí věže/AP).
+
+#### 🛠️ Sandbox editor mapy (`js/editor.js`)
+- Volný editor ve 2D izometrii (klávesa **E** nebo tlačítko 🛠️ Editor): malování
+  terénu (tráva/silnice/voda/park), pokládání a bourání budov — bez peněz, bez limitů.
+- Klik i **tažení** maluje po dlaždicích; **hover náhled** ukazuje barvu podle nástroje.
+- Čas se v editoru automaticky **pozastaví** (a po vypnutí obnoví předchozí rychlost).
+- Plovoucí paleta dole uprostřed s terénem, všemi typy budov a gumou.
+
+#### 🧭 Přehlednější GUI
+- Horní lišta nově ukazuje **zákazníky (🔌)** a **průměrnou spokojenost (😊/😐/😟)**
+  barevně — rychlý přehled bez otevírání panelů.
+- Záporná hotovost se v liště zvýrazní červeně.
+
+### Changed
+- **Výpadek už nevynuluje příjmy.** Fakturace je měsíční, takže výpadek se
+  neprojeví okamžitou ztrátou celého příjmu. Místo toho se podle **délky výpadku**
+  zákazníci **mohou i nemusí dožadovat vrácení části tarifu** (`outageRefundRate`):
+  - výpadek < 1 den se toleruje (bez refundace);
+  - s délkou roste jak pravděpodobnost, že si o vrácení řeknou, tak jeho výše
+    (pro-rata za dny mimo provoz, strop 60 %);
+  - **UPS** dopad zhruba půlí (udržuje část provozu).
+  - Dny výpadku se sčítají per DC během měsíce; refundace se zúčtuje na konci měsíce.
+- **Přehlednější stavební paleta (ve stylu Apple).** Paleta nově **skrývá prvky,
+  které nejdou v aktuální éře postavit** (přípojky/vysílače nad úroveň technologie)
+  i prázdné kategorie — odemykají se automaticky s postupem technologie
+  (`isToolAvailable`/`gateBuildPalette`). Méně šumu, jen relevantní volby.
+- **Ovládání ve skupinách:** rychlost hry je nově **segmentovaný přepínač**
+  (jedna skupina se sdíleným pozadím). Stavební tlačítka a hlavičky kategorií
+  mají čistší, vzdušnější „grouped" vzhled.
+- **Přehlednější postranní panel — víc místa na scrollování.** Statistické sekce
+  (Finance, Síť & Město, Kapacita, Technologie) jsou nově **sbalitelné** (klik na
+  nadpis, chevron ▾/▸); sbalením uvolníš místo pro obsah záložek. Stav se pamatuje
+  (localStorage). Obsah záložek má garantovanou minimální výšku.
+
+### Fixed
+- **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
+  zničila 2–5 segmentů a měla 50% měsíční šanci, takže malá síť „nevydržela ani
+  pár dní". Nově:
+  - `stormDamageCount` omezuje škodu na **max ~8 % sítě** a default **1–2 segmenty**;
+  - počasní bouře poškodí kabel **vzácně** (~10–20 %/měs dle intenzity) a jen **1 segment**;
+  - „Sněhová kalamita" už kabely nemaže přímo, jen nastaví bouřkové počasí (varování).
+- `tests/events.test.js` +7 assertů na `stormDamageCount`.
+- **macOS trackpad**: dvouprstové posouvání teď **posouvá mapu** (dřív ho hra brala
+  jako zoom, takže nešlo panovat). Zoom je nově na **pinch gestu** (sevření dvou
+  prstů); kolečko myši zoomuje beze změny.
+- **Přehnaná zátěž techniků.** Model počítal 1 „jednotku práce" za každý kus HW
+  a kabely dělil jen 80 → i velký tým se tvářil jako přetížený (10 techniků na
+  2000 přípojek = přetížení, nesmysl). Přepočítáno (`staffWorkloadUnits`):
+  technici škálují hlavně **počtem přípojek** (1 jednotka ≈ 800 přípojek / 800
+  kabelů), DC a HW jen drobně. **10 techniků teď pohodlně zvládne 2000+ přípojek.**
+
+### Performance
+- **Vyladění výkonu — hra méně žere CPU** (`js/perf.js`). Canvas 2D se dřív
+  překresloval při **každém** snímku requestAnimationFrame (na 120Hz ProMotion
+  Macu 120 plných redrawů/s). Nově:
+  - **FPS cap vykreslování na 40** (nastavitelné `setTargetFps(15–120)`) —
+    simulace běží dál každý snímek, ale plný redraw jen v cílové kadenci.
+    Na 120Hz displeji to je ~**3× méně** CPU práce v renderu.
+  - **Nevykreslujeme při každém pohybu myši / tažení / kolečku** — herní smyčka
+    překreslí v cílové kadenci (do ~25 ms). Zmizí desítky zbytečných redrawů/s
+    při najíždění myší a tažení mapy.
+  - GPU vrstva (PixiJS glow/particles) běží ve stejném rytmu → víc práce na GPU,
+    méně na CPU.
+
+### Tests
+- `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
+  `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
+  `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů;
+  `tests/controlcenter.test.js` — 23 assertů; `tests/difficulty.test.js` — 14 assertů;
+  `tests/perf.test.js` — 12 assertů; `tests/sidebar.test.js` — 10 assertů;
+  `tests/wifiteam.test.js` — 8 assertů; `tests/megadc.test.js` — 23 assertů;
+  `tests/theme.test.js` — 8 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

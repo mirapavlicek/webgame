@@ -225,11 +225,24 @@ function networkHasEq(dcIdx,reqEq){
   return false;
 }
 
+// ====== Multi-tile DC reachability ======
+// Kabel může končit na kterékoli dlaždici půdorysu DC — BFS proto zkouší
+// všechny dlaždice footprintu, ne jen kotvu.
+function dcFootprintTilesOf(dc){return footprintTiles(dc.x,dc.y,dcTilesW(dc),dcTilesH(dc));}
+function bfsReachesDC(sx,sy,dc){
+  for(const t of dcFootprintTilesOf(dc)){if(bfs(sx,sy,t.x,t.y))return true;}
+  return false;
+}
+function bfsPathToDC(ax,ay,dc){
+  for(const t of dcFootprintTilesOf(dc)){const p=bfsPath(ax,ay,t.x,t.y);if(p)return p;}
+  return null;
+}
+
 // Get least loaded reachable DC (check tile itself + adjacent road tiles)
 function findDC(bx,by){
   // Collect candidate start tiles for BFS (tile itself if road/DC, plus adjacent roads)
   const starts=[];
-  if(isRoad(bx,by)||G.dcs.some(d=>d.x===bx&&d.y===by))starts.push([bx,by]);
+  if(isRoad(bx,by)||dcIndexAt(bx,by)>=0)starts.push([bx,by]);
   for(const[ax,ay]of nb(bx,by)){
     if(ax<0||ax>=MAP||ay<0||ay>=MAP||G.map[ay][ax].type!=='road')continue;
     starts.push([ax,ay]);
@@ -239,7 +252,7 @@ function findDC(bx,by){
     const dc=G.dcs[di];
     let reachable=false;
     for(const[sx,sy]of starts){
-      if(bfs(sx,sy,dc.x,dc.y)){reachable=true;break;}
+      if(bfsReachesDC(sx,sy,dc)){reachable=true;break;}
     }
     if(!reachable)continue;
     const dl=dcLoads[di]||{ratio:0};
@@ -428,7 +441,7 @@ function calcCapacity(){
     const adj=nb(cn.bx,cn.by);
     for(const[ax,ay]of adj){
       if(ax<0||ax>=MAP||ay<0||ay>=MAP||G.map[ay][ax].type!=='road')continue;
-      const path=bfsPath(ax,ay,dc.x,dc.y);
+      const path=bfsPathToDC(ax,ay,dc);
       if(!path)continue;
       // Gather bottleneck max cap + current bottleneck free cap
       let minCap=Infinity,minFree=Infinity;
@@ -485,8 +498,13 @@ function buildDCLinks(){
   for(let i=0;i<G.dcs.length;i++){
     for(let j=i+1;j<G.dcs.length;j++){
       const dc1=G.dcs[i],dc2=G.dcs[j];
-      // Find ALL paths between DCs for multi-path load balancing
-      const paths=findAllDCPaths(dc1.x,dc1.y,dc2.x,dc2.y);
+      // Find ALL paths between DCs for multi-path load balancing.
+      // Multi-tile DC: zkoušej kombinace dlaždic půdorysů, první úspěšná platí.
+      let paths=[];
+      outer:for(const t1 of dcFootprintTilesOf(dc1))for(const t2 of dcFootprintTilesOf(dc2)){
+        paths=findAllDCPaths(t1.x,t1.y,t2.x,t2.y);
+        if(paths.length)break outer;
+      }
       if(!paths.length)continue;
       // Total capacity = sum of all path bottlenecks
       let totalCap=0;
