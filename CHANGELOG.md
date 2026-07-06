@@ -15,6 +15,9 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
   - počasní bouře poškodí kabel **vzácně** (~10–20 %/měs dle intenzity) a jen **1 segment**;
   - „Sněhová kalamita" už kabely nemaže přímo, jen nastaví bouřkové počasí (varování).
 - `tests/events.test.js` +7 assertů na `stormDamageCount`.
+- **macOS trackpad**: dvouprstové posouvání teď **posouvá mapu** (dřív ho hra brala
+  jako zoom, takže nešlo panovat). Zoom je nově na **pinch gestu** (sevření dvou
+  prstů); kolečko myši zoomuje beze změny.
 
 ## [0.6.0] — 2026-06-29
 
