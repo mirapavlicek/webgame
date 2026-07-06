@@ -674,6 +674,23 @@ function monthUp(){
   } else {
     G.cloudSLACreditM=0;
   }
+
+  // Správci cloudu — velká platforma bez správců degraduje (reputace klesá),
+  // dobře obsazená se pomalu zlepšuje. Potřeba ~1 správce na 250 zákazníků.
+  try{
+    if(typeof cloudAdminsNeeded==='function'&&typeof getTotalCloudCustomers==='function'){
+      const _cc=getTotalCloudCustomers();
+      const _need=cloudAdminsNeeded(_cc);
+      const _adm=(typeof getStaffEffect==='function')?getStaffEffect('cloudadmin'):0;
+      if(_need>0&&_adm<_need){
+        const shortfall=_need-_adm;
+        G.cloudReputation=Math.max(0,(G.cloudReputation||60)-Math.min(10,2+shortfall*2));
+        if(Math.random()<0.5)notify(`☁️ Cloud je poddimenzovaný — chybí ${shortfall}× Správce cloudu (${_adm}/${_need}). Reputace a náklady trpí!`,'bad');
+      } else if(_need>0&&_adm>=_need){
+        G.cloudReputation=Math.min(90,(G.cloudReputation||60)+1);
+      }
+    }
+  }catch(e){console.error('cloudAdmin check:',e);}
   // Reset měsíčního počítadla výpadků pro příští měsíc
   G.cloudOutageDaysM=0;
   // Employee salaries — zvlášť scaled přes salaryInflation

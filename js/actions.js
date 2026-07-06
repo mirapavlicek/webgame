@@ -805,8 +805,38 @@ function calcCloudRevenue(){
   return Math.round(rev);
 }
 
-// Operational cost of running the cloud platform (power, SW licence, backup, peering).
-// Per-instance mCost × inflation · sníženo dev staff automatizací (až -30%) a upgrady (auto1).
+// Pure: kolik správců cloudu je potřeba pro daný počet cloud zákazníků.
+// 1 správce zvládne ~250 zákazníků; bez zákazníků není potřeba nikdo.
+function cloudAdminsNeeded(custCount){
+  if(!custCount||custCount<=0)return 0;
+  return Math.ceil(custCount/250);
+}
+
+// Pure: vzorec provozních nákladů cloudu. Náklady musí škálovat s příjmy
+// (licence, egress, podpora ≈ 32 % tržeb — COGS), plus fixní část za instance.
+// discount (0..0.5) = automatizace; understaffMult ≥ 1 = penalizace bez správců.
+function cloudOpsFormula(instanceBase, revenue, discount, understaffMult, infl){
+  const d=Math.max(0,Math.min(0.5,discount||0));
+  const u=Math.max(1,understaffMult||1);
+  const i=infl||1;
+  const cogs=(revenue||0)*0.32;
+  return Math.round(((instanceBase||0)*i+cogs)*(1-d)*u);
+}
+
+// Celkový počet cloud zákazníků napříč segmenty.
+function getTotalCloudCustomers(){
+  let n=0;
+  for(const seg of (typeof CLOUD_SEGMENTS!=='undefined'?CLOUD_SEGMENTS:[])){
+    const cs=G.cloudCustomers?.[seg.id];
+    if(cs)n+=cs.count;
+  }
+  return n;
+}
+
+// Operational cost of running the cloud platform (power, SW licence, backup,
+// peering, egress, podpora). Škáluje s PŘÍJMY (COGS ~32 %) + fixní část za
+// instance; sníženo dev automatizací (cap -50 %), zvýšeno při nedostatku
+// správců cloudu (×1.35). Dřív náklady škálovaly jen s instancemi → marže 100 %.
 function calcCloudOpCost(){
   if(!G.cloudInstances||!G.cloudInstances.length)return 0;
   let base=0;
@@ -815,7 +845,8 @@ function calcCloudOpCost(){
     if(!cp)continue;
     base+=(cp.mCost||0)*ci.count;
   }
-  if(base<=0)return 0;
+  const revenue=calcCloudRevenue();
+  if(base<=0&&revenue<=0)return 0;
   // Dev team automatizace: každý dev snižuje cloud ops náklady o 2%, cap -30%
   let discount=0;
   try{
@@ -827,8 +858,13 @@ function calcCloudOpCost(){
   }catch(e){}
   // Automation upgrade přispěje dalších 10%
   if(G.upgrades&&G.upgrades.includes('auto1'))discount=Math.min(0.50,discount+0.10);
+  // Nedostatek správců cloudu → dražší provoz (hašení požárů, externisté)
+  const cust=getTotalCloudCustomers();
+  const needed=cloudAdminsNeeded(cust);
+  const admins=(typeof getStaffEffect==='function')?getStaffEffect('cloudadmin'):0;
+  const understaffMult=(needed>0&&admins<needed)?1.35:1.0;
   const infl=(G&&G.componentInflation)||1.0;
-  return Math.round(base*infl*(1-discount));
+  return cloudOpsFormula(base,revenue,discount,understaffMult,infl);
 }
 
 // For UI: how many Kč/měs by dev tým potenciálně ušetřil pokud by ISP najal dalšího seniora dev

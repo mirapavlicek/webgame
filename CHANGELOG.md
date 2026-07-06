@@ -5,6 +5,23 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Cloudová ekonomika — nesmyslná marže 100 %.** Náklady škálovaly jen s počtem
+  instancí, ne s velikostí byznysu (20,9 M příjmů vs. 17 k nákladů). Nově
+  provozní náklady obsahují **COGS ~32 % tržeb** (licence, egress, podpora)
+  + fixní část za instance (`cloudOpsFormula`); marže tak i s maximální
+  automatizací nepřesáhne ~84 %.
+
+### Added
+- **☁️ Správce cloudu (`cloudadmin`)** — nový typ zaměstnance (52 000 Kč/měs).
+  Velká platforma ho potřebuje: **1 správce na ~250 cloud zákazníků**
+  (`cloudAdminsNeeded`). Poddimenzovaný cloud má **dražší provoz (×1,35)**
+  a **klesá mu reputace**; dobře obsazený se pomalu zlepšuje (cap 90).
+  Zátěž správců je napojená na morálkový model.
+- `tests/cloudadmin.test.js` — 15 assertů.
+
 ## [0.7.0] — 2026-07-06
 
 Editor mapy, řídící centrum (prestiž/QoS/adresní plány), obtížnosti, nové týmy
