@@ -7,6 +7,18 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Pevná linka jen s kabelem u budovy.** Upgrade přípojky obcházel fyzickou
+  vrstvu: klient připojený přes **5G/WiFi šel „upgradovat" na optiku i bez
+  kabelu** (a na WiFi bez AP v dosahu). Nově upgrade vynucuje stejná pravidla
+  jako nové připojení (`connInstallRequirement`):
+  - **pevné typy** vyžadují kabelovou cestu k DC (`findDC`) — bez kabelu se
+    klient z 5G/WiFi převést nedá;
+  - **WiFi** vyžaduje AP v dosahu + kontroler v DC;
+  - **mobilní typy (LTE/5G)** ručně instalovat nelze (řídí je vysílače);
+  - při převodu bezdrát → kabel se přípojka správně **přepojí na kabelové DC**
+    (vč. kontroly kapacity routeru a volných portů).
+
 ### Added
 - **⬜ Ploché budovy — režim kabeláže.** Tlačítko ⬜ (nebo klávesa **B**) skryje
   3D domy a nechá jen **barevné čtverce** v typové barvě se stavovou tečkou
