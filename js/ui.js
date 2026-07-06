@@ -1962,7 +1962,7 @@ function renderDCModal(){
   const canFit=eqs.length<maxSlots;
   const dcType=G.dcs[dcModalIdx]?.type;
   const dcTypeInfo=DC_T[dcType]||{};
-  const maxCool=dcTypeInfo.maxCooling||1;
+  const maxCool=(typeof dcMaxCooling==='function'&&G.dcs[dcModalIdx])?dcMaxCooling(G.dcs[dcModalIdx]):(dcTypeInfo.maxCooling||1);
   const coolCount=eqs.filter(e=>e==='eq_cooling').length;
   for(const catKey in eqCats){
     const cat=eqCats[catKey];

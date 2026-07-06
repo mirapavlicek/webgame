@@ -146,17 +146,22 @@ function placeDC(x,y,type){
   const dt0=DC_T[type];
   // Multi-tile DC: zvaliduj celý půdorys (tráva, bez budov, bez jiného DC, v mapě)
   const fp=footprintTiles(x,y,(dt0&&dt0.tilesW)||1,(dt0&&dt0.tilesH)||1);
+  const tileTypes=[];
   for(const t of fp){
     if(t.x<0||t.x>=MAP||t.y<0||t.y>=MAP){notify('❌ Půdorys DC přesahuje mapu!','bad');return;}
-    if(G.map[t.y][t.x].type!=='grass'){notify('❌ DC jen na trávu (celý půdorys)!','bad');return;}
-    if(G.map[t.y][t.x].bld){notify('❌ V půdorysu stojí budova!','bad');return;}
+    const tl=G.map[t.y][t.x];
+    if(!dcTileAllowed(tl.type,dt0&&dt0.waterBuild)){notify(dt0&&dt0.waterBuild?'❌ DC jen na trávu nebo vodu (celý půdorys)!':'❌ DC jen na trávu (celý půdorys)!','bad');return;}
+    if(tl.bld){notify('❌ V půdorysu stojí budova!','bad');return;}
     if(dcIndexAt(t.x,t.y)>=0){notify('❌ Již stojí DC!','bad');return;}
     if(typeof hasPowerPlant==='function'&&hasPowerPlant(t.x,t.y)){notify('❌ V půdorysu je elektrárna!','bad');return;}
+    tileTypes.push(tl.type);
   }
+  const waterCooled=waterCooledFromTiles(tileTypes);
   const dt=DC_T[type];
   const cost=inflComponentCost(dt.cost);
   if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
-  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''},outageDaysM:0});G.cash-=cost;
+  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''},outageDaysM:0,waterCooled});G.cash-=cost;
+  if(waterCooled)notify('💧 Vodní chlazení aktivní — nižší PUE a +2 sloty chlazení','good');
   if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
   if(typeof addPulse==='function')addPulse(x,y,dt.color||'#00d4ff');
@@ -614,7 +619,7 @@ function placeEq(dcIdx,eqType){
   // a tím nekontrolovanému růstu slotů v malém DC.
   if(eqType==='eq_cooling'){
     const coolCount=dc.eq.filter(e=>e==='eq_cooling').length;
-    const maxCool=dt.maxCooling||1;
+    const maxCool=(typeof dcMaxCooling==='function')?dcMaxCooling(dc):(dt.maxCooling||1);
     if(coolCount>=maxCool){
       notify(`❌ Max ${maxCool}× chlazení v ${dt.name}! Upgraduj DC.`,'bad');
       return;
