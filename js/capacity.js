@@ -240,6 +240,38 @@ function bfsPathToDC(ax,ay,dc){
   return null;
 }
 
+// ====== POSÍLENÍ POLNÍCH LOAD BALANCERŮ ======
+// Aktivní polní LB chytře řídí fronty (shaping, priorizace) a tím zvedá
+// efektivní kapacitu svých 4 přilehlých segmentů o +20 %. Segment dostane
+// boost jen jednou, i když sousedí s více LB.
+const LB_SEG_BOOST=1.2;
+
+// Pure: množina segmentových klíčů, které mají dostat LB boost.
+// junctions = [{x,y,type,active}], keyFn = segKey-like.
+function lbBoostedSegKeys(junctions,keyFn){
+  const kf=keyFn||((x1,y1,x2,y2)=>segKey(x1,y1,x2,y2));
+  const out=new Set();
+  for(const j of (junctions||[])){
+    if(!j||j.type!=='junction_lb'||j.active===false)continue;
+    out.add(kf(j.x,j.y,j.x+1,j.y));
+    out.add(kf(j.x,j.y,j.x-1,j.y));
+    out.add(kf(j.x,j.y,j.x,j.y+1));
+    out.add(kf(j.x,j.y,j.x,j.y-1));
+  }
+  return out;
+}
+
+// Aplikuje boost na segLoads (volá se po sestavení segmentových kapacit,
+// před stavbou DC-linek a routingem, aby se projevil všude).
+function applyJunctionLbBoost(){
+  if(typeof G==='undefined'||!G||!G.junctions||!G.junctions.length)return;
+  const keys=lbBoostedSegKeys(G.junctions);
+  for(const k of keys){
+    const s=segLoads[k];
+    if(s&&!s.cut&&s.max>0){s.max=Math.round(s.max*LB_SEG_BOOST);s.lbBoost=true;}
+  }
+}
+
 // ====== TOKY NA JUNCTIONU (polní LB / přepínač) ======
 // Pure: toky do 4 směrů z uzlu (x,y) podle mapy segmentových zátěží.
 // segs = { segKey: {used,max,ratio} } — přítomnost klíče = existuje kabel.
@@ -388,6 +420,9 @@ function calcCapacity(){
     else segLoads[key].cut=true;
     if(!segLoads[key].types.includes(cb.t))segLoads[key].types.push(cb.t);
   }
+
+  // Aktivní polní LB zvedají efektivní kapacitu přilehlých segmentů (+20 %)
+  applyJunctionLbBoost();
 
   // Build DC links (physical cable paths) and recalc BGP peering maxBW
   buildDCLinks();
