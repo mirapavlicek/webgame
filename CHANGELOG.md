@@ -5,6 +5,13 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **macOS trackpad**: dvouprstové posouvání teď **posouvá mapu** (dřív ho hra brala
+  jako zoom, takže nešlo panovat). Zoom je nově na **pinch gestu** (sevření dvou
+  prstů); kolečko myši zoomuje beze změny.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

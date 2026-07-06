@@ -289,14 +289,30 @@ function initInput(){
   canvas.addEventListener('wheel',e=>{
     e.preventDefault();
     const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-    const f=e.deltaY<0?1.12:.89;
-    if(typeof camZoomTo==='function'){
-      const base=(typeof camTarget!=='undefined')?camTarget.zoom:cam.zoom;
-      camZoomTo(base*f,mx,my);
+    // macOS trackpad: pinch-to-zoom přijde jako wheel s ctrlKey=true; myš má
+    // typicky velké skokové deltaY (řádek/stránka). Dvouprstové posouvání na
+    // trackpadu je wheel bez ctrlKey → posouváme mapu místo zoomu.
+    const isPinch=e.ctrlKey;
+    const isMouseWheel=e.deltaMode!==0||Math.abs(e.deltaY)>=50; // řádkový/stránkový režim = kolečko myši
+    if(isPinch||isMouseWheel){
+      // ZOOM k bodu pod kurzorem
+      let f;
+      if(isPinch)f=Math.pow(0.99,e.deltaY);         // plynulé pinch (malá delta)
+      else f=e.deltaY<0?1.15:0.87;                   // pevný krok pro kolečko myši
+      if(typeof camZoomTo==='function'){
+        const base=(typeof camTarget!=='undefined')?camTarget.zoom:cam.zoom;
+        camZoomTo(base*f,mx,my);
+      }else{
+        const nz=Math.max(.15,Math.min(6,cam.zoom*f));
+        cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
+        cam.zoom=nz;
+      }
     }else{
-      const nz=Math.max(.15,Math.min(6,cam.zoom*f));
-      cam.x=mx-(mx-cam.x)*(nz/cam.zoom);cam.y=my-(my-cam.y)*(nz/cam.zoom);
-      cam.zoom=nz;
+      // PAN — dvouprstové posouvání na trackpadu (posune cíl i aktuální kameru)
+      const dx=e.deltaX,dy=e.deltaY;
+      cam.x-=dx;cam.y-=dy;
+      if(typeof camTarget!=='undefined'){camTarget.x=cam.x;camTarget.y=cam.y;}
+      if(typeof camInertia!=='undefined'){camInertia.x=0;camInertia.y=0;}
     }
     render();
   },{passive:false});
