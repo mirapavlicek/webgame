@@ -7,7 +7,6 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-<<<<<<< HEAD
 ### Added
 - **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — 🙂 Normál
   (výchozí) / 😰 Heavy (×0,65 růst, ×1,6 poruchy, ×1,5 náklady) / 💀 Hardcore
