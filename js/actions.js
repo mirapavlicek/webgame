@@ -291,7 +291,9 @@ function placeCable(x1,y1,x2,y2,type){
   const ok1=isRoad(x1,y1)||G.dcs.some(d=>d.x===x1&&d.y===y1);
   const ok2=isRoad(x2,y2)||G.dcs.some(d=>d.x===x2&&d.y===y2);
   if(!ok1||!ok2){notify('❌ Jen po silnicích/z DC!','bad');return;}
-  const segs=pathSegs(x1,y1,x2,y2),ct=CAB_T[type];let ns=0,upgN=0,upgCost=0,stackN=0;
+  const ct=CAB_T[type];
+  if(ct&&(ct.minTech||0)>G.tech){notify(`❌ ${ct.name} vyžaduje technologii ${TECHS[ct.minTech]?TECHS[ct.minTech].name:''}!`,'bad');return;}
+  const segs=pathSegs(x1,y1,x2,y2);let ns=0,upgN=0,upgCost=0,stackN=0;
   for(const s of segs){
     // Check for lower-tier cables that can be upgraded
     let upgraded=false;

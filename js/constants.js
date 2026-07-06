@@ -190,13 +190,14 @@ const EQ={
   eq_solar_roof:{name:'Solární panely (střecha)',cost:150000,mCost:400,eff:'solar',val:0,icon:'🌞',desc:'Solární panely na střeše DC. Sníží fakturu za elektřinu ~2 kW (sezónní). Žádné stínění, nízká údržba.'},
 };
 
+// minTech = kabelové technologie se odemykají s postupem éry (kabelový rozvoj).
 const CAB_T={
-  cable_copper:{name:'Měděný',cost:1500,mCost:15,maxBW:100,clr:'#d97706',w:2,tier:0},
-  cable_fiber:{name:'Optický 1G',cost:4000,mCost:30,maxBW:1000,clr:'#22d3ee',w:2.5,tier:1},
-  cable_fiber10:{name:'Optika 10G',cost:15000,mCost:100,maxBW:10000,clr:'#06b6d4',w:3,tier:2},
-  cable_backbone:{name:'Páteřní 100G',cost:40000,mCost:250,maxBW:100000,clr:'#a855f7',w:4,tier:3},
-  cable_400g:{name:'Páteřní 400G',cost:120000,mCost:800,maxBW:400000,clr:'#c084fc',w:5,tier:4},
-  cable_800g:{name:'Páteřní 800G',cost:300000,mCost:2000,maxBW:800000,clr:'#e879f9',w:6,tier:5},
+  cable_copper:{name:'Měděný',cost:1500,mCost:15,maxBW:100,clr:'#d97706',w:2,tier:0,minTech:0},
+  cable_fiber:{name:'Optický 1G',cost:4000,mCost:30,maxBW:1000,clr:'#22d3ee',w:2.5,tier:1,minTech:2},
+  cable_fiber10:{name:'Optika 10G',cost:15000,mCost:100,maxBW:10000,clr:'#06b6d4',w:3,tier:2,minTech:4},
+  cable_backbone:{name:'Páteřní 100G',cost:40000,mCost:250,maxBW:100000,clr:'#a855f7',w:4,tier:3,minTech:5},
+  cable_400g:{name:'Páteřní 400G',cost:120000,mCost:800,maxBW:400000,clr:'#c084fc',w:5,tier:4,minTech:6},
+  cable_800g:{name:'Páteřní 800G',cost:300000,mCost:2000,maxBW:800000,clr:'#e879f9',w:6,tier:5,minTech:7},
 };
 
 const WIFI_T={

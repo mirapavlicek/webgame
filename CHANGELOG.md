@@ -5,6 +5,25 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **🛰️ Řídící centrum (NOC) — nová nadstavba hry** (`js/controlcenter.js`).
+  Grafické velení nad sítí v modálu (tlačítko 🛰️ nebo štít v liště):
+  - **Prestiž providera (0–100)** — reputace řízená funkčností sítě (uptime,
+    kongesce, spokojenost, dostatek IP, QoS). Udržíš-li síť funkční, **roste**;
+    při výpadcích a přetížení **klesá**. Prestiž mírně ovlivňuje růst zákazníků
+    (`prestigeGrowthMultiplier` 0,9–1,15). V horní liště je barevný ukazatel 🛡️.
+  - **QoS politika** (Bez QoS / Řízené / Přísné) — aktivní řízení provozu tlumí
+    dopad kongesce na růst za měsíční poplatek na DC (`qosCongestionFactor`).
+  - **Adresní plán (IP)** — přehled využití IP adres (přípojky + věže + AP vs.
+    koupené bloky), varování při docházení adres (`addressingPlan`).
+  - Přehled bezdrátu a **seznam aktivních incidentů** s odkazem na řešení.
+- **Rozvoj kabelových technologií** — kabely mají nově `minTech` a odemykají se
+  s postupem éry (optika 1G od FTTH, 10G/100G/400G/800G postupně). `placeCable`
+  vyšší kabel bez potřebné technologie odmítne.
+- `tests/controlcenter.test.js` — 23 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
