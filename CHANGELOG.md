@@ -5,7 +5,10 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0] — 2026-07-06
+
+Velký závod, BGP overflow, posílené LB, vodní DC, správce cloudu, instalační
+tým, nová generace BGP routerů a další.
 
 ### Added
 - **🔀 BGP overflow takeover.** Když je propojené DC **přes kapacitu**, BGP peer
