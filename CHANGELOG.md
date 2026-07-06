@@ -8,6 +8,12 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **🧭 Rychlostní verze BGP routerů** — 100 Gbps bylo málo. Nově 4 tiery:
+  **100G** (stávající, přejmenován), **400G** (140 k), **1T** (320 k) a
+  **2.4T** (700 k). Kapacity se při více kusech sčítají (stack). Požadavky
+  služeb na „BGP router" (veřejné IP, dedikované linky, colocation) splní
+  kterýkoli tier (rodina `eq_bgprouter` v `EQ_FAMILIES`); do rodiny `eq_router`
+  doplněny i Carrier-Max/Tera.
 - **⚖️ Polní load balancery ukazují toky po směrech.** Aktivní LB na mapě
   vykresluje **animované toky do každé kabelové větve** (barva = zatížení,
   velikost/hustota teček = podíl objemu, rychlost = vytížení) — vidíš, kudy

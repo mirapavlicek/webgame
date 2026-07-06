@@ -290,7 +290,8 @@ function findDC(bx,by){
 // Equipment families: requiring 'eq_firewall' accepts any firewall tier
 const EQ_FAMILIES={
   eq_firewall:['eq_firewall','eq_firewall_pro','eq_firewall_ent'],
-  eq_router:['eq_router','eq_router_mid','eq_router_big','eq_router_edge'],
+  eq_router:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_router_carrier','eq_router_tera'],
+  eq_bgprouter:['eq_bgprouter','eq_bgprouter_400','eq_bgprouter_1t','eq_bgprouter_2t'],
 };
 function eqSatisfied(eqList,req){
   if(eqList.includes(req))return true;
