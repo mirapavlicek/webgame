@@ -223,6 +223,20 @@ function initInput(){
             } else {
               h+=`<div style="color:#38bdf8;font-size:9px;margin-top:3px">🔀 Pasivní přepínač, staticky rozbočuje provoz.</div>`;
             }
+            // Rozpis toků po směrech (které větve nesou kolik provozu)
+            if(typeof getJunctionFlows==='function'){
+              const flows=getJunctionFlows(hover.x,hover.y);
+              if(flows.length){
+                const arrows={N:'↑',J:'↓',V:'→',Z:'←'};
+                h+=`<div style="font-size:9px;color:#a78bfa;margin:4px 0 2px">Toky po směrech:</div>`;
+                for(const f of flows){
+                  const clr=f.ratio>0.9?'#f85149':f.ratio>0.7?'#f59e0b':'#3fb950';
+                  h+=`<div class="tr"><span>${arrows[f.dir]||''} ${f.label}</span><span class="tv" style="color:${clr}">${fmtBW(Math.round(f.used))}/${fmtBW(f.max)} (${Math.round(f.ratio*100)}%)</span></div>`;
+                }
+              } else {
+                h+=`<div style="font-size:9px;color:#6e7681;margin-top:3px">Žádné kabelové větve v okolí uzlu.</div>`;
+              }
+            }
             h+=`<div style="margin-top:4px;display:flex;gap:3px">`;
             h+=`<button onclick="event.stopPropagation();toggleJunction(${hover.x},${hover.y})" style="padding:1px 5px;background:#0a1a0a;border:1px solid #3fb950;border-radius:3px;color:#3fb950;cursor:pointer;font-size:9px">${jn.active?'⏸️ Pozastavit':'▶️ Aktivovat'}</button>`;
             h+=`<button onclick="event.stopPropagation();demolishObj(${hover.x},${hover.y})" style="padding:1px 5px;background:#1a0a0a;border:1px solid #f85149;border-radius:3px;color:#f85149;cursor:pointer;font-size:9px">🗑️ Odstranit</button>`;
