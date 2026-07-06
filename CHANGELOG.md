@@ -5,6 +5,17 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
+  zničila 2–5 segmentů a měla 50% měsíční šanci, takže malá síť „nevydržela ani
+  pár dní". Nově:
+  - `stormDamageCount` omezuje škodu na **max ~8 % sítě** a default **1–2 segmenty**;
+  - počasní bouře poškodí kabel **vzácně** (~10–20 %/měs dle intenzity) a jen **1 segment**;
+  - „Sněhová kalamita" už kabely nemaže přímo, jen nastaví bouřkové počasí (varování).
+- `tests/events.test.js` +7 assertů na `stormDamageCount`.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
