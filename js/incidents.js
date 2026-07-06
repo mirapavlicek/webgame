@@ -356,6 +356,8 @@ function incidentMonthlyRoll(){
     // Global learnings
     const totalLearnings=Object.values(G.incidentLearnings||{}).reduce((s,v)=>s+v,0);
     prob*=Math.max(0.5,1-totalLearnings*0.02);
+    // Obtížnost — Heavy/Hardcore = víc incidentů
+    if(typeof diffIncidentMult==='function')prob*=diffIncidentMult();
     if(Math.random()<prob){
       spawnIncident(di);
     }

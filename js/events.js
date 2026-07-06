@@ -249,8 +249,10 @@ function triggerPowerOutage(dcIdx){
 function checkRandomOutages(){
   // Počasí ovlivňuje riziko výpadku (bouře/vedro = vyšší)
   const wMult=(typeof weatherOutageMultiplier==='function')?weatherOutageMultiplier():1;
+  // Obtížnost — Heavy/Hardcore = víc poruch
+  const dMult=(typeof diffIncidentMult==='function')?diffIncidentMult():1;
   for(let di=0;di<G.dcs.length;di++){
-    if(Math.random()<0.01*wMult){
+    if(Math.random()<0.01*wMult*dMult){
       triggerPowerOutage(di);
     }
   }

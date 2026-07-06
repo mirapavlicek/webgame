@@ -58,6 +58,8 @@ function dailyTick(){
   // Sales staff boost
   const salesCount=getStaffEffect('sales');
   if(salesCount>0)gm+=salesCount*.15;
+  // Obtížnost — Heavy/Hardcore ztěžuje akvizici zákazníků
+  if(typeof diffGrowthMult==='function')gm*=diffGrowthMult();
   let satBonus=0;
   if(G.upgrades.includes('support1'))satBonus+=10;
   if(G.upgrades.includes('support2'))satBonus+=20;
@@ -605,10 +607,12 @@ function monthUp(){
   }
   // IP block costs
   for(const blk of(G.ipBlocks||[]))hwExp+=blk.mCost;
-  let exp=inflComponentCost(hwExp);
+  // Obtížnost — Heavy/Hardcore zdražuje provoz ("dražší služby")
+  const _diffCost=(typeof diffCostMult==='function')?diffCostMult():1;
+  let exp=inflComponentCost(hwExp)*_diffCost;
   // Per-customer servisní náklady (25 Kč/zák.) = support/billing/SG&A.
   // Rostou se salaryInflation — je to primárně lidský náklad (call centrum, fakturace, NOC).
-  exp+=inflSalaryCost(cust*25);
+  exp+=inflSalaryCost(cust*25)*_diffCost;
   // Cloud revenue — from actual cloud customers (real customers × demand mix × inflation × reputation)
   const cloudRev=calcCloudRevenue();
   inc+=cloudRev;

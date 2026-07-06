@@ -5,6 +5,19 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Výběr obtížnosti při založení firmy** (`js/difficulty.js`) — hra byla časem
+  příliš snadná. Tři úrovně ovlivňují akvizici zákazníků, frekvenci poruch a
+  provozní náklady:
+  - **🙂 Normál** — vyvážená hra (výchozí, beze změny).
+  - **😰 Heavy** — hůř se získávají zákazníci (×0,65 růst), víc poruch (×1,6)
+    a výrazně dražší provoz (×1,5).
+  - **💀 Hardcore** — **1,33× tvrdší než Heavy** ve všech osách
+    (růst ×0,53, poruchy ×1,80, náklady ×1,67).
+- `tests/difficulty.test.js` — 14 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

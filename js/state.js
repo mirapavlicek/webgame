@@ -44,6 +44,7 @@ function createGame(nm){
     bindingContracts:[], // aktivní opravdové kontrakty [{id,...,remaining}]
     bindingHistory:[], // historie kontraktů [{id,outcome:'won'|'failed',reward?,penalty?,...}]
     companyRating:1,   // 1-5 stars
+    difficulty:'normal', // normal | heavy | hardcore
     competitorsEnabled:false,
     competitors:[],    // AI competitors [{name,color,cash,dcs,cables,customers}]
     survivedOutage:false,
@@ -175,6 +176,7 @@ function handleLoad(e){
       if(G.cloudReputation===undefined)G.cloudReputation=60;
       if(G.cloudSLACreditM===undefined)G.cloudSLACreditM=0;
       if(G.cloudOutageDaysM===undefined)G.cloudOutageDaysM=0;
+      if(!G.difficulty)G.difficulty='normal';
       if(!G.cableCuts)G.cableCuts=[];
       if(!G.investigations)G.investigations=[];
       if(!G.investigationHistory)G.investigationHistory=[];
@@ -279,6 +281,13 @@ function startNewGame(){
   G=createGame(nm);
   G.mapSize=MAP;
   G.expansions=[];
+  // Obtížnost
+  const diffSel=document.getElementById('inputDifficulty');
+  G.difficulty=(diffSel&&diffSel.value)||'normal';
+  if(G.difficulty!=='normal'){
+    const d=(typeof DIFFICULTY!=='undefined')?DIFFICULTY[G.difficulty]:null;
+    if(d)setTimeout(()=>{try{notify(`${d.icon} Obtížnost: ${d.name} — ${d.desc}`,'warn');}catch(e){}},450);
+  }
   // Initialize service prices from defaults
   for(const svc of SERVICES)G.svcPrices[svc.id]=svc.revPerCust;
   const compCb=document.getElementById('inputCompetitors');
