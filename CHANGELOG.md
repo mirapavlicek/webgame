@@ -5,6 +5,22 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Performance
+- **Vyladění výkonu — hra méně žere CPU** (`js/perf.js`). Canvas 2D se dřív
+  překresloval při **každém** snímku requestAnimationFrame (na 120Hz ProMotion
+  Macu 120 plných redrawů/s). Nově:
+  - **FPS cap vykreslování na 40** (nastavitelné `setTargetFps(15–120)`) —
+    simulace běží dál každý snímek, ale plný redraw jen v cílové kadenci.
+    Na 120Hz displeji to je ~**3× méně** CPU práce v renderu.
+  - **Nevykreslujeme při každém pohybu myši / tažení / kolečku** — herní smyčka
+    překreslí v cílové kadenci (do ~25 ms). Zmizí desítky zbytečných redrawů/s
+    při najíždění myší a tažení mapy.
+  - GPU vrstva (PixiJS glow/particles) běží ve stejném rytmu → víc práce na GPU,
+    méně na CPU.
+- `tests/perf.test.js` — 12 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.
