@@ -338,6 +338,74 @@ function quickConnectOptions(connT,tech,cash,inflFn){
   return out;
 }
 
+// Pure: další drátový upgrade přípojky o jeden stupeň výš (nejbližší rychlejší
+// typ dostupný v aktuální éře). Bezdrátové (LTE/5G) a WiFi se neupgradují —
+// ty řídí věže/AP. Vrací klíč cílové přípojky, nebo null.
+function nextWiredUpgrade(currentType, connT, tech){
+  if(!currentType||!connT)return null;
+  const c=connT[currentType];if(!c)return null;
+  if(currentType==='conn_wifi'||currentType.startsWith('conn_lte')||currentType.startsWith('conn_5g'))return null;
+  const wired=['conn_isdn','conn_coax','conn_adsl','conn_vdsl','conn_fiber100','conn_fiber1g','conn_fiber10g','conn_fiber25g','conn_fiber50g','conn_fiber100g'];
+  let best=null;
+  for(const k of wired){
+    const cc=connT[k];if(!cc)continue;
+    if((cc.minTech||0)>tech)continue;
+    if(cc.maxBW<=c.maxBW)continue;                 // musí být rychlejší
+    if(!best||cc.maxBW<connT[best].maxBW)best=k;    // vyber nejbližší vyšší tier
+  }
+  return best;
+}
+
+// Plynulý hromadný upgrade přípojek prováděný výjezdovými četami. Každý měsíc
+// zmodernizují několik nejpomalejších drátových přípojek o stupeň výš (v rámci
+// rozpočtu). Zapíná se přepínačem; vyžaduje zaměstnance (field crews).
+function toggleAutoUpgrade(){
+  G.autoUpgrade=!G.autoUpgrade;
+  notify(G.autoUpgrade?'🔧 Program modernizace přípojek ZAPNUT (výjezdové čety)':'🔧 Program modernizace vypnut',G.autoUpgrade?'good':'');
+  if(typeof buildStaffList==='function')try{buildStaffList();}catch(e){}
+}
+
+// Počet lidí schopných dělat plynulý upgrade tras: výjezdové čety + technici.
+function getUpgradeCrewCount(){
+  let n=0;
+  if(typeof getStaffCount==='function')n=getStaffCount('field')+getStaffCount('tech');
+  return n;
+}
+
+function autoUpgradeTick(){
+  if(!G||!G.autoUpgrade)return 0;
+  const crews=getUpgradeCrewCount();
+  if(crews<=0)return 0;
+  let budget=crews*2;                               // přípojek/měsíc na osoby
+  const cands=[];
+  for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+    const b=G.map[y][x].bld;
+    if(!b||!b.connected||!b.connType)continue;
+    const target=nextWiredUpgrade(b.connType,CONN_T,G.tech);
+    if(!target)continue;
+    cands.push({x,y,b,target,bw:CONN_T[b.connType].maxBW});
+  }
+  cands.sort((a,b)=>a.bw-b.bw);                      // od nejpomalejších
+  let done=0,spent=0;
+  for(const cand of cands){
+    if(budget<=0)break;
+    const ct=CONN_T[cand.target];
+    const cost=(typeof inflComponentCost==='function')?inflComponentCost(ct.cost):ct.cost;
+    if(G.cash<cost)break;                            // došly peníze → pauza
+    // DC musí mít potřebné vybavení pro cílovou přípojku
+    const cn=G.conns.find(c=>c.bx===cand.x&&c.by===cand.y);
+    if(cn){const dc=G.dcs[cn.di];if(dc&&typeof getMissingEq==='function'){const m=getMissingEq(dc,ct.reqEq);if(m.length)continue;}}
+    const oldType=cand.b.connType;
+    cand.b.connType=cand.target;
+    G.cash-=cost;spent+=cost;
+    if(typeof recordCapex==='function')recordCapex('connection',cost,`auto-upgrade → ${ct.name}`);
+    if(typeof triggerTariffUpgradeWave==='function')triggerTariffUpgradeWave(cand.b,cand.x,cand.y,ct.maxBW,oldType,cand.target);
+    done++;budget--;
+  }
+  if(done>0){markCapDirty();notify(`🔧 Výjezdové čety zmodernizovaly ${done} přípojek (${fmtKc(spent)})`,'good');}
+  return done;
+}
+
 function connectBld(x,y,connType){
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){

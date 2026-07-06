@@ -900,6 +900,18 @@ function buildStaffList(){
     list.innerHTML+=sh;
   }
 
+  // Program modernizace přípojek — dostupný když má hráč výjezdové čety / techniky
+  const crews=(typeof getUpgradeCrewCount==='function')?getUpgradeCrewCount():getStaffCount('field');
+  if(crews>0){
+    const on=!!G.autoUpgrade;
+    let uh=`<div style="background:${on?'#0a1a0a':'#0d1117'};border:1px solid ${on?'#3fb950':'#21262d'};border-radius:5px;padding:6px 8px;margin-bottom:8px;font-size:9px">`;
+    uh+=`<div style="display:flex;justify-content:space-between;align-items:center">`;
+    uh+=`<span style="font-weight:600;color:${on?'#3fb950':'#8b949e'}">🔧 Modernizace přípojek</span>`;
+    uh+=`<button onclick="event.stopPropagation();toggleAutoUpgrade()" style="padding:2px 8px;background:${on?'#0a1a0a':'#1a1040'};border:1px solid ${on?'#3fb950':'#7c3aed'};border-radius:4px;color:${on?'#3fb950':'#a78bfa'};cursor:pointer;font-size:9px">${on?'✓ ZAP':'Zapnout'}</button></div>`;
+    uh+=`<div style="color:#8b949e;margin-top:3px">Technici plynule upgradují nejpomalejší přípojky (${crews*2}/měs). Platí se materiál.</div></div>`;
+    list.innerHTML+=uh;
+  }
+
   for(const type in STAFF_T){
     const st=STAFF_T[type];
     const count=getStaffCount(type);

@@ -5,6 +5,17 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Program modernizace přípojek** — plynulý **hromadný upgrade** přípojek prováděný
+  zaměstnanci (výjezdové čety + technici). Přepínač v HR panelu; po zapnutí čety
+  každý měsíc zmodernizují několik **nejpomalejších drátových přípojek** o stupeň
+  výš (`nextWiredUpgrade` — nejbližší rychlejší typ dostupný v éře), v rámci
+  rozpočtu (2 přípojky/měs na osobu) a placeného materiálu. Při nedostatku hotovosti
+  se program pozastaví. Bezdrát/WiFi se neupgraduje (řídí věže/AP).
+- `tests/autoupgrade.test.js` — 14 assertů.
+
 ## [0.6.0] — 2026-06-29
 
 Cíle a výzvy, hlubší počasí (intenzita + degradace bezdrátu) a víc provázaných událostí.

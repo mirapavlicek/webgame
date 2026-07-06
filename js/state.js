@@ -175,6 +175,7 @@ function handleLoad(e){
       if(G.cloudReputation===undefined)G.cloudReputation=60;
       if(G.cloudSLACreditM===undefined)G.cloudSLACreditM=0;
       if(G.cloudOutageDaysM===undefined)G.cloudOutageDaysM=0;
+      if(G.autoUpgrade===undefined)G.autoUpgrade=false;
       if(!G.cableCuts)G.cableCuts=[];
       if(!G.investigations)G.investigations=[];
       if(!G.investigationHistory)G.investigationHistory=[];
