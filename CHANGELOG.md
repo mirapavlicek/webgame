@@ -61,11 +61,16 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 - **macOS trackpad**: dvouprstové posouvání teď **posouvá mapu** (dřív ho hra brala
   jako zoom, takže nešlo panovat). Zoom je nově na **pinch gestu** (sevření dvou
   prstů); kolečko myši zoomuje beze změny.
+- **Přehnaná zátěž techniků.** Model počítal 1 „jednotku práce" za každý kus HW
+  a kabely dělil jen 80 → i velký tým se tvářil jako přetížený (10 techniků na
+  2000 přípojek = přetížení, nesmysl). Přepočítáno (`staffWorkloadUnits`):
+  technici škálují hlavně **počtem přípojek** (1 jednotka ≈ 800 přípojek / 800
+  kabelů), DC a HW jen drobně. **10 techniků teď pohodlně zvládne 2000+ přípojek.**
 
 ### Tests
 - `tests/editor.test.js` — 22 assertů; `tests/outagerefund.test.js` — 10 assertů;
   `tests/fieldcrew.test.js` — 12 assertů; `tests/autoupgrade.test.js` — 14 assertů;
-  `tests/uigate.test.js` — 17 assertů.
+  `tests/uigate.test.js` — 17 assertů; `tests/workload.test.js` — 14 assertů.
 
 ## [0.6.0] — 2026-06-29
 
