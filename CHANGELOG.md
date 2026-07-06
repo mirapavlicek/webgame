@@ -8,6 +8,11 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **🔀 BGP overflow takeover.** Když je propojené DC **přes kapacitu**, BGP peer
+  s volnou kapacitou **automaticky převezme nadbytek** — i nad rámec manuální
+  alokace (slideru), do volné kapacity dárce a fyzického zbytku peering linky,
+  s 5% headroomem (`bgpOverflowTakeover`). Funguje i s alokací 0 (nouzové
+  převzetí). Peering panel ukazuje „⚡ overflow" s převzatým objemem.
 - **⚡ Posílené polní load balancery.** Aktivní polní LB nově chytrým řízením
   front zvedá **efektivní kapacitu svých 4 přilehlých segmentů o +20 %**
   (`LB_SEG_BOOST`). Boost se počítá před stavbou DC-linek a routingem, takže se
