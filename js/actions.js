@@ -419,6 +419,78 @@ function autoUpgradeTick(){
   return done;
 }
 
+// Pure: jaký typ pevné přípojky instalační tým standardně použije.
+// Vybere nejrychlejší drátový typ do 25 000 Kč (rozumný standard — ADSL/VDSL/
+// optika 100M/1G podle éry), na který jsou peníze; jinak nejrychlejší
+// dostupný vůbec. Dražší business tiery (10G+) tým neinstaluje — ty jsou na
+// hráči. Vrací klíč typu, nebo null.
+function pickInstallType(connT,tech,cash,inflFn){
+  const opts=quickConnectOptions(connT,tech,cash,inflFn); // seřazené dle rychlosti, s affordable
+  if(!opts.length)return null;
+  let best=null;
+  for(const o of opts){
+    if(!o.affordable)continue;
+    const baseCost=connT[o.key]?connT[o.key].cost:Infinity;
+    if(baseCost<=25000)best=o.key;      // nejrychlejší „standard" (řazeno vzestupně)
+  }
+  if(best)return best;
+  // fallback: nejrychlejší dostupný (affordable) jakýkoli
+  for(let i=opts.length-1;i>=0;i--)if(opts[i].affordable)return opts[i].key;
+  return null;
+}
+
+// Pure: kolik nových pevných přípojek tým zvládne za měsíc.
+function installTeamMonthlyConnects(teams){
+  if(!teams||teams<=0)return 0;
+  return teams*3; // výkop + zafouknutí + zapojení — pomalejší než WiFi (4)
+}
+
+// Měsíční tik — instalační týmy připojují nepřipojené budovy pevnou přípojkou
+// tam, kam dosáhne DC kabelem. Respektuje router/porty/vybavení jako ruční
+// connectBld; platí materiál; preferuje zájemce.
+function installTeamTick(){
+  if(typeof G==='undefined'||!G)return 0;
+  const teams=(typeof getStaffEffect==='function')?getStaffEffect('install'):0;
+  if(teams<=0)return 0;
+  let budget=installTeamMonthlyConnects(teams);
+  const inflFn=(typeof inflComponentCost==='function')?inflComponentCost:null;
+  const cands=[];
+  for(let y=0;y<MAP;y++)for(let x=0;x<MAP;x++){
+    const b=G.map[y]&&G.map[y][x]&&G.map[y][x].bld;
+    if(!b||b.connected)continue;
+    cands.push({x,y,b,want:!!b.want});
+  }
+  cands.sort((a,b)=>(b.want?1:0)-(a.want?1:0)); // zájemci první
+  let done=0,spent=0;
+  for(const cd of cands){
+    if(budget<=0)break;
+    const type=pickInstallType(CONN_T,G.tech,G.cash,inflFn);
+    if(!type)break;
+    const ct=CONN_T[type];
+    const cost=inflFn?inflFn(ct.cost):ct.cost;
+    if(G.cash<cost)break;                       // došly peníze → pauza
+    const di=findDC(cd.x,cd.y);
+    if(di===-1)continue;                        // DC nedosažitelné kabelem
+    const dc=G.dcs[di];
+    if(!dcHasRouter(dc))continue;
+    if(!networkHasEq(di,ct.reqEq))continue;
+    const netCap=getDCNetCapacity(di);
+    if(netCap.usedConns>=netCap.routerCap||netCap.usedPorts>=netCap.totalPorts)continue;
+    const b=cd.b;
+    b.connected=true;b.connType=type;b.dcIdx=di;b.tariffDist={};b.customers=0;b.tariff=null;b.sat=50;if(!b.svcSubs)b.svcSubs={};
+    G.conns.push({bx:cd.x,by:cd.y,di});
+    G.cash-=cost;spent+=cost;
+    if(typeof recordCapex==='function')recordCapex('connection',cost,`instalační tým — ${ct.name}`);
+    if(typeof addFloater==='function')addFloater(cd.x,cd.y,'🪛 '+ct.name,'#3fb950');
+    done++;budget--;
+  }
+  if(done>0){
+    markCapDirty();
+    notify(`🪛 Instalační tým připojil ${done} ${done===1?'budovu':done<5?'budovy':'budov'} pevnou přípojkou (${fmtKc(spent)})`,'good');
+  }
+  return done;
+}
+
 function connectBld(x,y,connType){
   const b=G.map[y]?.[x]?.bld;if(!b){notify('❌ Žádná budova!','bad');return;}
   if(b.connected){
