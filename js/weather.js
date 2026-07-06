@@ -117,9 +117,10 @@ function weatherMonthlyTick(){
       notify(`${def.icon} Počasí: ${def.name}`, w.type === 'storm' || w.type === 'heatwave' ? 'warn' : '');
     }
   }
-  // Bouře může poškodit kabely
-  if (w.type === 'storm' && Math.random() < 0.5 && typeof triggerStormDamage === 'function'){
-    try { triggerStormDamage(); } catch(e){ console.error('weather storm:', e); }
+  // Silná bouře může poškodit kabel — vzácně a jen 1 segment (škáluje severity).
+  const stormChance = 0.10 + 0.10 * (w.severity || 0); // ~0.10–0.20/měs za bouře
+  if (w.type === 'storm' && Math.random() < stormChance && typeof triggerStormDamage === 'function'){
+    try { triggerStormDamage({ count: 1 }); } catch(e){ console.error('weather storm:', e); }
   }
 }
 
