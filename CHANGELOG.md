@@ -7,6 +7,17 @@ verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Výpadek už nevynuluje příjmy.** Fakturace je měsíční, takže výpadek se
+  neprojeví okamžitou ztrátou celého příjmu. Místo toho se podle **délky výpadku**
+  zákazníci **mohou i nemusí dožadovat vrácení části tarifu** (`outageRefundRate`):
+  - výpadek < 1 den se toleruje (bez refundace);
+  - s délkou roste jak pravděpodobnost, že si o vrácení řeknou, tak jeho výše
+    (pro-rata za dny mimo provoz, strop 60 %);
+  - **UPS** dopad zhruba půlí (udržuje část provozu).
+  - Dny výpadku se sčítají per DC během měsíce; refundace se zúčtuje na konci měsíce.
+- `tests/outagerefund.test.js` — 10 assertů.
+
 ### Fixed
 - **Kabely se ničily příliš často** (regrese po zavedení počasí v 0.5/0.6). Bouře
   zničila 2–5 segmentů a měla 50% měsíční šanci, takže malá síť „nevydržela ani

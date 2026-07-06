@@ -149,7 +149,7 @@ function placeDC(x,y,type){
   const dt=DC_T[type];
   const cost=inflComponentCost(dt.cost);
   if(G.cash<cost){notify(`❌ Chybí ${fmt(cost-G.cash)}!`,'bad');return;}
-  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''}});G.cash-=cost;
+  G.dcs.push({x,y,type,eq:[],eqInstalled:[],bwUpgrades:[],outage:{active:false,remaining:0,cause:''},outageDaysM:0});G.cash-=cost;
   if(typeof recordCapex==='function')recordCapex('dc_build',cost,`${dt.name} @${x},${y}`);
   markCapDirty();
   if(typeof addPulse==='function')addPulse(x,y,dt.color||'#00d4ff');

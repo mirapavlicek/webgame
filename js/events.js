@@ -269,6 +269,26 @@ function checkRandomOutages(){
   }
 }
 
+// Pure: míra refundace tarifu za výpadek (0..~0.6 podílu měsíčního příjmu).
+// Fakturace je měsíční, takže výpadek příjem NEVYNULUJE — ale podle délky se
+// zákazníci mohou (a nemusí) dožadovat vrácení části peněz:
+//   * < 1 den    → tolerováno, žádná refundace
+//   * roste pravděpodobnost i výše s délkou (pro-rata za dny mimo provoz)
+//   * UPS drží část služby → zhruba poloviční dopad
+// rnd() ∈ [0,1) (volitelné) rozhoduje, zda si o vrácení vůbec řeknou.
+function outageRefundRate(outageDays, hasUPS, rnd){
+  rnd = rnd || Math.random;
+  if(!outageDays || outageDays < 1) return 0;      // krátký výpadek se toleruje
+  const monthDays = 30;
+  // Pravděpodobnost dožadování: 1 den ~15 %, 3 dny ~43 %, 7+ dní ~95 %
+  const demandProb = Math.min(0.95, 0.15 + (outageDays - 1) * 0.14);
+  if(rnd() >= demandProb) return 0;                // "nemusí se dožadovat"
+  let rate = Math.min(1, outageDays / monthDays);  // pro-rata podíl výpadku
+  if(hasUPS) rate *= 0.5;                            // UPS = částečný provoz
+  rate = Math.min(0.6, rate * 1.3);                 // mírný goodwill navrch, strop 60 %
+  return rate;
+}
+
 function updateOutages(){
   for(let di=0;di<G.dcs.length;di++){
     const dc=G.dcs[di];
