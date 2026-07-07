@@ -1,5 +1,8 @@
 // ====== RENDERING ======
 let canvas,ctx,mmC,mmX,cArea;
+// Horní HTML lišta (#topBar, 40px) překrývá canvas — HUDy kreslené do
+// canvasu musí začínat až pod ní, jinak se s ní vizuálně perou.
+const HUD_TOP=52;
 // Data flow particles for cable animation
 let cableParticles=[];
 let cableEdges=[]; // polyline edges between nodes — rebuilt each frame
@@ -539,7 +542,7 @@ function render(){
       ctx.save();
       ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
       const bw=ctx.measureText(txt).width+24;
-      const bx=canvas.width/2,by=15;
+      const bx=canvas.width/2,by=HUD_TOP+11;
       ctx.fillStyle=isPeak?'rgba(120,45,12,.80)':'rgba(18,28,58,.72)';
       roundRect(ctx,bx-bw/2,by-10,bw,21,10);ctx.fill();
       ctx.strokeStyle=isPeak?'rgba(255,150,80,.6)':'rgba(120,150,220,.5)';ctx.lineWidth=1;ctx.stroke();
@@ -560,7 +563,7 @@ function render(){
       ctx.save();
       ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
       const tw=ctx.measureText(txt).width+18;
-      const bx=12,by=15;
+      const bx=12,by=HUD_TOP+11;
       ctx.fillStyle='rgba(14,20,34,.78)';
       roundRect(ctx,bx,by-10,tw,21,10);ctx.fill();
       ctx.strokeStyle='rgba(120,150,220,.45)';ctx.lineWidth=1;ctx.stroke();
@@ -574,7 +577,7 @@ function render(){
     let objs=[];try{objs=ensureObjectives();}catch(e){objs=[];}
     if(objs&&objs.length){
       const weatherShown=(typeof currentWeather==='function'&&currentWeather()!=='clear');
-      const px=12, pw=216, lineH=17, top=(weatherShown?34:12);
+      const px=12, pw=216, lineH=17, top=HUD_TOP+(weatherShown?30:0);
       const ph=20+objs.length*lineH;
       ctx.save();
       ctx.fillStyle='rgba(14,20,34,.72)';
