@@ -390,7 +390,7 @@ function buildTariffTable(){
     tr.innerHTML=`<td><input type="checkbox" class="tariff-toggle" ${t.active?'checked':''} ${canUse&&hasEq?'':'disabled'} onchange="G.tariffs[${ti}].active=this.checked;updUI()"></td>`+
       `<td>${t.icon||''}${t.name}${shareTag}${!hasEq?' 🔒':''}</td>`+
       `<td>${t.speed>=1000?(t.speed/1000)+'G':t.speed}</td>`+
-      `<td><input type="number" class="tariff-edit" value="${t.price}" min="99" ${canUse?'':'disabled'} onchange="G.tariffs[${ti}].price=parseInt(this.value)||99;updUI()" style="color:${priceClr}"> Kč</td>`+
+      `<td><input type="number" class="tariff-edit" value="${t.price}" min="29" ${canUse?'':'disabled'} onchange="G.tariffs[${ti}].price=Math.max(29,parseInt(this.value)||29);updUI()" style="color:${priceClr}"> Kč</td>`+
       `<td>${reqHtml}</td>`;
     tbody.appendChild(tr);
 
