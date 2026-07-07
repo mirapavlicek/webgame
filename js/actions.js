@@ -926,6 +926,23 @@ function deprovisionCloud(dcIdx,typeKey){
   notify(`🗑️ ${CLOUD_PRICING[typeKey]?.name||typeKey} odebrán`,'good');updUI();
 }
 
+// Pure: násobitel účtování dynamických (autoscaling) služeb podle vytížení
+// cloudu (0..1). Prázdný cloud = zákazníci škálují dolů (85 % základní ceny),
+// plný cloud = burstují (145 %).
+function dynamicVpsFactor(util){
+  const u=Math.max(0,Math.min(1,util||0));
+  return 0.85+0.6*u;
+}
+
+// Celkové vytížení cloud vCPU napříč všemi DC (0..1).
+function cloudCPUUtil(){
+  let total=0,used=0;
+  for(let di=0;di<(G.dcs||[]).length;di++){
+    const c=getDCCompute(di);total+=c.vCPU;used+=c.usedCPU;
+  }
+  return total>0?used/total:0;
+}
+
 // ====== CLOUD REVENUE CALCULATION ======
 // Zohledňuje: segment demand mix · SLA tier · playerův price multiplier · inflation · reputaci (discount když je špatná).
 function calcCloudRevenue(){
@@ -952,6 +969,8 @@ function calcCloudRevenue(){
 
   // AI služby vynáší jen když má hráč reálně GPU/ASIC hardware v nějakém DC
   const hasAccel=(typeof anyDCHasEq==='function')&&(anyDCHasEq(['eq_gpunode'])||anyDCHasEq(['eq_asicnode']));
+  // Dynamické (autoscaling) služby účtují podle vytížení cloudu
+  const dynF=dynamicVpsFactor(cloudCPUUtil());
 
   for(const seg of CLOUD_SEGMENTS){
     const cs=G.cloudCustomers?.[seg.id];
@@ -962,7 +981,7 @@ function calcCloudRevenue(){
       const cat=cp.cat||'vps';
       if(cat==='ai'&&!hasAccel)continue;
       const demandWeight=seg.demand[cat]||0;
-      if(demandWeight>0)segRevPerCust+=cp.price*demandWeight;
+      if(demandWeight>0)segRevPerCust+=(cp.dynamic?cp.price*dynF:cp.price)*demandWeight;
     }
     rev+=cs.count*segRevPerCust*priceMult*sla.priceMult*infl*repAdj;
   }

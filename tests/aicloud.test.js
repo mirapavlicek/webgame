@@ -84,18 +84,25 @@ console.log('═══ Test 4: AI příjmy jen s GPU/ASIC hardwarem ═══');
     tariffInflation: 1, componentInflation: 1,
   });
   sandbox.G = baseG();
+  const dynF1 = sandbox.dynamicVpsFactor(sandbox.cloudCPUUtil());
   const revNoAccel = sandbox.calcCloudRevenue();
   sandbox.G = baseG();
   sandbox.G.dcs[0].eq.push('eq_gpunode');
+  const dynF2 = sandbox.dynamicVpsFactor(sandbox.cloudCPUUtil());
   const revWithAccel = sandbox.calcCloudRevenue();
   ok(revNoAccel > 0, `příjem bez akcelerátorů > 0 (${revNoAccel})`);
   ok(revWithAccel > revNoAccel, `GPU hardware odemkne AI příjmy (${revWithAccel} > ${revNoAccel})`);
-  // rozdíl odpovídá AI produktům × demand.ai segmentu media (0.25)
+  // rozdíl = AI produkty × demand.ai + posun účtování dynamických služeb
+  // (GPU server přidal vCPU → nižší vytížení → dynamické VPS účtují míň)
   const media = CLOUD_SEGMENTS.find(s => s.id === 'seg_media');
-  let aiPerCust = 0;
-  for (const k in CLOUD_PRICING) { const cp = CLOUD_PRICING[k]; if (cp.cat === 'ai') aiPerCust += cp.price * media.demand.ai; }
-  const expected = Math.round(100 * aiPerCust);
-  ok(Math.abs((revWithAccel - revNoAccel) - expected) <= 2, `rozdíl ≈ AI demand × ceny (${revWithAccel - revNoAccel} vs. ${expected})`);
+  let aiPerCust = 0, dynBasePerCust = 0;
+  for (const k in CLOUD_PRICING) {
+    const cp = CLOUD_PRICING[k];
+    if (cp.cat === 'ai') aiPerCust += cp.price * media.demand.ai;
+    if (cp.dynamic) dynBasePerCust += cp.price * (media.demand[cp.cat || 'vps'] || 0);
+  }
+  const expected = Math.round(100 * (aiPerCust + (dynF2 - dynF1) * dynBasePerCust));
+  ok(Math.abs((revWithAccel - revNoAccel) - expected) <= 2, `rozdíl ≈ AI demand × ceny + Δ dynamiky (${revWithAccel - revNoAccel} vs. ${expected})`);
 }
 
 console.log('═'.repeat(60));
