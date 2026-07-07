@@ -799,6 +799,8 @@ function monthUp(){
   try{if(typeof objectivesMonthlyTick==='function')objectivesMonthlyTick();}catch(e){console.error('objectivesMonthlyTick:',e);}
   // Řídící centrum — prestiž + QoS náklady
   try{if(typeof controlCenterMonthlyTick==='function')controlCenterMonthlyTick();}catch(e){console.error('controlCenterMonthlyTick:',e);}
+  // Burza — ceny akcií, dividendy, zisky vlastněných firem, krachy a IPO
+  try{if(typeof stockMarketMonthlyTick==='function')stockMarketMonthlyTick();}catch(e){console.error('stockMarketMonthlyTick:',e);}
   handleCustomerMigration();
   // Plynulý hromadný upgrade přípojek výjezdovými četami (pokud zapnuto)
   try{if(typeof autoUpgradeTick==='function')autoUpgradeTick();}catch(e){console.error('autoUpgradeTick:',e);}
