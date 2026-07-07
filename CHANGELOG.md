@@ -5,6 +5,27 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] — 2026-07-07
+
+Rozšířené řídící centrum a přehled štěstí lidí.
+
+### Added
+- **😊 Štěstí lidí v řídícím centru.** Nová velká karta: zákaznicky vážený
+  průměr spokojenosti (velký panelák váží víc než prázdný domek), barevný
+  histogram 😊🙂😕😡 podle podílu zákazníků, a **seznam nejméně šťastných
+  budov s diagnózou příčin** — výpadek DC, přetížená trasa, předražený tarif,
+  jen WiFi přípojka, slabé vybavení DC, chybějící služby. Tlačítko „📍 ukázat"
+  zavře centrum a doletí kamerou přímo k budově; tlačítko „🌡️" zapne
+  heatmapu spokojenosti na mapě.
+- **Nové karty řídícího centra:** 💰 Ekonomika (hotovost, příjmy/OpEx/čistý
+  zisk z poslední závěrky), ☁️ Cloud (zákazníci, měsíční příjem, instance,
+  vytížení GPU/ASIC) a 👷 Personál (počty, mzdy, složení týmu).
+- `setHeatmapMode(mode)` — přímé nastavení heatmapy (nejen cyklení tlačítkem).
+
+### Changed
+- **Prestiž nově počítá se zákaznicky váženou spokojeností** — nespokojený
+  panelák se stovkou lidí sráží reputaci víc než jeden prázdný domek.
+
 ## [0.8.1] — 2026-07-06
 
 AI cloud služby a GPU/ASIC servery.

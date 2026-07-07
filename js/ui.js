@@ -1379,6 +1379,7 @@ function updateEditorPanel(){
 
 // ====== ŘÍDÍCÍ CENTRUM (NOC) ======
 function prestigeColor(p){return p>=75?'#3fb950':p>=50?'#f5a524':'#f86963';}
+function satClr(s){return s>=70?'#3fb950':s>=40?'#22d3ee':s>=20?'#f5a524':'#f86963';}
 function prestigeLabel(p){return p>=85?'Špičkový':p>=70?'Výborný':p>=50?'Solidní':p>=30?'Slabý':'Kritický';}
 
 function updatePrestigeHUD(){
@@ -1413,6 +1414,51 @@ function renderControlCenter(){
   h+=`<div style="font-size:11px;color:var(--tx-3);margin-top:5px">${prestigeLabel(p)} — reputace ovlivňuje růst zákazníků a kvalitu nabídek. Udrž síť funkční (uptime, nízká kongesce, spokojenost, dost IP), a poroste.</div>`;
   h+=`</div></div></div>`;
 
+  // Štěstí lidí
+  const hp=(typeof ccHappiness==='function')?ccHappiness(5):null;
+  if(hp&&hp.n>0){
+    const wAvg=Math.round(hp.wAvg);
+    const face=wAvg>=70?'😊':wAvg>=40?'🙂':wAvg>=20?'😕':'😡';
+    h+=`<div class="cc-card cc-span2"><div class="cc-card-h">${face} Štěstí lidí</div>`;
+    h+=`<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">`;
+    h+=`<div style="font-size:30px;font-weight:800;color:${satClr(wAvg)};min-width:60px;text-align:center">${wAvg}</div>`;
+    h+=`<div style="flex:1">`;
+    // Histogram — jeden pruh složený ze 4 barevných segmentů (podíl zákazníků)
+    const tot=Math.max(1,hp.customers);
+    h+=`<div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--bg-2)">`;
+    for(const bk of SAT_BUCKETS){
+      const c=hp.buckets[bk.id].customers;
+      if(c>0)h+=`<div style="width:${(c/tot*100).toFixed(1)}%;background:${bk.clr}" title="${bk.icon} ${bk.name}: ${fmt(c)} zákazníků"></div>`;
+    }
+    h+=`</div>`;
+    h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--tx-3);margin-top:5px">`;
+    for(const bk of SAT_BUCKETS){
+      const b2=hp.buckets[bk.id];
+      h+=`<span>${bk.icon} <b style="color:${bk.clr}">${fmt(b2.customers)}</b> (${b2.blds} budov)</span>`;
+    }
+    h+=`</div>`;
+    h+=`<div style="font-size:10px;color:var(--tx-4);margin-top:3px">Vážený průměr podle zákazníků · prostý průměr budov ${Math.round(hp.avg)} · ${fmt(hp.customers)} zákazníků v ${hp.n} budovách</div>`;
+    h+=`</div></div>`;
+    // Nejméně šťastné budovy s diagnózou a skokem kamery
+    const bad=(hp.worst||[]).filter(w=>w.sat<70);
+    if(bad.length){
+      h+=`<div style="font-size:10px;font-weight:600;color:var(--tx-3);margin-bottom:4px">Nejméně šťastné budovy:</div>`;
+      for(const w of bad){
+        h+=`<div class="cc-inc" style="align-items:flex-start">`;
+        h+=`<span>${w.icon} ${w.name} <b style="color:${satClr(w.sat)}">${w.sat}</b> · ${w.customers} zák.`;
+        if(w.issues.length)h+=`<br><span style="color:var(--tx-4);font-size:10px">${w.issues.join(' · ')}</span>`;
+        else h+=`<br><span style="color:var(--tx-4);font-size:10px">bez zjevné příčiny — spokojenost se buduje časem (server, monitoring, služby)</span>`;
+        h+=`</span>`;
+        h+=`<button onclick="ccFocusBld(${w.x},${w.y})" style="padding:2px 8px;background:var(--bg-2);border:1px solid var(--bd-1);border-radius:6px;color:var(--tx-2);cursor:pointer;font-size:10px;white-space:nowrap">📍 ukázat</button>`;
+        h+=`</div>`;
+      }
+    }else{
+      h+=`<div style="font-size:11px;color:#3fb950">✓ Všechny připojené budovy jsou šťastné (70+).</div>`;
+    }
+    h+=`<div style="margin-top:8px"><button onclick="if(typeof setHeatmapMode==='function'){setHeatmapMode('satisfaction');closeControlCenter();}" style="padding:4px 10px;background:var(--bg-2);border:1px solid var(--bd-1);border-radius:6px;color:var(--tx-2);cursor:pointer;font-size:10px">🌡️ Zobrazit heatmapu štěstí na mapě</button></div>`;
+    h+=`</div>`;
+  }
+
   // Stav sítě
   h+=`<div class="cc-card"><div class="cc-card-h">📊 Stav sítě</div>`;
   h+=ccRow('Uptime',metrics.anyOutage?'⚠️ výpadek':'✓ v provozu',metrics.anyOutage?'#f86963':'#3fb950');
@@ -1420,6 +1466,55 @@ function renderControlCenter(){
   h+=ccRow('Spokojenost',Math.round((metrics.satisfaction01||0)*100)+'%');
   h+=ccRow('Datacentra',(G.dcs||[]).length+'');
   h+=`</div>`;
+
+  // Ekonomika (poslední uzavřený měsíc)
+  const cf=(G.cashflowHist&&G.cashflowHist.length)?G.cashflowHist[G.cashflowHist.length-1]:null;
+  h+=`<div class="cc-card"><div class="cc-card-h">💰 Ekonomika</div>`;
+  h+=ccRow('Hotovost',fmtKc(G.cash),G.cash<0?'#f86963':'var(--tx-1)');
+  if(cf){
+    h+=ccRow('Příjmy (min. měsíc)',fmtKc(cf.rev),'#3fb950');
+    h+=ccRow('OpEx (min. měsíc)',fmtKc(cf.opex),'#f5a524');
+    h+=ccRow('Čistý zisk',fmtKc(cf.netProfit),cf.netProfit>=0?'#3fb950':'#f86963');
+  }else{
+    h+=`<div style="font-size:10px;color:var(--tx-4)">První měsíční závěrka ještě neproběhla.</div>`;
+  }
+  h+=`</div>`;
+
+  // Cloud přehled
+  {
+    let cloudCust=0;
+    for(const sid in (G.cloudCustomers||{}))cloudCust+=(G.cloudCustomers[sid].count||0);
+    let gpu=0,asic=0,usedGPU=0,usedASIC=0;
+    if(typeof getDCAccel==='function')for(let di=0;di<(G.dcs||[]).length;di++){
+      const a=getDCAccel(di);gpu+=a.gpu;asic+=a.asic;usedGPU+=a.usedGPU;usedASIC+=a.usedASIC;
+    }
+    const cRev=(typeof calcCloudRevenue==='function')?calcCloudRevenue():0;
+    h+=`<div class="cc-card"><div class="cc-card-h">☁️ Cloud</div>`;
+    h+=ccRow('Zákazníci',fmt(cloudCust));
+    h+=ccRow('Příjem/měs',fmtKc(cRev),'#3fb950');
+    h+=ccRow('Instance',((G.cloudInstances||[]).reduce((s,ci)=>s+ci.count,0))+'');
+    if(gpu>0||asic>0)h+=ccRow('🎮 GPU / 🎛️ ASIC',`${usedGPU}/${gpu} · ${usedASIC}/${asic}`);
+    else h+=`<div style="font-size:10px;color:var(--tx-4)">Bez GPU/ASIC hardwaru — AI služby nevynáší.</div>`;
+    h+=`</div>`;
+  }
+
+  // Personál
+  {
+    const emps=G.employees||[];
+    let totalStaff=0,staffCost=0;
+    for(const em of emps){totalStaff+=em.count;const st=STAFF_T[em.type];if(st)staffCost+=st.cost*em.count;}
+    h+=`<div class="cc-card"><div class="cc-card-h">👷 Personál</div>`;
+    h+=ccRow('Zaměstnanci',totalStaff+'');
+    h+=ccRow('Mzdy/měs',fmtKc(staffCost),'#f5a524');
+    if(totalStaff>0){
+      const parts=[];
+      for(const em of emps){if(em.count>0){const st=STAFF_T[em.type];if(st)parts.push(`${st.icon}×${em.count}`);}}
+      h+=`<div style="font-size:11px;color:var(--tx-3);margin-top:4px;line-height:1.7">${parts.join(' ')}</div>`;
+    }else{
+      h+=`<div style="font-size:10px;color:var(--tx-4)">Nikdo — najmi lidi v panelu Mgmt.</div>`;
+    }
+    h+=`</div>`;
+  }
 
   // QoS
   h+=`<div class="cc-card"><div class="cc-card-h">🎚️ QoS politika</div>`;

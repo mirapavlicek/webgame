@@ -29,6 +29,16 @@ function cycleHeatmap(){
   if(typeof notify==='function') notify(`🌡️ Heatmap: ${next?lbl:'vypnuto'}`, 'info');
 }
 
+// Přímé nastavení módu (např. z řídícího centra — karta Štěstí lidí).
+function setHeatmapMode(mode){
+  if(!G) return;
+  if(!HEATMAP_MODES.includes(mode)) mode = null;
+  G.heatmapMode = mode;
+  heatmapMode = mode;
+  updateHeatmapButton();
+  if(typeof notify==='function') notify(`🌡️ Heatmap: ${mode?HEATMAP_LABELS[mode]:'vypnuto'}`, 'info');
+}
+
 function updateHeatmapButton(){
   const b = document.getElementById('btnHeatmap');
   if(!b) return;
