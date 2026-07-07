@@ -5,6 +5,27 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.5] — 2026-07-07
+
+Storage do petabajtů, nové servery a dynamické VPS.
+
+### Added
+- **🧊 Storage tiery až do PB.** Nové DC vybavení: **Storage rack (200 TB)**,
+  **Storage pod (1 PB)** a **Datové jezero (4 PB)** — s odpovídající spotřebou
+  (4/14/38 kW). Kapacity se v UI formátují v TB/PB (`fmtTB`).
+- **🗼 Nové servery.** **Server rack** (kvalita +22, 16 vCPU/64 GB) a
+  **Blade šasi** (kvalita +35, 48 vCPU/192 GB) — kombinují kvalitu služeb
+  se základním compute. **Cloud superpod** (512 vCPU / 2 TB RAM) pro
+  hyperscale nabídky.
+- **🌀 Dynamické VPS (autoscaling).** Nová služba `vps_dynamic` a
+  `vps_dynamic_pro` (vyžaduje superpod): účtují podle skutečného vytížení
+  cloudu — prázdný cloud 85 % základní ceny, plný 145 %
+  (`dynamicVpsFactor`). Cloud panel ukazuje aktuální násobitel.
+- **Nové storage služby:** Object Storage **100 TB** a **1 PB**,
+  **Cold Archive 1 PB** (levný ledový archiv), **Block NVMe 100 TB**
+  a **Backup as a Service 50 TB** (vyžaduje Backup).
+- Test `tests/storagecloud.test.js` (25 testů).
+
 ## [0.8.4] — 2026-07-07
 
 Cenové centrum a čitelnější HUD cílů.

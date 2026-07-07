@@ -8,6 +8,7 @@ function updDate(){
 function fmt(n){return new Intl.NumberFormat('cs-CZ').format(Math.round(n));}
 function fmtKc(n){return fmt(n)+' Kč';}
 function fmtBW(n){if(n>=1000000)return(n/1000000).toFixed(1)+' Tbps';if(n>=1000)return(n/1000).toFixed(1)+' Gbps';return n.toFixed(0)+' Mbps';}
+function fmtTB(n){n=n||0;return n>=1000?((n/1000).toFixed(n>=10000?0:1)+' PB'):((Math.round(n*10)/10)+' TB');}
 // refPrice is in capacity.js
 
 // Lightweight stats update — called every day (cheap, no DOM list rebuilds)
@@ -256,7 +257,7 @@ function buildBWList(){
         if(compInfo.vCPU>0)h+=`<div style="font-size:9px;color:#8b949e">☁️ CPU: ${compInfo.usedCPU}/${compInfo.vCPU} vCPU · RAM: ${compInfo.usedRAM}/${compInfo.ram} GB</div>`;
         const accQ=(typeof getDCAccel==='function')?getDCAccel(di):null;
         if(accQ&&(accQ.gpu>0||accQ.asic>0))h+=`<div style="font-size:9px;color:#8b949e">${accQ.gpu>0?`🎮 GPU: ${accQ.usedGPU}/${accQ.gpu}`:''}${accQ.gpu>0&&accQ.asic>0?' · ':''}${accQ.asic>0?`🎛️ ASIC: ${accQ.usedASIC}/${accQ.asic}`:''}</div>`;
-        if(stInfo.total>0)h+=`<div style="font-size:9px;color:#8b949e">💿 Storage: ${stInfo.used.toFixed(1)}/${stInfo.total} TB</div>`;
+        if(stInfo.total>0)h+=`<div style="font-size:9px;color:#8b949e">💿 Storage: ${fmtTB(stInfo.used)}/${fmtTB(stInfo.total)}</div>`;
       }
 
       // Missing critical equipment warnings
@@ -764,6 +765,14 @@ function buildCloudTab(){
   // === Per-DC cloud infrastructure ===
   const dcList=document.getElementById('cloudDCList');
   let dh='';
+  // Indikátor dynamického účtování (autoscaling služby)
+  if(typeof dynamicVpsFactor==='function'&&typeof cloudCPUUtil==='function'){
+    const u=cloudCPUUtil();
+    if(u>0||(G.cloudInstances||[]).some(ci=>CLOUD_PRICING[ci.type]&&CLOUD_PRICING[ci.type].dynamic)){
+      const dynF=dynamicVpsFactor(u);
+      dh+=`<div style="font-size:9px;color:#8b949e;padding:3px 6px;background:#0d1117;border:1px solid #21262d;border-radius:4px;margin-bottom:4px">🌀 Dynamické služby účtují <b style="color:${dynF>=1?'#3fb950':'#f59e0b'}">×${dynF.toFixed(2)}</b> (vytížení cloudu ${Math.round(u*100)} %)</div>`;
+    }
+  }
   const categories={vps:'💻 VPS & GPU',k8s:'🐳 Kubernetes',db:'🗃️ Databáze',s3:'📁 Object Storage',block:'💿 Block Storage',ai:'🤖 AI služby'};
   for(let di=0;di<G.dcs.length;di++){
     const dc=G.dcs[di],dt=DC_T[dc.type];
@@ -778,7 +787,7 @@ function buildCloudTab(){
     // Storage bar
     if(st.total>0){
       const sRatio=st.total>0?st.used/st.total:0;
-      dh+=`<div style="font-size:9px;color:#8b949e">💿 Storage: <b style="color:${sRatio>.9?'#f85149':'#3fb950'}">${st.used.toFixed(1)} / ${st.total} TB</b></div>`;
+      dh+=`<div style="font-size:9px;color:#8b949e">💿 Storage: <b style="color:${sRatio>.9?'#f85149':'#3fb950'}">${fmtTB(st.used)} / ${fmtTB(st.total)}</b></div>`;
       dh+=`<div class="cap-bar"><div class="fill ${sRatio>.9?'crit':sRatio>.7?'warn':'ok'}" style="width:${Math.min(100,sRatio*100)}%"></div></div>`;
     }
 
@@ -833,7 +842,7 @@ function buildCloudTab(){
         if(needsStorage&&st.total-st.used<cp.storageTB)canProvision=false;
         // Check required equipment
         if(cp.reqEq){for(const eq of cp.reqEq){if(!(dc.eq||[]).includes(eq))canProvision=false;}}
-        const info=isCompute?`${cp.vCPU} vCPU · ${cp.ramGB||0}GB`:(cp.storageTB?`${cp.storageTB} TB`:'');
+        const info=isCompute?`${cp.vCPU} vCPU · ${cp.ramGB||0}GB`:(cp.storageTB?fmtTB(cp.storageTB):'');
         dh+=`<button onclick="event.stopPropagation();provisionCloud(${di},'${key}')" style="display:block;width:100%;padding:3px 6px;margin:1px 0;background:#161b22;border:1px solid #21262d;border-radius:4px;color:${canProvision?'#e0e0e0':'#484f58'};cursor:${canProvision?'pointer':'default'};font-size:9px;text-align:left" ${canProvision?'onmouseover="this.style.borderColor=\'#7c3aed\'" onmouseout="this.style.borderColor=\'#21262d\'"':''}>`;
         dh+=`${cp.icon} ${cp.name} · ${info} · ${cp.bwMbps||0} Mbps · <span style="color:#3fb950">${fmtKc(cp.price)}/m</span>`;
         if(cp.desc)dh+=`<br><span style="font-size:9.5px;color:#6e7681">${cp.desc}</span>`;
@@ -1887,7 +1896,7 @@ function renderDCModal(){
     }
     if(stInfo.total>0){
       const stR=stInfo.used/stInfo.total;
-      rh+=`<div style="margin:4px 0">Storage: <b style="color:${stR>.9?'#f85149':'#3fb950'}">${stInfo.used.toFixed(1)}/${stInfo.total} TB</b></div>`;
+      rh+=`<div style="margin:4px 0">Storage: <b style="color:${stR>.9?'#f85149':'#3fb950'}">${fmtTB(stInfo.used)}/${fmtTB(stInfo.total)}</b></div>`;
       rh+=`<div class="cap-bar"><div class="fill ${stR>.9?'crit':stR>.7?'warn':'ok'}" style="width:${Math.min(100,stR*100)}%"></div></div>`;
     }
     const accInfo=(typeof getDCAccel==='function')?getDCAccel(dcModalIdx):{gpu:0,asic:0,usedGPU:0,usedASIC:0};
