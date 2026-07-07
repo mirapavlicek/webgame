@@ -5,6 +5,14 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] — 2026-07-07
+
+### Fixed
+- **HUD cílů už se neschovává pod horní lištou.** Panel „🎯 Cíle", indikátor
+  počasí a indikátor síťové špičky se kreslily od horního okraje canvasu,
+  který překrývá 40px lišta s ovládáním času — první řádky byly nečitelné.
+  Všechny canvas HUDy teď začínají až pod lištou (`HUD_TOP`).
+
 ## [0.8.2] — 2026-07-07
 
 Rozšířené řídící centrum a přehled štěstí lidí.
