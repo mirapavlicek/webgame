@@ -61,8 +61,13 @@ console.log('\u2550\u2550\u2550 Test 3: suggestPrice \u2550\u2550\u2550');
   ok(p.suggestPrice(500, 1.25, 1) === 399, `valorizace 1.25 → nominál 399 (${p.suggestPrice(500, 1.25, 1)})`);
   // cílový poměr 0.9
   ok(p.suggestPrice(1000, 1, 0.9) === 899, `cíl 90 % z ref 1000 → 899 (${p.suggestPrice(1000, 1, 0.9)})`);
-  // nikdy pod 99
-  ok(p.suggestPrice(50, 1, 1) === 99, 'minimum 99 Kč');
+  // nikdy pod cenové dno (29 Kč) — sníženo z 99, aby šly zlevnit staré
+  // tarify s referencí ≈ 99 Kč i při valorizaci
+  ok(p.PRICE_FLOOR === 29, 'cenové dno = 29 Kč');
+  ok(p.suggestPrice(10, 1, 1) === 29, 'minimum 29 Kč');
+  ok(p.suggestPrice(50, 1, 1) === 49, 'ref 50 → 49 (už není zaseklé na 99)');
+  // reálný případ ze hry: ISDN sdílený, ref 99, valorizace 1.29 → 69 (efektivně ~89, pod referencí)
+  ok(p.suggestPrice(99, 1.29, 1) === 79, `ISDN case: ref 99 × infl 1.29 → 79 (${p.suggestPrice(99, 1.29, 1)})`);
   // efektivní cena po valorizaci ≈ ref (±3 %)
   const nom = p.suggestPrice(789, 1.18, 1);
   ok(Math.abs(nom * 1.18 - 789) / 789 < 0.03, `efektivní cena ≈ ref (${(nom * 1.18).toFixed(0)} vs. 789)`);

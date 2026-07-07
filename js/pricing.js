@@ -4,6 +4,11 @@
 // cenu rychle upravit (±5 %, na referenci). Nahoře agreguje zdraví ceníku
 // a příčiny nespokojenosti (z ccHappiness), aby hráč viděl, PROČ klesá.
 
+// Minimální nominální cena tarifu. Dřív 99 Kč — jenže staré pomalé tarify
+// mají referenci ≈ 99 Kč a valorizace nominál násobí, takže i na dně byly
+// „předražené" a nešly zlevnit. 29 Kč dává prostor jít pod referenci.
+const PRICE_FLOOR = 29;
+
 // Pure: slovní + barevné hodnocení poměru cena/reference. Prahy odpovídají
 // mechanice v main.js: růst se láme u 1.1, spokojenost padá od 1.15,
 // churn houstne od 1.4.
@@ -54,7 +59,7 @@ function portfolioPriceHealth(tariffs, counts, refFn, tInfl){
 function suggestPrice(refP, tInfl, targetRatio){
   const infl = tInfl || 1;
   const raw = (refP * (targetRatio == null ? 1 : targetRatio)) / infl;
-  const rounded = Math.max(99, Math.round(raw / 10) * 10 - 1);
+  const rounded = Math.max(PRICE_FLOOR, Math.round(raw / 10) * 10 - 1);
   return rounded;
 }
 
@@ -77,7 +82,7 @@ function tariffCustomerCounts(){
 // Nastavení ceny tarifu z cenového centra (s mezí a překreslením).
 function setTariffPrice(ti, price){
   if (typeof G === 'undefined' || !G || !G.tariffs[ti]) return;
-  G.tariffs[ti].price = Math.max(99, Math.round(price) || 99);
+  G.tariffs[ti].price = Math.max(PRICE_FLOOR, Math.round(price) || PRICE_FLOOR);
   if (typeof renderPricingCenter === 'function') try{ renderPricingCenter(); }catch(e){}
   if (typeof updUI === 'function') updUI();
 }
@@ -162,13 +167,16 @@ function renderPricingCenter(){
     const cust = counts[ti] || 0;
     const shareN = t.share || 1;
     h += `<div style="display:flex;align-items:center;gap:8px;padding:5px 6px;background:var(--bg-2);border-radius:8px;margin:3px 0;${canUse ? '' : 'opacity:.45'}">`;
+    h += `<input type="checkbox" ${t.active ? 'checked' : ''} ${canUse ? '' : 'disabled'} onchange="G.tariffs[${ti}].active=this.checked;renderPricingCenter();updUI()" title="Nabízet tarif zákazníkům" style="accent-color:#7c3aed">`;
     h += `<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:var(--tx-1)">${t.icon || ''} ${t.name} <span style="color:${shareN > 1 ? '#f5a524' : '#3fb950'};font-size:9px">${shareN > 1 ? '1:' + shareN : 'G'}</span>${canUse ? '' : ' 🔒'}</div>`;
-    h += `<div style="font-size:9.5px;color:var(--tx-4)">${t.speed >= 1000 ? (t.speed / 1000) + ' Gbps' : t.speed + ' Mbps'} · ${fmt(cust)} zák. · ref ${fmtKc(rp)} · <span style="color:${eff.clr}">${eff.label}</span></div></div>`;
+    let legacyNote = '';
+    if (t.price <= PRICE_FLOOR && ratio > 1.1) legacyNote = ` · <span style="color:#f5a524">na cenovém dně — starý tarif, zvaž vypnutí</span>`;
+    h += `<div style="font-size:9.5px;color:var(--tx-4)">${t.speed >= 1000 ? (t.speed / 1000) + ' Gbps' : t.speed + ' Mbps'} · ${fmt(cust)} zák. · ref ${fmtKc(rp)} · <span style="color:${eff.clr}">${eff.label}</span>${legacyNote}</div></div>`;
     // Poměrový bar (50–220 %)
     const barPct = Math.max(0, Math.min(100, (ratio - 0.5) / 1.7 * 100));
     h += `<div style="width:64px" title="${Math.round(ratio * 100)} % reference"><div style="height:6px;border-radius:3px;background:var(--bg-0);overflow:hidden"><div style="width:${barPct}%;height:100%;background:${eff.clr}"></div></div>`;
     h += `<div style="font-size:9px;color:${eff.clr};text-align:center;font-weight:700">${Math.round(ratio * 100)} %</div></div>`;
-    h += `<input type="number" value="${t.price}" min="99" ${canUse ? '' : 'disabled'} onchange="setTariffPrice(${ti},parseInt(this.value)||99)" style="width:70px;padding:3px 6px;background:var(--bg-0);border:1px solid var(--bd-1);border-radius:6px;color:${eff.clr};font-size:11px;font-weight:600;text-align:right"> <span style="font-size:10px;color:var(--tx-4)">Kč</span>`;
+    h += `<input type="number" value="${t.price}" min="29" ${canUse ? '' : 'disabled'} onchange="setTariffPrice(${ti},parseInt(this.value)||29)" style="width:70px;padding:3px 6px;background:var(--bg-0);border:1px solid var(--bd-1);border-radius:6px;color:${eff.clr};font-size:11px;font-weight:600;text-align:right"> <span style="font-size:10px;color:var(--tx-4)">Kč</span>`;
     h += `<button onclick="nudgeTariffPrice(${ti},-0.05)" ${canUse ? '' : 'disabled'} style="padding:3px 7px;background:var(--bg-0);border:1px solid var(--bd-1);border-radius:6px;color:var(--tx-2);cursor:pointer;font-size:10px" title="Zlevnit o 5 %">−5 %</button>`;
     h += `<button onclick="nudgeTariffPrice(${ti},0.05)" ${canUse ? '' : 'disabled'} style="padding:3px 7px;background:var(--bg-0);border:1px solid var(--bd-1);border-radius:6px;color:var(--tx-2);cursor:pointer;font-size:10px" title="Zdražit o 5 %">+5 %</button>`;
     h += `<button onclick="setTariffPrice(${ti},suggestPrice(${rp},${tInfl},1))" ${canUse ? '' : 'disabled'} style="padding:3px 7px;background:var(--bg-0);border:1px solid ${ratio > 1.15 ? '#3fb950' : 'var(--bd-1)'};border-radius:6px;color:${ratio > 1.15 ? '#3fb950' : 'var(--tx-2)'};cursor:pointer;font-size:10px" title="Nastavit na referenční cenu (${fmtKc(rp)} efektivně)">ref</button>`;
@@ -181,5 +189,5 @@ function renderPricingCenter(){
 }
 
 if (typeof module !== 'undefined' && module.exports){
-  module.exports = { priceEffectLabel, portfolioPriceHealth, suggestPrice };
+  module.exports = { priceEffectLabel, portfolioPriceHealth, suggestPrice, PRICE_FLOOR };
 }

@@ -5,6 +5,17 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] — 2026-07-07
+
+### Fixed
+- **Staré tarify nešly zlevnit.** Minimální cena tarifu byla 99 Kč — jenže
+  třeba ISDN sdílený 1:10 má referenci ≈ 99 Kč a valorizace nominál násobí,
+  takže i na dně ukazoval 129 % a „dražší — klesá spokojenost". Cenové dno
+  je nově **29 Kč** (cenové centrum, tabulka tarifů i tlačítko „ref").
+- Cenové centrum: u tarifu na dně s poměrem přes 110 % se ukáže hint
+  „starý tarif, zvaž vypnutí" a přibyl **přepínač aktivace tarifu** přímo
+  v řádku — legacy tarify jde vypnout bez přepínání do záložky Tarify.
+
 ## [0.8.7] — 2026-07-07
 
 Tvrdší AI konkurence na vyšších obtížnostech.
