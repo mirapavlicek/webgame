@@ -201,6 +201,8 @@ const EQ={
   eq_storage_big:{name:'Enterprise storage',cost:180000,mCost:4000,eff:'storage',val:100,icon:'🗄️',storageTB:50},
   eq_cloudnode:{name:'Cloud uzel',cost:95000,mCost:2500,eff:'cloud',val:0,icon:'☁️',vCPU:32,ramGB:128},
   eq_cloudnode_big:{name:'Cloud cluster',cost:280000,mCost:7000,eff:'cloud',val:0,icon:'🌩️',vCPU:128,ramGB:512},
+  eq_gpunode:{name:'GPU server (8× GPU)',cost:450000,mCost:9000,eff:'cloud',val:0,icon:'🎮',vCPU:64,ramGB:256,gpu:8,desc:'Server s grafikami pro AI trénink/inference a rendering. Žere hodně energie.'},
+  eq_asicnode:{name:'ASIC akcelerátor (16× NPU)',cost:380000,mCost:5500,eff:'cloud',val:0,icon:'🎛️',vCPU:8,ramGB:32,asic:16,desc:'Specializované ASIC/NPU čipy — levná masová AI inference, výborná efektivita na watt.'},
   eq_bgprouter:{name:'BGP router 100G',cost:45000,mCost:1000,eff:'routing',val:0,icon:'🔀',bgpCap:100000,desc:'Sdílí BW mezi propojenými DC. Max 100 Gbps na router.'},
   eq_bgprouter_400:{name:'BGP router 400G',cost:140000,mCost:3200,eff:'routing',val:0,icon:'🔀',bgpCap:400000,desc:'Výkonnější BGP směrování. Max 400 Gbps na router.'},
   eq_bgprouter_1t:{name:'BGP router 1T',cost:320000,mCost:7000,eff:'routing',val:0,icon:'🧭',bgpCap:1000000,desc:'Terabitová třída. Max 1 Tbps na router.'},
@@ -314,6 +316,10 @@ const CLOUD_PRICING={
   storage_basic:{name:'Block Storage 1TB',storageTB:1,price:199,mCost:35,icon:'💿',cat:'block',bwMbps:10},
   storage_premium:{name:'Block SSD 5TB',storageTB:5,price:799,mCost:160,icon:'🗄️',cat:'block',bwMbps:30},
   storage_enterprise:{name:'Block NVMe 20TB',storageTB:20,price:2499,mCost:540,icon:'📦',cat:'block',bwMbps:80},
+  // ====== AI služby (vyžadují GPU/ASIC servery v DC) ======
+  ai_inference:{name:'AI Inference API',vCPU:4,ramGB:16,storageTB:0.1,price:3999,mCost:900,icon:'🤖',cat:'ai',bwMbps:150,gpu:1,reqEq:['eq_gpunode'],desc:'Hostovaná inference LLM/vision modelů na GPU.'},
+  ai_training:{name:'AI Training (GPU hodiny)',vCPU:16,ramGB:128,storageTB:1,price:12999,mCost:4200,icon:'🧠',cat:'ai',bwMbps:400,gpu:4,reqEq:['eq_gpunode'],desc:'Vyhrazené GPU pro trénink modelů. Prémiová marže.'},
+  ai_asic_inference:{name:'AI Inference ASIC',vCPU:2,ramGB:8,storageTB:0.05,price:2499,mCost:450,icon:'🎛️',cat:'ai',bwMbps:100,asic:2,reqEq:['eq_asicnode'],desc:'Levná masová inference na specializovaných čipech.'},
 };
 
 // SLA tiers for cloud products
@@ -326,19 +332,19 @@ const SLA_TIERS=[
 
 // Cloud customer segments — who orders cloud services and how much
 const CLOUD_SEGMENTS=[
-  {id:'seg_startup',name:'Startupy',icon:'🚀',demand:{vps:.35,k8s:.10,db:.20,s3:.15,block:.05},
+  {id:'seg_startup',name:'Startupy',icon:'🚀',demand:{vps:.35,k8s:.10,db:.20,s3:.15,block:.05,ai:.10},
     growthBase:.08,churnBase:.04,priceSens:1.3,slaPref:'sla_basic',
     desc:'Cenově citliví, rychlý růst, často odcházejí'},
-  {id:'seg_smb',name:'Malé firmy',icon:'🏪',demand:{vps:.25,k8s:.05,db:.25,s3:.20,block:.15},
+  {id:'seg_smb',name:'Malé firmy',icon:'🏪',demand:{vps:.25,k8s:.05,db:.25,s3:.20,block:.15,ai:.03},
     growthBase:.06,churnBase:.025,priceSens:1.1,slaPref:'sla_standard',
     desc:'Stabilní, preferují standard SLA'},
-  {id:'seg_enterprise',name:'Korporáty',icon:'🏢',demand:{vps:.15,k8s:.25,db:.15,s3:.10,block:.10},
+  {id:'seg_enterprise',name:'Korporáty',icon:'🏢',demand:{vps:.15,k8s:.25,db:.15,s3:.10,block:.10,ai:.12},
     growthBase:.03,churnBase:.01,priceSens:0.7,slaPref:'sla_premium',
     desc:'Nízký churn, vyžadují kvalitu a SLA'},
-  {id:'seg_devops',name:'DevOps týmy',icon:'👩‍💻',demand:{vps:.10,k8s:.40,db:.15,s3:.10,block:.05},
+  {id:'seg_devops',name:'DevOps týmy',icon:'👩‍💻',demand:{vps:.10,k8s:.40,db:.15,s3:.10,block:.05,ai:.08},
     growthBase:.07,churnBase:.03,priceSens:1.0,slaPref:'sla_standard',
     desc:'K8s nadšenci, střední cenová citlivost'},
-  {id:'seg_media',name:'Média & AI',icon:'🎬',demand:{vps:.10,k8s:.15,db:.05,s3:.30,block:.15},
+  {id:'seg_media',name:'Média & AI',icon:'🎬',demand:{vps:.10,k8s:.15,db:.05,s3:.30,block:.15,ai:.25},
     growthBase:.05,churnBase:.02,priceSens:0.8,slaPref:'sla_premium',
     desc:'Velké storage, GPU pro AI, nízká cenová citlivost'},
 ];

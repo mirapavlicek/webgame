@@ -5,6 +5,29 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] — 2026-07-06
+
+AI cloud služby a GPU/ASIC servery.
+
+### Added
+- **🤖 AI cloud služby.** Nová kategorie cloud produktů „AI služby":
+  **AI Inference API** (🤖 3 999 Kč/m, 1 GPU), **AI Training / GPU hodiny**
+  (🧠 12 999 Kč/m, 4 GPU) a **AI Inference ASIC** (🎛️ 2 499 Kč/m, 2 ASIC).
+  Všechny cloud segmenty mají nově poptávku po AI — nejvíc „Média & AI" (25 %)
+  a korporáty (12 %). **AI příjmy tečou jen když má hráč reálně GPU/ASIC
+  hardware v nějakém DC** — bez něj se AI kategorie do tržeb nepočítá.
+- **🎮 GPU server (8× GPU).** Nové DC vybavení (450 000 Kč, 9 000 Kč/m,
+  64 vCPU + 256 GB RAM + 8 GPU) — servery s grafikami pro AI trénink,
+  inference a rendering. Žere hodně energie (12 kW).
+- **🎛️ ASIC akcelerátor (16× NPU).** Specializované čipy pro levnou masovou
+  AI inferenci (380 000 Kč, 5 500 Kč/m, 16 ASIC, jen 4,5 kW) — výborná
+  efektivita na watt, ale umí jen inference.
+- **Kapacita akcelerátorů.** Nová metrika GPU/ASIC vedle vCPU/RAM/storage:
+  provisioning AI instancí kontroluje volné GPU/ASIC v konkrétním DC
+  (`getDCAccel`), cloud panel i detail DC ukazují bar 🎮 GPU a 🎛️ ASIC.
+- Test `tests/aicloud.test.js` (17 testů) — konstanty, kapacita akcelerátorů,
+  provisioning s limity a gating AI příjmů.
+
 ## [0.8.0] — 2026-07-06
 
 Velký závod, BGP overflow, posílené LB, vodní DC, správce cloudu, instalační
