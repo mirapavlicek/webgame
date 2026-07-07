@@ -52,6 +52,41 @@ console.log('\u2550\u2550\u2550 Test 4: neznámá úroveň \u2550\u2550\u2550');
   ok(u.growth === 1 && u.incident === 1 && u.cost === 1, 'neznámé → normál');
 }
 
+console.log('\u2550\u2550\u2550 Test 5: competitorMods \u2550\u2550\u2550');
+{
+  const n = d.competitorMods('normal'), h = d.competitorMods('heavy'), hc = d.competitorMods('hardcore');
+  ok(n.count === 3 && h.count === 4 && hc.count === 5, 'počet soupeřů 3/4/5');
+  ok(n.aggr === 1 && h.aggr > 1 && hc.aggr > h.aggr, 'agresivita roste s obtížností');
+  ok(n.poach === 0 && h.poach > 0 && hc.poach > h.poach, 'poaching jen na vyšších obtížnostech');
+  ok(!n.entry && h.entry && hc.entry, 'vstup nových AI jen na heavy/hardcore');
+  ok(n.maxDcs < h.maxDcs && h.maxDcs < hc.maxDcs, 'strop expanze roste');
+  ok(hc.cash > h.cash && h.cash > n.cash, 'startovní kapitál roste');
+  ok(d.competitorMods('nesmysl').count === 3, 'neznámé → normál');
+}
+
+console.log('\u2550\u2550\u2550 Test 6: priceWarPrice \u2550\u2550\u2550');
+{
+  ok(d.priceWarPrice(600, 500, 200) === 390, 'podstřelí hráče o 22 % (500→390)');
+  ok(d.priceWarPrice(300, 500, 200) === 300, 'když už je levnější, nezdražuje');
+  ok(d.priceWarPrice(600, 500, 450) === 450, 'nikdy pod margin floor');
+}
+
+console.log('\u2550\u2550\u2550 Test 7: poachPct \u2550\u2550\u2550');
+{
+  ok(approx(d.poachPct(0.004, 1.5, 55), 0.006), 'base × aggr (0.004×1.5)');
+  ok(approx(d.poachPct(0.004, 1.5, 75), 0.003), 'prestiž 70+ půlí poaching');
+  ok(d.poachPct(0, 2, 30) === 0, 'normál (base 0) → 0');
+}
+
+console.log('\u2550\u2550\u2550 Test 8: shouldCompetitorEnter \u2550\u2550\u2550');
+{
+  ok(d.shouldCompetitorEnter(true, 3, 4, 0.7, 0.05) === true, 'dominance + volné místo + šťastný los → vstup');
+  ok(d.shouldCompetitorEnter(true, 3, 4, 0.7, 0.5) === false, 'los 0.5 > 8 % šance → nevstoupí');
+  ok(d.shouldCompetitorEnter(false, 3, 4, 0.9, 0.01) === false, 'normál (entry=false) → nikdy');
+  ok(d.shouldCompetitorEnter(true, 5, 4, 0.9, 0.01) === false, 'plno (count ≥ max+1) → nevstoupí');
+  ok(d.shouldCompetitorEnter(true, 3, 4, 0.5, 0.01) === false, 'hráč nedominuje (≤60 %) → nevstoupí');
+}
+
 console.log('\u2550'.repeat(60));
 if (fail === 0) { console.log(`\u2705 V\u0160ECHNY TESTY PRO\u0160LY: ${pass}/${pass}`); process.exit(0); }
 else { console.log(`\u274c SELHALO: ${fail}, pro\u0161lo: ${pass}`); process.exit(1); }

@@ -1473,6 +1473,11 @@ function aiCompetitorTick(){
   const totalPop=getTotalPop();
   const marketCap=Math.floor(totalPop*0.6); // saturation point
 
+  // Parametry podle obtížnosti — na heavy/hardcore hraje AI tvrději
+  const cm=(typeof competitorMods==='function')?competitorMods(G.difficulty):{count:3,aggr:1,cash:1,priceWar:1,poach:0,entry:false,maxDcs:8};
+  const totalAiCust=G.competitors.reduce((s,c)=>s+(c.customers||0),0);
+  const globalPlayerShare=totalPlayerCust/Math.max(1,totalPlayerCust+totalAiCust);
+
   for(const ai of G.competitors){
     if(!ai.strategy)ai.strategy=Math.random()<0.3?'premium':Math.random()<0.6?'budget':'balanced';
     if(ai.avgPrice===undefined)ai.avgPrice=500;
@@ -1480,6 +1485,8 @@ function aiCompetitorTick(){
     if(ai.tariffInflation===undefined)ai.tariffInflation=1.0;
     if(ai.targetMargin===undefined)ai.targetMargin=ai.strategy==='premium'?0.28:ai.strategy==='budget'?0.10:0.18;
     if(ai.lastMonthMargin===undefined)ai.lastMonthMargin=ai.targetMargin;
+    // Efektivní agresivita — na heavy/hardcore hraje AI výrazně tvrději
+    const effAggr=(ai.aggression||0.5)*cm.aggr;
 
     // === PRICING — marginal cost + target margin model, s anchor na koncovou cenu trhu ===
     // Marginal cost per customer na provoz AI je ovlivněn inflací mezd + HW (~ 60/40 mix).
@@ -1500,6 +1507,16 @@ function aiCompetitorTick(){
     // Small monthly adjustment per mood (±3%)
     if(ai.pricingMood===1)desiredPrice*=1.03;
     else if(ai.pricingMood===-1)desiredPrice*=0.97;
+
+    // === CENOVÁ VÁLKA (heavy/hardcore) — budget AI podstřelí dominantního hráče ===
+    if(ai.warMonths>0){
+      desiredPrice=(typeof priceWarPrice==='function')?priceWarPrice(desiredPrice,playerAvgPrice,marginFloor):desiredPrice;
+      ai.warMonths--;
+      if(ai.warMonths===0)notify(`🕊️ ${ai.name} ukončil cenovou válku`,'info');
+    }else if(cm.priceWar>1&&ai.strategy==='budget'&&globalPlayerShare>0.55&&Math.random()<0.06*cm.priceWar){
+      ai.warMonths=6;
+      notify(`⚔️ ${ai.name} vyhlásil CENOVOU VÁLKU — podstřeluje tvoje ceny o 22 %!`,'bad');
+    }
 
     // Tvrdé stropy a podlahy škálované inflací
     const absMax=1500*tInfl, absMin=150*sInfl;
@@ -1526,8 +1543,8 @@ function aiCompetitorTick(){
     const smallDcCost=Math.round(250000*cInfl);
     const bigDcCost=Math.round(350000*cInfl);
     const wantDc=capacityPressure>0.80 || (ai.dcs.length<3 && ai.cash>smallDcCost*1.5);
-    const expansionRoll=Math.random()<(capacityPressure>0.85?0.45:0.12)*ai.aggression;
-    if(wantDc&&expansionRoll&&ai.dcs.length<8){
+    const expansionRoll=Math.random()<(capacityPressure>0.85?0.45:0.12)*effAggr;
+    if(wantDc&&expansionRoll&&ai.dcs.length<cm.maxDcs){
       const goBig=ai.strategy==='premium'&&ai.cash>bigDcCost;
       const cost=goBig?bigDcCost:smallDcCost;
       if(ai.cash>cost){
@@ -1544,7 +1561,7 @@ function aiCompetitorTick(){
     const capacity=ai.dcs.length*perDcCapacity;
     const freeMarket=Math.max(0,marketCap-totalPlayerCust-ai.customers);
     if(ai.customers<capacity&&freeMarket>0){
-      let growthBase=ai.aggression*4*(1+ai.dcs.length*0.5);
+      let growthBase=effAggr*4*(1+ai.dcs.length*0.5);
       if(priceAdvantage>1.1)growthBase*=1.5;
       if(priceAdvantage>1.25)growthBase*=1.8;
       if(playerShare>0.7)growthBase*=0.6;
@@ -1557,7 +1574,7 @@ function aiCompetitorTick(){
     // === PRICE COMPETITION — AI cheaper → churn for player ===
     if(ai.avgPrice<playerAvgPrice*0.9){
       const diff=playerAvgPrice/ai.avgPrice-1;
-      const churnPct=Math.min(0.02,diff*0.04*ai.aggression);
+      const churnPct=Math.min(0.02*cm.priceWar,diff*0.04*effAggr);
       if(Math.random()<0.4)churn(churnPct);
       if(Math.random()<.08){
         notify(`📉 ${ai.name} snížil ceny (${fmtKc(ai.avgPrice)}/měs) — odcházejí zákazníci!`,'bad');
@@ -1567,6 +1584,17 @@ function aiCompetitorTick(){
     if(playerAvgPrice<ai.avgPrice*0.85&&ai.customers>10){
       const loss=Math.floor(ai.customers*0.01);
       ai.customers=Math.max(0,ai.customers-loss);
+    }
+
+    // === POACHING (heavy/hardcore) — AI přetahuje zákazníky marketingem,
+    // i když není levnější. Vysoká prestiž hráče (70+) dopad půlí.
+    if(cm.poach>0&&ai.customers<capacity&&totalPlayerCust>50){
+      const pp=(typeof poachPct==='function')?poachPct(cm.poach,effAggr,G.prestige||55):0;
+      if(pp>0&&Math.random()<0.5){
+        if(typeof churn==='function')churn(pp);
+        ai.customers=Math.min(capacity,ai.customers+Math.max(1,Math.floor(totalPlayerCust*pp*0.5)));
+        if(Math.random()<.06)notify(`🎯 ${ai.name} přetahuje tvoje zákazníky agresivním marketingem!`,'bad');
+      }
     }
 
     // Natural churn
@@ -1615,6 +1643,21 @@ function aiCompetitorTick(){
 
   // Clean out bankrupt competitors after redistribution
   G.competitors=G.competitors.filter(ai=>!ai.bankrupt);
+
+  // ====== VSTUP NOVÉHO KONKURENTA (heavy/hardcore) ======
+  // Když hráč dominuje trhu (>60 %), láká to nové hráče — trh se brání.
+  if(typeof shouldCompetitorEnter==='function'&&shouldCompetitorEnter(cm.entry,G.competitors.length,cm.count,globalPlayerShare)){
+    const usedNames=new Set(G.competitors.map(a=>a.name));
+    const name=AI_NAMES.find(n=>!usedNames.has(n))||('NetRival '+(G.competitors.length+1));
+    const strat=Math.random()<0.5?'budget':'balanced';
+    G.competitors.push({
+      name,color:AI_COLORS[G.competitors.length%AI_COLORS.length],
+      cash:Math.round(500000*cm.cash*cInfl),dcs:[],cables:[],customers:0,satisfaction:50,
+      tariffIdx:0,aggression:.4+Math.random()*.4,strategy:strat,avgPrice:450,pricingMood:0,
+      tariffInflation:tInfl,targetMargin:strat==='budget'?0.10:0.18,lastMonthMargin:0.15,
+    });
+    notify(`🚨 Nový konkurent vstoupil na trh: ${name}! Přilákal ho tvůj podíl ${Math.round(globalPlayerShare*100)} %`,'bad');
+  }
 
   // ====== ANNOUNCEMENTS ======
   // Once per month, chance a competitor announces a strategic move
@@ -1746,7 +1789,7 @@ function getMarketShareData(){
   const result=[player];
   if(G.competitorsEnabled&&G.competitors){
     for(const ai of G.competitors){
-      result.push({name:ai.name,color:ai.color,customers:ai.customers,cash:ai.cash,strategy:ai.strategy,avgPrice:ai.avgPrice,isPlayer:false});
+      result.push({name:ai.name,color:ai.color,customers:ai.customers,cash:ai.cash,strategy:ai.strategy,avgPrice:ai.avgPrice,warMonths:ai.warMonths||0,isPlayer:false});
     }
   }
   const total=result.reduce((s,r)=>s+r.customers,0)||1;
