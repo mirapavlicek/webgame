@@ -3,6 +3,15 @@ let canvas,ctx,mmC,mmX,cArea;
 // Horní HTML lišta (#topBar, 40px) překrývá canvas — HUDy kreslené do
 // canvasu musí začínat až pod ní, jinak se s ní vizuálně perou.
 const HUD_TOP=52;
+// Kompaktní Kč formát pro canvas HUD (48k, 1,2M) — plné částky se do panelu
+// cílů nevejdou a překrývaly by popisek.
+function hudKc(n){
+  n=Math.round(n||0);
+  const a=Math.abs(n);
+  if(a>=1e6)return(n/1e6).toLocaleString('cs-CZ',{maximumFractionDigits:1})+'M';
+  if(a>=1e3)return Math.round(n/1e3)+'k';
+  return String(n);
+}
 // Data flow particles for cable animation
 let cableParticles=[];
 let cableEdges=[]; // polyline edges between nodes — rebuilt each frame
@@ -577,9 +586,26 @@ function render(){
     let objs=[];try{objs=ensureObjectives();}catch(e){objs=[];}
     if(objs&&objs.length){
       const weatherShown=(typeof currentWeather==='function'&&currentWeather()!=='clear');
-      const px=12, pw=216, lineH=17, top=HUD_TOP+(weatherShown?30:0);
+      const px=12, lineH=17, top=HUD_TOP+(weatherShown?30:0);
       const ph=20+objs.length*lineH;
       ctx.save();
+      ctx.font='11px sans-serif';
+      // Předpočítej řádky a šířku panelu — dlouhé peněžní cíle se do fixní
+      // šířky nevešly a text se překrýval. Kompaktní Kč formát (50k, 1,2M).
+      const rows=[];
+      let maxW=120;
+      for(let i=0;i<objs.length;i++){
+        const o=objs[i];
+        const prog=objectiveProgress(o,G),done=prog>=o.target;
+        let pStr;
+        if(o.type==='profit'||o.type==='cash')pStr=hudKc(prog)+' / '+hudKc(o.target)+' Kč';
+        else pStr=Math.min(Math.round(prog),o.target)+' / '+o.target;
+        const desc=`${o.icon||'•'} ${o.desc}`;
+        const w=ctx.measureText(desc).width+ctx.measureText(pStr).width+34;
+        if(w>maxW)maxW=w;
+        rows.push({desc,pStr,done});
+      }
+      const pw=Math.min(340,Math.max(216,Math.ceil(maxW)));
       ctx.fillStyle='rgba(14,20,34,.72)';
       roundRect(ctx,px,top,pw,ph,9);ctx.fill();
       ctx.strokeStyle='rgba(120,150,220,.35)';ctx.lineWidth=1;ctx.stroke();
@@ -587,17 +613,13 @@ function render(){
       ctx.font='bold 11px sans-serif';ctx.fillStyle='#a9b6d6';
       ctx.fillText('🎯 Cíle',px+9,top+11);
       ctx.font='11px sans-serif';
-      for(let i=0;i<objs.length;i++){
-        const o=objs[i],y=top+24+i*lineH;
-        const prog=objectiveProgress(o,G),done=prog>=o.target;
-        let pStr;
-        if(o.type==='profit'||o.type==='cash')pStr=(typeof fmtKc==='function'?fmtKc(Math.round(prog)):Math.round(prog))+' / '+(typeof fmtKc==='function'?fmtKc(o.target):o.target);
-        else pStr=Math.min(Math.round(prog),o.target)+' / '+o.target;
+      for(let i=0;i<rows.length;i++){
+        const r=rows[i],y=top+24+i*lineH;
         ctx.fillStyle='#cdd6f4';
-        ctx.fillText(`${o.icon||'•'} ${o.desc}`,px+9,y);
+        ctx.fillText(r.desc,px+9,y);
         ctx.textAlign='right';
-        ctx.fillStyle=done?'#3fb950':'#8b949e';
-        ctx.fillText(pStr,px+pw-9,y);
+        ctx.fillStyle=r.done?'#3fb950':'#8b949e';
+        ctx.fillText(r.pStr,px+pw-9,y);
         ctx.textAlign='left';
       }
       ctx.restore();

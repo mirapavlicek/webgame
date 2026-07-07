@@ -169,6 +169,13 @@ function ccHappiness(maxWorst){
   }
   all.sort((a, b) => a.sat - b.sat);
   const bd = satBreakdownFromList(list);
+  // Agregace příčin přes všechny budovy — kolika zákazníků se každý problém
+  // týká (pro „proč klesá spokojenost" v cenovém/řídícím centru)
+  bd.issueCust = {};
+  for (const wb of all){
+    for (const s of diagnoseSatIssues(wb.f))
+      bd.issueCust[s.replace(/\s*\([^)]*\)/, '')] = (bd.issueCust[s.replace(/\s*\([^)]*\)/, '')] || 0) + Math.max(1, wb.customers);
+  }
   bd.worst = all.slice(0, maxWorst).map(wb => ({
     x: wb.x, y: wb.y, sat: Math.round(wb.sat), customers: wb.customers,
     name: (typeof BTYPES !== 'undefined' && BTYPES[wb.type] && BTYPES[wb.type].name) || wb.type,
