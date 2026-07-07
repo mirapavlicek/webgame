@@ -1209,7 +1209,8 @@ function buildMarketShareDisplay(){
     const pct=(r.share*100).toFixed(1);
     const you=r.isPlayer?' 👤':'';
     const priceInfo=r.isPlayer?'':(r.avgPrice?` · ⌀ ${fmtKc(Math.round(r.avgPrice))}`:'');
-    const strategyBadge=r.strategy?({budget:'💰 Nízké ceny',premium:'💎 Premium',balanced:'⚖️ Vyvážená'}[r.strategy]||''):'';
+    let strategyBadge=r.strategy?({budget:'💰 Nízké ceny',premium:'💎 Premium',balanced:'⚖️ Vyvážená'}[r.strategy]||''):'';
+    if(!r.isPlayer&&r.warMonths>0)strategyBadge+=` <span style="color:#f85149;font-weight:700">⚔️ cenová válka (${r.warMonths} měs.)</span>`;
     h+=`<div style="display:flex;align-items:center;padding:4px 6px;margin:2px 0;background:#0d1117;border:1px solid ${r.isPlayer?'#7c3aed':'#21262d'};border-radius:4px;font-size:10px">`;
     h+=`<span style="display:inline-block;width:10px;height:10px;background:${r.color};border-radius:2px;margin-right:6px"></span>`;
     h+=`<span style="flex:1;color:${r.isPlayer?'#fff':'#8b949e'};font-weight:${r.isPlayer?'700':'400'}">${r.name}${you}</span>`;

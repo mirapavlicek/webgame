@@ -300,12 +300,17 @@ function startNewGame(){
   const compCb=document.getElementById('inputCompetitors');
   if(compCb&&compCb.checked){
     G.competitorsEnabled=true;
-    G.competitors=AI_NAMES.slice(0,3).map((name,i)=>{
-      const strat=Math.random()<0.3?'premium':Math.random()<0.6?'budget':'balanced';
+    // Vyšší obtížnost = víc soupeřů, agresivnějších a bohatších
+    const cm=(typeof competitorMods==='function')?competitorMods(G.difficulty):{count:3,aggr:1,cash:1};
+    G.competitors=AI_NAMES.slice(0,cm.count).map((name,i)=>{
+      // Na heavy/hardcore je první AI vždy „korporátní žralok" (premium, extra kapitál)
+      const shark=(i===0&&cm.aggr>1);
+      const strat=shark?'premium':(Math.random()<0.3?'premium':Math.random()<0.6?'budget':'balanced');
       const targetMargin=strat==='premium'?0.28:strat==='budget'?0.10:0.18;
       return{
-        name,color:AI_COLORS[i],cash:300000,dcs:[],cables:[],customers:0,satisfaction:50,
-        tariffIdx:0,aggression:.3+Math.random()*.4,
+        name,color:AI_COLORS[i%AI_COLORS.length],cash:Math.round(300000*cm.cash*(shark?1.5:1)),
+        dcs:[],cables:[],customers:0,satisfaction:50,
+        tariffIdx:0,aggression:.3+Math.random()*.4+(shark?.15:0),
         strategy:strat,avgPrice:500,pricingMood:0,
         tariffInflation:1.0,targetMargin,lastMonthMargin:targetMargin,
       };

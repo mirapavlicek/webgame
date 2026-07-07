@@ -5,6 +5,32 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] — 2026-07-07
+
+Tvrdší AI konkurence na vyšších obtížnostech.
+
+### Added
+- **🏢 AI konkurenti škálují s obtížností** (`competitorMods`):
+  - **Normál**: 3 soupeři, chování beze změny.
+  - **Heavy**: 4 soupeři, 1,35× agresivita, 1,6× startovní kapitál,
+    strop expanze 10 DC.
+  - **Hardcore**: 5 soupeřů, 1,7× agresivita, 2,5× kapitál, strop 12 DC.
+  - Na heavy/hardcore je první AI vždy „korporátní žralok" — premium
+    strategie s 1,5× kapitálem navíc a vyšší agresivitou.
+- **⚔️ Cenové války (heavy/hardcore).** Když má hráč přes 55 % trhu, budget
+  AI může vyhlásit cenovou válku: 6 měsíců podstřeluje hráčovy ceny o 22 %
+  (nikdy pod svůj margin floor). Panel tržních podílů ukazuje ⚔️ badge
+  se zbývajícími měsíci.
+- **🎯 Přetahování zákazníků (poaching).** Na heavy (0,4 %/měs) a hardcore
+  (0,9 %/měs) AI přetahuje hráčovy zákazníky marketingem, i když není
+  levnější — škáluje s agresivitou. **Prestiž 70+ poaching půlí** (loajalita
+  značce) — další důvod udržovat síť zdravou.
+- **🚨 Vstup nových konkurentů.** Na heavy/hardcore: když hráč ovládne přes
+  60 % trhu, může každý měsíc (8% šance) vstoupit nový AI konkurent
+  s kapitálem škálovaným inflací.
+- Tvrdší cenová konkurence: churn cap z cenové výhody AI škáluje
+  s obtížností (2 % → 2,6 % heavy / 3,2 % hardcore).
+
 ## [0.8.5] — 2026-07-07
 
 Storage do petabajtů, nové servery a dynamické VPS.
