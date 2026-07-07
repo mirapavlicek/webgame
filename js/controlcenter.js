@@ -106,20 +106,47 @@ function satBreakdownFromList(list){
   return out;
 }
 
+// Katalog příčin nespokojenosti: krátký label + srozumitelné vysvětlení
+// s konkrétním návodem, co udělat. Čísla odpovídají mechanice v main.js.
+const SAT_ISSUE_DEFS = {
+  outage:  { label: '🔌 výpadek datacentra',
+             fix: 'DC, na které je budova napojená, má aktivní incident. Vyřeš ho v Mgmt → Incidenty. 🔧 Technici výpadky zkracují, 📊 NOC operátoři a monitoring jim předchází.' },
+  cong:    { label: '🚦 přetížená trasa do DC',
+             fix: 'Data budovy tečou trasou nad 70 % kapacity — spokojenost padá. Polož na trasu další/lepší kabel (kabely se sčítají), kup BW upgrade v panelu Síť, nebo rozděl provoz polním load balancerem.' },
+  price2:  { label: '💸 silně předražený tarif',
+             fix: 'Zákazníci platí přes 160 % férové ceny — spokojenost padá rychle a lidi odcházejí. Otevři 💳 Cenové centrum (klik na 😊 nahoře) a stlač cenu tlačítkem „ref".' },
+  price1:  { label: '💰 dražší tarif',
+             fix: 'Cena je nad 115 % férové ceny (reference) — spokojenost pomalu klesá. V 💳 Cenovém centru cenu sniž, nebo nabídni rychlejší tarif za stejné peníze.' },
+  wifi:    { label: '📶 jen WiFi přípojka',
+             fix: 'WiFi je sdílené a nestabilní — ubírá 0,5 spokojenosti měsíčně. Až to půjde, nahraď kabelovou přípojkou (koax/DSL/optika) přes nástroj Přípojky.' },
+  weakdc:  { label: '🧰 chybí Server/NMS v DC',
+             fix: 'Vybavení v racku DC přidává spokojenost všem připojeným: 🖥️ Server +2/měs, 📊 NMS monitoring +2, 🛡️ Firewall +1,5, 🔋 UPS +1,5, 💾 Backup +1. Tomuhle DC chybí Server nebo NMS — dokup je v detailu DC.' },
+  nosvc:   { label: '📺 žádné doplňkové služby',
+             fix: 'Nikdo v budově nemá IPTV, VoIP ani jiné služby — předplatitelé služeb jsou spokojenější (až +3/měs). Aktivuj služby v záložce Služby a hlídej, ať DC má potřebné vybavení.' },
+};
+
 // Pure: diagnóza příčin nespokojenosti z příznaků budovy. f = { outage,
 // congRatio (0..1+), overRatio (cena/reference), wifi, noServices, weakDC }.
-// Vrací pole česky popsaných problémů (nejzávažnější první).
-function diagnoseSatIssues(f){
+// Vrací pole {key, label (s parametry), fix} — nejzávažnější první.
+function diagnoseSatIssuesEx(f){
   f = f || {};
   const out = [];
-  if (f.outage) out.push('🔌 výpadek DC');
-  if ((f.congRatio || 0) > 0.7) out.push(`🚦 přetížená trasa (${Math.round(f.congRatio * 100)} %)`);
-  if ((f.overRatio || 0) > 1.6) out.push(`💸 silně předražený tarif (${f.overRatio.toFixed(1)}× reference)`);
-  else if ((f.overRatio || 0) > 1.15) out.push(`💰 dražší tarif (${f.overRatio.toFixed(2)}× reference)`);
-  if (f.wifi) out.push('📶 jen WiFi přípojka');
-  if (f.weakDC) out.push('🧰 slabé vybavení DC (server + monitoring)');
-  if (f.noServices) out.push('📺 bez doplňkových služeb');
+  const add = (key, detail) => {
+    const d = SAT_ISSUE_DEFS[key];
+    out.push({ key, label: d.label + (detail || ''), fix: d.fix });
+  };
+  if (f.outage) add('outage');
+  if ((f.congRatio || 0) > 0.7) add('cong', ` (${Math.round(f.congRatio * 100)} % kapacity)`);
+  if ((f.overRatio || 0) > 1.6) add('price2', ` (${f.overRatio.toFixed(1)}× férové ceny)`);
+  else if ((f.overRatio || 0) > 1.15) add('price1', ` (${f.overRatio.toFixed(2)}× férové ceny)`);
+  if (f.wifi) add('wifi');
+  if (f.weakDC) add('weakdc');
+  if (f.noServices) add('nosvc');
   return out;
+}
+// Zpětně kompatibilní varianta — jen texty labelů.
+function diagnoseSatIssues(f){
+  return diagnoseSatIssuesEx(f).map(i => i.label);
 }
 
 // Sběrač: projde připojené budovy, spočítá rozklad štěstí a vrátí i nejhorší
@@ -170,17 +197,25 @@ function ccHappiness(maxWorst){
   all.sort((a, b) => a.sat - b.sat);
   const bd = satBreakdownFromList(list);
   // Agregace příčin přes všechny budovy — kolika zákazníků se každý problém
-  // týká (pro „proč klesá spokojenost" v cenovém/řídícím centru)
+  // týká (pro „proč klesá spokojenost" v cenovém/řídícím centru).
+  // issueAgg: key → {label, fix, cust, blds}; issueCust zůstává pro kompatibilitu.
   bd.issueCust = {};
+  bd.issueAgg = {};
   for (const wb of all){
-    for (const s of diagnoseSatIssues(wb.f))
-      bd.issueCust[s.replace(/\s*\([^)]*\)/, '')] = (bd.issueCust[s.replace(/\s*\([^)]*\)/, '')] || 0) + Math.max(1, wb.customers);
+    for (const iss of diagnoseSatIssuesEx(wb.f)){
+      const short = iss.label.replace(/\s*\([^)]*\)/, '');
+      bd.issueCust[short] = (bd.issueCust[short] || 0) + Math.max(1, wb.customers);
+      if (!bd.issueAgg[iss.key]) bd.issueAgg[iss.key] = { label: short, fix: iss.fix, cust: 0, blds: 0 };
+      bd.issueAgg[iss.key].cust += Math.max(1, wb.customers);
+      bd.issueAgg[iss.key].blds++;
+    }
   }
   bd.worst = all.slice(0, maxWorst).map(wb => ({
     x: wb.x, y: wb.y, sat: Math.round(wb.sat), customers: wb.customers,
     name: (typeof BTYPES !== 'undefined' && BTYPES[wb.type] && BTYPES[wb.type].name) || wb.type,
     icon: (typeof BTYPES !== 'undefined' && BTYPES[wb.type] && BTYPES[wb.type].icon) || '🏠',
     issues: diagnoseSatIssues(wb.f),
+    issuesEx: diagnoseSatIssuesEx(wb.f),
   }));
   return bd;
 }
@@ -259,6 +294,6 @@ if(typeof module !== 'undefined' && module.exports){
   module.exports = {
     QOS_PROFILES, qosCongestionFactor, qosMonthlyCost,
     addressingPlan, computePrestige, smoothPrestige, prestigeGrowthMultiplier,
-    SAT_BUCKETS, satBucketId, satBreakdownFromList, diagnoseSatIssues,
+    SAT_BUCKETS, satBucketId, satBreakdownFromList, diagnoseSatIssues, diagnoseSatIssuesEx, SAT_ISSUE_DEFS,
   };
 }

@@ -133,19 +133,30 @@ function renderPricingCenter(){
   if (inflPct >= 1) h += `<div style="font-size:10px;color:#f5a524;margin-top:5px">📈 Valorizace +${inflPct} % — zákazník platí nominál × ${tInfl.toFixed(2)}. Poměry níže s ní už počítají.</div>`;
   h += `</div>`;
 
-  // ---- Souhrn: proč klesá spokojenost ----
+  // ---- Souhrn: proč klesá spokojenost (s návodem, co s tím) ----
   const hp = (typeof ccHappiness === 'function') ? ccHappiness(3) : null;
   h += `<div class="cc-card"><div class="cc-card-h">😟 Proč klesá spokojenost</div>`;
-  if (hp && hp.issueCust && Object.keys(hp.issueCust).length){
-    const sorted = Object.entries(hp.issueCust).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    for (const [issue, cust] of sorted)
-      h += `<div class="cc-row"><span>${issue}</span><span style="color:#f5a524;font-weight:600">${fmt(cust)} zák.</span></div>`;
-    h += `<div style="font-size:10px;color:var(--tx-4);margin-top:5px">Počet zákazníků, kterých se problém týká. Cenové problémy vyřešíš tady, zbytek v Řídícím centru (🛡️).</div>`;
+  if (hp && hp.issueAgg && Object.keys(hp.issueAgg).length){
+    const sorted = Object.values(hp.issueAgg).sort((a, b) => b.cust - a.cust).slice(0, 5);
+    for (const iss of sorted){
+      h += `<div style="padding:5px 6px;background:var(--bg-2);border-radius:7px;margin:3px 0">`;
+      h += `<div style="display:flex;justify-content:space-between;font-size:11px"><span style="font-weight:600;color:var(--tx-1)">${iss.label}</span><span style="color:#f5a524;font-weight:600;white-space:nowrap">${fmt(iss.cust)} zák. · ${iss.blds} bud.</span></div>`;
+      h += `<div style="font-size:10px;color:var(--tx-3);margin-top:2px;line-height:1.45">→ ${iss.fix}</div>`;
+      h += `</div>`;
+    }
   } else if (hp && hp.n > 0){
-    h += `<div style="font-size:11px;color:#3fb950">✓ Žádné zjištěné problémy — spokojenost se buduje časem (server, monitoring, UPS, služby v DC).</div>`;
+    h += `<div style="font-size:11px;color:#3fb950">✓ Žádné zjištěné problémy.</div>`;
   } else {
     h += `<div style="font-size:11px;color:var(--tx-4)">Žádné připojené budovy.</div>`;
   }
+  // Jak spokojenost funguje — čísla odpovídají mechanice hry
+  h += `<details style="margin-top:7px"><summary style="font-size:10px;color:var(--tx-3);cursor:pointer;font-weight:600">ℹ️ Jak spokojenost funguje?</summary>`;
+  h += `<div style="font-size:10px;color:var(--tx-3);line-height:1.55;margin-top:4px">`;
+  h += `Každá připojená budova má spokojenost 0–100 (start 50). Měsíčně se mění:<br>`;
+  h += `<b style="color:#3fb950">Zvyšuje:</b> základ +0,5 · vybavení DC (🖥️ Server +2, 📊 NMS +2, 🛡️ Firewall +1,5, 🔋 UPS +1,5, 💾 Backup +1) · doplňkové služby až +3 · support upgrady.<br>`;
+  h += `<b style="color:#f86963">Snižuje:</b> trasa do DC nad 70 % kapacity · cena nad 115 % reference (čím víc, tím hůř) · WiFi přípojka −0,5 · přetížený vysílač · výpadky.<br>`;
+  h += `Pod <b>25</b> zákazníci začínají odcházet, pod <b>10</b> hromadně. Nad <b>70</b> = šťastní (😊 zelené budovy na heatmapě).`;
+  h += `</div></details>`;
   h += `</div>`;
 
   // ---- Tabulka tarifů ----

@@ -5,6 +5,24 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.10] — 2026-07-07
+
+Srozumitelná diagnostika spokojenosti.
+
+### Changed
+- **Příčiny nespokojenosti mají návody.** Kryptické hlášky („slabé vybavení
+  DC") nahradil katalog příčin s vysvětlením a konkrétním postupem:
+  - v 💳 Cenovém centru má každá příčina kartičku s „→ jak vyřešit"
+    (např. u chybějícího vybavení DC vypíše přesné bonusy: Server +2/měs,
+    NMS +2, Firewall +1,5, UPS +1,5, Backup +1);
+  - v 🛡️ Řídícím centru stačí najet myší na příčinu u budovy — tooltip
+    ukáže návod;
+  - přibyl rozbalovací blok **„ℹ️ Jak spokojenost funguje?"** s kompletními
+    čísly mechaniky (co zvyšuje, co snižuje, prahy odchodů zákazníků).
+- **Cloud s 0 zákazníky vysvětluje proč.** Karta Cloud v řídícím centru
+  u nuly napoví: buď chybí kapacita (dej do DC cloud uzel/storage), nebo
+  jen trh naskakuje postupně podle kapacity, reputace a SLA.
+
 ## [0.8.9] — 2026-07-07
 
 ### Changed
