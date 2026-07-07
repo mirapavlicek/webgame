@@ -2083,12 +2083,29 @@ function renderDCModal(){
 
   const eqCats={
     network:{name:'📡 Síťové',items:['eq_router','eq_router_mid','eq_router_big','eq_router_edge','eq_router_carrier','eq_router_tera','eq_switch24','eq_switch48','eq_switch96','eq_switch256','eq_bgprouter','eq_bgprouter_400','eq_bgprouter_1t','eq_bgprouter_2t','eq_loadbalancer']},
-    compute:{name:'🖥️ Výpočetní',items:['eq_server','eq_cloudnode','eq_cloudnode_big']},
-    storage:{name:'💿 Storage',items:['eq_storage','eq_storage_big','eq_backup']},
+    compute:{name:'🖥️ Výpočetní',items:['eq_server','eq_server_rack','eq_server_blade','eq_cloudnode','eq_cloudnode_big','eq_cloudnode_ultra','eq_gpunode','eq_asicnode']},
+    storage:{name:'💿 Storage',items:['eq_storage','eq_storage_big','eq_storage_rack','eq_storage_pod','eq_storage_lake','eq_backup']},
     security:{name:'🛡️ Bezpečnost',items:['eq_firewall','eq_firewall_pro','eq_firewall_ent']},
-    infra:{name:'🔌 Infrastruktura',items:['eq_ups','eq_monitoring','eq_cooling']},
+    infra:{name:'🔌 Infrastruktura',items:['eq_ups','eq_monitoring','eq_cooling','eq_solar_roof']},
     service:{name:'📺 Služby',items:['eq_wifiap','eq_voip','eq_iptv']},
   };
+  // Pojistka proti zapomenutým novinkám: cokoliv z EQ, co není v žádné
+  // kategorii, zařaď automaticky podle eff — ať se nový hardware vždy ukáže.
+  {
+    const listed=new Set();
+    for(const ck in eqCats)for(const it of eqCats[ck].items)listed.add(it);
+    const effCat={cap:'network',ports:'network',routing:'network',lb:'network',
+      quality:'compute',cloud:'compute',
+      storage:'storage',backup:'storage',
+      security:'security',
+      reliable:'infra',repair:'infra',cooling:'infra',solar:'infra',
+      wifi:'service',voip:'service',iptv:'service'};
+    for(const k in EQ){
+      if(listed.has(k))continue;
+      const cat=effCat[EQ[k].eff]||'infra';
+      eqCats[cat].items.push(k);
+    }
+  }
 
   const canFit=eqs.length<maxSlots;
   const dcType=G.dcs[dcModalIdx]?.type;
