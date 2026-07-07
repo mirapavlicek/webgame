@@ -5,6 +5,18 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] — 2026-07-07
+
+### Fixed
+- **Nový hardware nebyl vidět v obchodech.** Obchod v detailu DC měl kategorie
+  vybavení vyjmenované natvrdo — GPU server, ASIC akcelerátor, server rack,
+  blade šasi, cloud superpod ani PB storage se v něm neukázaly. Seznamy jsou
+  doplněné a navíc přibyla pojistka: cokoliv nového v katalogu `EQ` se
+  automaticky zařadí do kategorie podle typu, takže se to už nemůže opakovat.
+- **Levá stavební paleta** (Storage & Cloud) doplněna o tlačítka pro všechny
+  nové stroje: storage rack/pod/jezero, server rack, blade šasi, superpod,
+  GPU server a ASIC akcelerátor.
+
 ## [0.8.5] — 2026-07-07
 
 Storage do petabajtů, nové servery a dynamické VPS.
