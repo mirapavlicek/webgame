@@ -264,6 +264,7 @@ function fmtKcBig(n){
 function renderStockMarket(){
   const el = document.getElementById('stockMarketPanel');
   if (!el || !smEnsure()) return;
+  smUnlockCheck(); // odemkni hned, jak je kapitál — ne až při měsíčním ticku
   const sm = G.stockMarket;
   if (!sm.unlocked){
     el.innerHTML = `<div style="font-size:10.5px;color:var(--tx-4);padding:8px;text-align:center">🔒 Burza se odemkne, až hotovost poprvé přesáhne <b>${fmtKcBig(SM_UNLOCK_CASH)}</b>.<br>Investuj přebytečný kapitál do virtuálních firem — od levných akcií po miliardové kusy.</div>`;

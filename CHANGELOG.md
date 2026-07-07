@@ -5,6 +5,19 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] — 2026-07-07
+
+### Fixed
+- **Burza se po deployi neodemkla ani s miliardami.** Dvě příčiny:
+  - **Service worker servíroval staré JS z cache** (cache-first) — hráč měl
+    po aktualizaci nový `index.html`, ale starý `main.js` bez volání burzy.
+    JS/CSS jsou nově **network-first** (cache jen jako offline záloha),
+    SW se registruje s `updateViaCache:'none'` a aktualizuje při každém
+    načtení; verze cache bumpnuta (staré cache se zahodí).
+  - Odemčení burzy čekalo na měsíční tick — nově se kontroluje i při
+    každém vykreslení panelu, takže s dostatečným kapitálem se odemkne
+    okamžitě.
+
 ## [0.9.0] — 2026-07-07
 
 Burza — investice do virtuálních firem.
