@@ -8,6 +8,8 @@
  *   3. prestigeGrowthMultiplier — 0.9..1.15
  *   4. qosCongestionFactor / qosMonthlyCost — profily
  *   5. addressingPlan — využití, headroom, meze
+ *   6. satBucketId / satBreakdownFromList — buckety štěstí, vážený průměr
+ *   7. diagnoseSatIssues — diagnóza příčin nespokojenosti
  */
 'use strict';
 
@@ -72,6 +74,44 @@ console.log('\u2550\u2550\u2550 Test 5: addressingPlan \u2550\u2550\u2550');
   ok(none.util === 1 && none.headroom === 0, 'bez bloků a s potřebou → util 1, headroom 0');
   const empty = cc.addressingPlan(0, 0, 0, 0);
   ok(empty.util === 0, 'nic → util 0');
+}
+
+console.log('\u2550\u2550\u2550 Test 6: buckety štěstí \u2550\u2550\u2550');
+{
+  ok(cc.satBucketId(85) === 'happy', '85 → šťastní');
+  ok(cc.satBucketId(70) === 'happy', '70 → šťastní (hranice)');
+  ok(cc.satBucketId(55) === 'content', '55 → spokojení');
+  ok(cc.satBucketId(25) === 'unhappy', '25 → nespokojení');
+  ok(cc.satBucketId(5) === 'critical', '5 → naštvaní');
+  ok(cc.satBucketId(-10) === 'critical' && cc.satBucketId(150) === 'happy', 'ořez mimo meze');
+
+  const bd = cc.satBreakdownFromList([
+    { sat: 90, customers: 10 },
+    { sat: 50, customers: 40 },
+    { sat: 10, customers: 2 },
+  ]);
+  ok(bd.n === 3 && bd.customers === 52, 'počty budov a zákazníků');
+  ok(bd.buckets.happy.blds === 1 && bd.buckets.happy.customers === 10, 'bucket šťastní');
+  ok(bd.buckets.content.customers === 40 && bd.buckets.critical.customers === 2, 'buckety spokojení/naštvaní');
+  ok(approx(bd.avg, 50, 0.01), `prostý průměr = 50 (${bd.avg.toFixed(1)})`);
+  // vážený průměr: (90×11 + 50×41 + 10×3) / 55 = 3070/55 ≈ 55.8 — panelák táhne dolů méně než domek nahoru
+  ok(approx(bd.wAvg, 3070 / 55, 0.01), `zákaznicky vážený průměr ≈ 55.8 (${bd.wAvg.toFixed(1)})`);
+  const empty = cc.satBreakdownFromList([]);
+  ok(empty.n === 0 && empty.avg === 0 && empty.wAvg === 0, 'prázdný seznam → nuly');
+}
+
+console.log('\u2550\u2550\u2550 Test 7: diagnóza nespokojenosti \u2550\u2550\u2550');
+{
+  ok(cc.diagnoseSatIssues({}).length === 0, 'bez příznaků → žádné problémy');
+  const i1 = cc.diagnoseSatIssues({ outage: true, congRatio: 0.85 });
+  ok(i1.length === 2 && i1[0].includes('výpadek') && i1[1].includes('85'), 'výpadek + kongesce 85 %');
+  const i2 = cc.diagnoseSatIssues({ overRatio: 1.3 });
+  ok(i2.length === 1 && i2[0].includes('dražší'), 'mírné předražení → „dražší tarif"');
+  const i3 = cc.diagnoseSatIssues({ overRatio: 1.9 });
+  ok(i3.length === 1 && i3[0].includes('silně předražený'), 'velké předražení → silnější hláška');
+  const i4 = cc.diagnoseSatIssues({ wifi: true, noServices: true, weakDC: true });
+  ok(i4.length === 3, 'wifi + bez služeb + slabé DC = 3 problémy');
+  ok(cc.diagnoseSatIssues({ congRatio: 0.5, overRatio: 1.0 }).length === 0, 'kongesce 50 % a férová cena nevadí');
 }
 
 console.log('\u2550'.repeat(60));

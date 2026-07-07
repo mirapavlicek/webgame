@@ -1,6 +1,6 @@
 {
   "name": "nettycoon",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "NetTycoon — česká ISP simulační hra (Tauri desktop wrapper)",
   "private": true,
   "scripts": {

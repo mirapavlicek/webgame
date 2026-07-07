@@ -69,6 +69,122 @@ function prestigeGrowthMultiplier(prestige){
   return 0.9 + (p / 100) * 0.25;
 }
 
+// ---- Štěstí lidí ----
+// Buckety spokojenosti připojených budov. Pořadí od nejšťastnějších —
+// satBucketId vrací první bucket, jehož min je ≤ sat.
+const SAT_BUCKETS = [
+  { id: 'happy',    min: 70, name: 'Šťastní',     icon: '😊', clr: '#3fb950' },
+  { id: 'content',  min: 40, name: 'Spokojení',   icon: '🙂', clr: '#22d3ee' },
+  { id: 'unhappy',  min: 20, name: 'Nespokojení', icon: '😕', clr: '#f5a524' },
+  { id: 'critical', min: 0,  name: 'Naštvaní',    icon: '😡', clr: '#f86963' },
+];
+function satBucketId(sat){
+  const s = Math.max(0, Math.min(100, sat || 0));
+  for (const b of SAT_BUCKETS) if (s >= b.min) return b.id;
+  return 'critical';
+}
+
+// Pure: rozklad spokojenosti ze seznamu {sat, customers}. Vrací počty budov
+// i zákazníků v bucketech, prostý průměr (avg) a zákaznicky vážený průměr
+// (wAvg) — velký panelák s 60 lidmi váží víc než prázdný domek.
+function satBreakdownFromList(list){
+  const out = { n: 0, customers: 0, avg: 0, wAvg: 0, buckets: {} };
+  for (const b of SAT_BUCKETS) out.buckets[b.id] = { blds: 0, customers: 0 };
+  let sum = 0, wSum = 0, w = 0;
+  for (const it of (list || [])){
+    const sat = Math.max(0, Math.min(100, it.sat || 0));
+    const cust = Math.max(0, it.customers || 0);
+    out.n++; out.customers += cust;
+    sum += sat;
+    const wt = 1 + cust;
+    wSum += sat * wt; w += wt;
+    const bk = out.buckets[satBucketId(sat)];
+    bk.blds++; bk.customers += cust;
+  }
+  out.avg = out.n > 0 ? sum / out.n : 0;
+  out.wAvg = w > 0 ? wSum / w : 0;
+  return out;
+}
+
+// Pure: diagnóza příčin nespokojenosti z příznaků budovy. f = { outage,
+// congRatio (0..1+), overRatio (cena/reference), wifi, noServices, weakDC }.
+// Vrací pole česky popsaných problémů (nejzávažnější první).
+function diagnoseSatIssues(f){
+  f = f || {};
+  const out = [];
+  if (f.outage) out.push('🔌 výpadek DC');
+  if ((f.congRatio || 0) > 0.7) out.push(`🚦 přetížená trasa (${Math.round(f.congRatio * 100)} %)`);
+  if ((f.overRatio || 0) > 1.6) out.push(`💸 silně předražený tarif (${f.overRatio.toFixed(1)}× reference)`);
+  else if ((f.overRatio || 0) > 1.15) out.push(`💰 dražší tarif (${f.overRatio.toFixed(2)}× reference)`);
+  if (f.wifi) out.push('📶 jen WiFi přípojka');
+  if (f.weakDC) out.push('🧰 slabé vybavení DC (server + monitoring)');
+  if (f.noServices) out.push('📺 bez doplňkových služeb');
+  return out;
+}
+
+// Sběrač: projde připojené budovy, spočítá rozklad štěstí a vrátí i nejhorší
+// budovy s diagnózou příčin (pro kartu „Štěstí lidí" v řídícím centru).
+function ccHappiness(maxWorst){
+  if (typeof G === 'undefined' || !G) return null;
+  maxWorst = maxWorst || 5;
+  const connByTile = {};
+  for (const c of (G.conns || [])) connByTile[c.by * 10000 + c.bx] = c;
+  const list = [];
+  const all = [];
+  for (let y = 0; y < MAP; y++) for (let x = 0; x < MAP; x++){
+    const b = G.map[y][x].bld;
+    if (!b || !b.connected) continue;
+    list.push({ sat: b.sat, customers: b.customers || 0 });
+    const f = { wifi: b.connType === 'conn_wifi' };
+    const cn = connByTile[y * 10000 + x];
+    if (cn){
+      const dc = G.dcs[cn.di];
+      if (dc){
+        f.outage = !!(dc.outage && dc.outage.active);
+        const eq = dc.eq || [];
+        f.weakDC = !(eq.includes('eq_server') && eq.includes('eq_monitoring'));
+      }
+      if (typeof dcLoads !== 'undefined' && Array.isArray(dcLoads) && dcLoads[cn.di])
+        f.congRatio = dcLoads[cn.di].ratio || 0;
+    }
+    if (b.customers > 0){
+      let hasSvc = false;
+      if (b.svcSubs) for (const k in b.svcSubs) if (b.svcSubs[k] > 0) hasSvc = true;
+      f.noServices = !hasSvc;
+      if (b.tariffDist && typeof refPrice === 'function' && typeof calcBldRevenue === 'function'){
+        try {
+          const avgPrice = calcBldRevenue(b) / b.customers;
+          let avgSpeed = 0, avgShare = 0;
+          for (const ti in b.tariffDist){
+            const t = G.tariffs[ti];
+            if (t){ avgSpeed += t.speed * b.tariffDist[ti]; avgShare += (t.share || 1) * b.tariffDist[ti]; }
+          }
+          avgSpeed /= b.customers; avgShare /= b.customers;
+          const rp = refPrice(avgSpeed, avgShare);
+          if (rp > 0) f.overRatio = avgPrice / rp;
+        } catch(e) {}
+      }
+    }
+    all.push({ x, y, sat: b.sat, customers: b.customers || 0, type: b.type, f });
+  }
+  all.sort((a, b) => a.sat - b.sat);
+  const bd = satBreakdownFromList(list);
+  bd.worst = all.slice(0, maxWorst).map(wb => ({
+    x: wb.x, y: wb.y, sat: Math.round(wb.sat), customers: wb.customers,
+    name: (typeof BTYPES !== 'undefined' && BTYPES[wb.type] && BTYPES[wb.type].name) || wb.type,
+    icon: (typeof BTYPES !== 'undefined' && BTYPES[wb.type] && BTYPES[wb.type].icon) || '🏠',
+    issues: diagnoseSatIssues(wb.f),
+  }));
+  return bd;
+}
+
+// Skok kamery na budovu z řídícího centra (zavře modal a doletí na dlaždici).
+function ccFocusBld(x, y){
+  if (typeof closeControlCenter === 'function') try{ closeControlCenter(); }catch(e){}
+  if (typeof camTarget !== 'undefined' && camTarget && camTarget.zoom < 1.1) camTarget.zoom = 1.3;
+  if (typeof camCenterOn === 'function') camCenterOn(x, y);
+}
+
 // ====== Integrace se stavem ======
 function ccEnsure(){
   if(typeof G === 'undefined' || !G) return null;
@@ -86,13 +202,15 @@ function ccMetrics(){
   if(typeof dcLoads !== 'undefined' && Array.isArray(dcLoads)){
     for(const dl of dcLoads) if(dl && dl.ratio > worstCong) worstCong = dl.ratio;
   }
-  // spokojenost: průměr připojených budov
-  let satSum = 0, satN = 0;
+  // spokojenost: zákaznicky vážený průměr připojených budov — velké budovy
+  // s mnoha zákazníky ovlivňují prestiž víc než prázdné domky
+  const satList = [];
   for(let y = 0; y < MAP; y++) for(let x = 0; x < MAP; x++){
     const b = G.map[y][x].bld;
-    if(b && b.connected){ satSum += b.sat; satN++; }
+    if(b && b.connected) satList.push({ sat: b.sat, customers: b.customers || 0 });
   }
-  const sat01 = satN > 0 ? (satSum / satN) / 100 : 0.5;
+  const satBd = satBreakdownFromList(satList);
+  const sat01 = satBd.n > 0 ? satBd.wAvg / 100 : 0.5;
   const totalIPs = (typeof getTotalIPs === 'function') ? getTotalIPs() : 0;
   const plan = addressingPlan(totalIPs, (G.conns || []).length, (G.towers || []).length, (G.wifiAPs || []).length);
   const qosP = (QOS_PROFILES[G.qosProfile] || QOS_PROFILES.off).prestige;
@@ -134,5 +252,6 @@ if(typeof module !== 'undefined' && module.exports){
   module.exports = {
     QOS_PROFILES, qosCongestionFactor, qosMonthlyCost,
     addressingPlan, computePrestige, smoothPrestige, prestigeGrowthMultiplier,
+    SAT_BUCKETS, satBucketId, satBreakdownFromList, diagnoseSatIssues,
   };
 }
