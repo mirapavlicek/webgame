@@ -5,6 +5,31 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] — 2026-07-07
+
+Cenové centrum a čitelnější HUD cílů.
+
+### Added
+- **💳 Cenové centrum** — samostatný formulář na kontrolu a nastavení cen.
+  Otevře se tlačítkem v záložce Tarify nebo kliknutím na 😊 spokojenost
+  v horní liště. Obsahuje:
+  - **Zdraví ceníku** — zákaznicky vážený poměr cen k referenci, kolik
+    zákazníků je na předraženém tarifu (>115 %) a který tarif je nejhorší;
+  - **„Proč klesá spokojenost"** — agregované příčiny přes celou síť
+    (předražené tarify, přetížené trasy, výpadky, WiFi přípojky, slabá DC,
+    chybějící služby) seřazené podle počtu dotčených zákazníků;
+  - **tabulka tarifů** s poměrovým barem, slovním dopadem na růst/odliv,
+    počtem zákazníků a rychlými tlačítky **−5 % / +5 % / ref** (nastaví
+    cenu na referenci se zohledněním valorizace).
+- `priceEffectLabel`, `portfolioPriceHealth`, `suggestPrice` — čisté funkce
+  s testy (`tests/pricing.test.js`, 19 testů).
+
+### Fixed
+- **HUD cílů: překrývající se text u peněžních cílů.** „Měsíční zisk
+  50 000 Kč / 50 000 Kč" se nevešel do fixní šířky panelu a psal se přes
+  název cíle. Panel si teď šířku měří podle obsahu a částky používají
+  kompaktní formát (50k, 1,2M).
+
 ## [0.8.3] — 2026-07-07
 
 ### Fixed

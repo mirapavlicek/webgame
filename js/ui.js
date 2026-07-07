@@ -98,6 +98,7 @@ function updUI(){
   if(typeof gateBuildPalette==='function')try{gateBuildPalette();}catch(e){}
   if(typeof updatePrestigeHUD==='function')updatePrestigeHUD();
   if(typeof renderControlCenter==='function'){const cc=document.getElementById('ccModal');if(cc&&cc.style.display==='flex')try{renderControlCenter();}catch(e){}}
+  if(typeof renderPricingCenter==='function'){const pc=document.getElementById('pcModal');if(pc&&pc.style.display==='flex'&&!document.activeElement?.matches?.('#pcBody input'))try{renderPricingCenter();}catch(e){}}
 
   // Stats
   updStats();

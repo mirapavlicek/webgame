@@ -179,6 +179,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
   <div class="tab-content" id="tabTariff">
     <div class="build-cat">Nabídka tarifů</div>
     <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Domácnosti reagují na cenu, firmy na kvalitu a dostupnost.</p>
+    <button onclick="openPricingCenter()" style="display:block;width:100%;padding:6px 8px;margin-bottom:8px;background:linear-gradient(180deg,#1d2a3a,#16202e);border:1px solid #2b4a6b;border-radius:7px;color:#22d3ee;cursor:pointer;font-size:11px;font-weight:600;text-align:center">💳 Otevřít cenové centrum</button>
     <table class="tariff-table"><thead><tr><th>On</th><th>Tarif</th><th>Mbps</th><th>Cena</th><th>Požadavky</th></tr></thead><tbody id="tariffBody"></tbody></table>
     <div class="build-cat" style="margin-top:10px">Statistiky</div>
     <div id="tariffStats" style="font-size:10px;color:#8b949e"></div>
@@ -340,7 +341,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <div id="dateDisplay">1. ledna 2005</div>
     <div id="popDisplay">👥 0</div>
     <div id="custDisplay" title="Zákazníci">🔌 0</div>
-    <div id="satDisplay" title="Průměrná spokojenost">😊 –</div>
+    <div id="satDisplay" title="Průměrná spokojenost — klikni pro Cenové centrum (proč klesá a nastavení cen)" onclick="openPricingCenter()" style="cursor:pointer">😊 –</div>
     <div id="prestigeDisplay" title="Prestiž providera — klikni pro Řídící centrum" onclick="openControlCenter()" style="cursor:pointer">🛡️ –</div>
     <div id="bwDisplay">📡 0/0 Mbps</div>
     <div id="moneyDisplay">500 000 Kč</div>
@@ -396,6 +397,17 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
     <button onclick="startNewGame()">🚀 Založit firmu</button>
   </div>
 </div>
+<!-- Cenové centrum Modal -->
+<div class="cc-overlay" id="pcModal" onclick="if(event.target===this)closePricingCenter()">
+  <div class="cc-panel">
+    <div class="cc-header">
+      <h2>💳 Cenové centrum</h2>
+      <button class="cc-close" onclick="closePricingCenter()">✕</button>
+    </div>
+    <div class="cc-body" id="pcBody"><!-- rendered dynamically --></div>
+  </div>
+</div>
+
 <!-- Řídící centrum (NOC) Modal -->
 <div class="cc-overlay" id="ccModal" onclick="if(event.target===this)closeControlCenter()">
   <div class="cc-panel">
@@ -468,6 +480,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/editor.js"></script>
 <script src="js/uigate.js"></script>
 <script src="js/controlcenter.js"></script>
+<script src="js/pricing.js"></script>
 <script src="js/difficulty.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>
