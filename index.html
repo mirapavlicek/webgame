@@ -269,6 +269,7 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
       <button class="mgmt-subtab" data-mgmt="mgmtIncidents">🚨 Incidenty</button>
       <button class="mgmt-subtab" data-mgmt="mgmtStaff">👥 Lidé</button>
       <button class="mgmt-subtab" data-mgmt="mgmtMA">💼 M&A</button>
+      <button class="mgmt-subtab" data-mgmt="mgmtStocks">📈 Burza</button>
     </div>
     <div class="mgmt-content active" id="mgmtFinance">
       <div class="build-cat">📈 Cash Flow vs. Profit</div>
@@ -318,6 +319,11 @@ if('serviceWorker' in navigator && (location.protocol==='http:' || location.prot
       <div id="competitorAnnouncements" style="font-size:10px"></div>
       <div class="build-cat" style="margin-top:10px">⚖️ Cartel risk</div>
       <div id="cartelRiskBar"></div>
+    </div>
+    <div class="mgmt-content" id="mgmtStocks">
+      <div class="build-cat">📈 Burza — investice do firem</div>
+      <p style="font-size:9px;color:#6e7681;margin-bottom:6px">Nahodilé firmy s různými zisky a ztrátami. Akcie od desítek Kč po miliardy za kus. Kvartální výsledky a dividendy, občas krach nebo IPO. Bohatí můžou koupit firmu celou.</p>
+      <div id="stockMarketPanel"></div>
     </div>
   </div>
 
@@ -489,6 +495,7 @@ console.log('[pixi-check] PIXI loaded?', typeof PIXI !== 'undefined',
 <script src="js/uigate.js"></script>
 <script src="js/controlcenter.js"></script>
 <script src="js/pricing.js"></script>
+<script src="js/stockmarket.js"></script>
 <script src="js/difficulty.js"></script>
 <script src="js/incidents.js"></script>
 <script src="js/morale.js"></script>

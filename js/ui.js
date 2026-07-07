@@ -155,6 +155,7 @@ function updUI(){
   buildAchList();
   buildRatingDisplay();
   buildMarketShareDisplay();
+  if(typeof renderStockMarket==='function')try{renderStockMarket();}catch(e){console.error('renderStockMarket:',e);}
   try{buildSegmentsDashboard();}catch(e){console.error('buildSegmentsDashboard:',e);}
   buildKPIDashboard();
   buildRevenueChart();

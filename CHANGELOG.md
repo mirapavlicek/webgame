@@ -5,6 +5,31 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — 2026-07-07
+
+Burza — investice do virtuálních firem.
+
+### Added
+- **📈 Burza (Mgmt → Burza).** Odemkne se, jakmile hotovost poprvé přesáhne
+  **5 mil. Kč** — endgame pro přebytečný kapitál:
+  - **12 nahodilých firem** napříč sektory (těžba, potraviny, telekom,
+    energie, banky, biotech, čipy, cloud, vesmír, kvantová IT…) s cenami
+    akcií od **45 Kč po 2,4 mld Kč za kus** (třída „DravecCapital A").
+  - Ceny se hýbou měsíčně (random walk s driftem podle skryté kondice
+    firmy), **kvartální výsledky** cenou trhnou, náhodné zprávy
+    (průlom/skandál ±10–40 %). Mini sparkline grafy u každé firmy.
+  - **Nákup/prodej akcií** (poplatek 0,5 %): +1/+10/+100/MAX, prodej
+    poloviny či všeho; sleduje se průměrná nákupní cena a zisk pozice.
+  - **Dividendy** kvartálně u dividendových titulů (2–6 % ročně).
+  - **Krachy a IPO**: firma v mizerné kondici může zkrachovat (akcie
+    bezcenné) a na burzu vstoupí náhradník z IPO poolu.
+  - **🏆 Koupě celé firmy**: zaplatíš zbývající akcie s prémií 30 % —
+    firma pak **měsíčně sype zisk, nebo žere ztrátu** (podle kondice,
+    ~0,7 % kapitalizace/měs na bod kondice). Prodat ji jde za 90 %
+    kapitalizace.
+- Nový modul `js/stockmarket.js` s čistými funkcemi a testy
+  (`tests/stockmarket.test.js`, 30 testů).
+
 ## [0.8.10] — 2026-07-07
 
 Srozumitelná diagnostika spokojenosti.
