@@ -5,6 +5,21 @@ Všechny podstatné změny v NetTycoonu jsou zdokumentované v tomto souboru.
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 verzování podle [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.9] — 2026-07-07
+
+### Changed
+- **🧭 Levá paleta je víceúrovňové menu.** Dlouhý plochý seznam sekcí
+  (12 sekcí pod sebou v záložce Stavba) nahradily velké dlaždice skupin:
+  **Datacentra · Kabely & uzly · Přípojky · Bezdrát · Energie** (a v záložce
+  DC vybavení: **Vybavení DC · Síť & Routing · Storage & Cloud**). Kliknutím
+  na dlaždici se otevře skupina s tlačítkem „← Zpět". Kurzor, Demolice
+  a Upgrade technologie zůstávají připnuté vždy viditelné.
+  - Dlaždice ukazují počet dostupných nástrojů (např. „3/8" když jsou části
+    zamčené érou) a fialový rámeček, když je v nich aktivní nástroj.
+  - Poslední otevřená skupina se pamatuje (localStorage).
+  - Gating podle technologické éry funguje beze změny; nové sekce se
+    automaticky hlídají testem, aby žádná nevypadla z menu.
+
 ## [0.8.5] — 2026-07-07
 
 Storage do petabajtů, nové servery a dynamické VPS.

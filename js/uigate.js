@@ -34,15 +34,13 @@ function gateBuildPalette(){
     b.style.display = isToolAvailable(tool, G.tech, defs) ? '' : 'none';
   });
 
-  // 2) kategorie (a jejich popisky) skryj, když v nich nezbylo nic viditelného
-  const kids = Array.from(container.children);
-  for(let i = 0; i < kids.length; i++){
-    const el = kids[i];
-    if(!(el.classList && el.classList.contains('build-cat'))) continue;
+  // 2) kategorie (a jejich popisky) skryj, když v nich nezbylo nic viditelného.
+  // Sekce můžou být zanořené ve wrapperech víceúrovňového menu (.pal-group),
+  // proto se prochází sourozenci každé .build-cat, ne děti containeru.
+  container.querySelectorAll('.build-cat').forEach(el => {
     const group = [];
     let anyVisible = false;
-    for(let j = i + 1; j < kids.length; j++){
-      const n = kids[j];
+    for(let n = el.nextElementSibling; n; n = n.nextElementSibling){
       if(n.classList && n.classList.contains('build-cat')) break;
       group.push(n);
       if(n.matches && n.matches('button.bb') && n.style.display !== 'none') anyVisible = true;
@@ -53,7 +51,9 @@ function gateBuildPalette(){
       if(n.id === 'renewableInfo') continue;            // dynamický obsah
       n.style.display = anyVisible ? '' : 'none';
     }
-  }
+  });
+  // Aktualizuj počty na dlaždicích menu (pokud je aktivní)
+  if(typeof palRefresh === 'function') try{ palRefresh(); }catch(e){}
 }
 
 if(typeof module !== 'undefined' && module.exports){
