@@ -1457,12 +1457,14 @@ function renderControlCenter(){
       for(const w of bad){
         h+=`<div class="cc-inc" style="align-items:flex-start">`;
         h+=`<span>${w.icon} ${w.name} <b style="color:${satClr(w.sat)}">${w.sat}</b> · ${w.customers} zák.`;
-        if(w.issues.length)h+=`<br><span style="color:var(--tx-4);font-size:10px">${w.issues.join(' · ')}</span>`;
-        else h+=`<br><span style="color:var(--tx-4);font-size:10px">bez zjevné příčiny — spokojenost se buduje časem (server, monitoring, služby)</span>`;
+        const iex=w.issuesEx||[];
+        if(iex.length)h+=`<br><span style="color:var(--tx-4);font-size:10px">${iex.map(i=>`<span title="${(i.fix||'').replace(/"/g,'&quot;')}" style="cursor:help;border-bottom:1px dotted var(--tx-4)">${i.label}</span>`).join(' · ')}</span>`;
+        else h+=`<br><span style="color:var(--tx-4);font-size:10px">bez zjevné příčiny — spokojenost roste časem (+0,5/měs základ, víc s vybavením DC a službami)</span>`;
         h+=`</span>`;
         h+=`<button onclick="ccFocusBld(${w.x},${w.y})" style="padding:2px 8px;background:var(--bg-2);border:1px solid var(--bd-1);border-radius:6px;color:var(--tx-2);cursor:pointer;font-size:10px;white-space:nowrap">📍 ukázat</button>`;
         h+=`</div>`;
       }
+      h+=`<div style="font-size:9.5px;color:var(--tx-4);margin-top:4px">Najeď myší na příčinu pro návod, jak ji vyřešit. Kompletní přehled s návody: 💳 Cenové centrum (klik na 😊 nahoře).</div>`;
     }else{
       h+=`<div style="font-size:11px;color:#3fb950">✓ Všechny připojené budovy jsou šťastné (70+).</div>`;
     }
@@ -1506,6 +1508,12 @@ function renderControlCenter(){
     h+=ccRow('Instance',((G.cloudInstances||[]).reduce((s,ci)=>s+ci.count,0))+'');
     if(gpu>0||asic>0)h+=ccRow('🎮 GPU / 🎛️ ASIC',`${usedGPU}/${gpu} · ${usedASIC}/${asic}`);
     else h+=`<div style="font-size:10px;color:var(--tx-4)">Bez GPU/ASIC hardwaru — AI služby nevynáší.</div>`;
+    if(cloudCust===0){
+      const hasCap=(G.dcs||[]).some((d,i)=>{const c=(typeof getDCCompute==='function')?getDCCompute(i):{vCPU:0};return c.vCPU>0;});
+      h+=`<div style="font-size:10px;color:var(--tx-4);margin-top:4px">${hasCap
+        ?'0 zákazníků zatím není chyba — cloud trh naskakuje postupně každý měsíc podle kapacity (vCPU/storage), reputace a SLA. Nasaď instance v záložce ☁️ Cloud a pár měsíců vydrž.'
+        :'Cloud zákazníci přijdou, až budeš mít kapacitu: dej do DC ☁️ Cloud uzel nebo 💿 storage a nasaď instance v záložce Cloud.'}</div>`;
+    }
     h+=`</div>`;
   }
 

@@ -112,6 +112,12 @@ console.log('\u2550\u2550\u2550 Test 7: diagnóza nespokojenosti \u2550\u2550\u2
   const i4 = cc.diagnoseSatIssues({ wifi: true, noServices: true, weakDC: true });
   ok(i4.length === 3, 'wifi + bez služeb + slabé DC = 3 problémy');
   ok(cc.diagnoseSatIssues({ congRatio: 0.5, overRatio: 1.0 }).length === 0, 'kongesce 50 % a férová cena nevadí');
+  // Ex varianta: každá příčina nese srozumitelný návod (fix)
+  const ex = cc.diagnoseSatIssuesEx({ outage: true, congRatio: 0.9, overRatio: 1.3, wifi: true, noServices: true, weakDC: true });
+  ok(ex.length === 6, 'Ex: všech 6 příčin');
+  ok(ex.every(i => i.fix && i.fix.length > 30), 'Ex: každá příčina má návod k řešení');
+  ok(ex.every(i => i.key && cc.SAT_ISSUE_DEFS[i.key]), 'Ex: klíče odpovídají katalogu');
+  ok(cc.SAT_ISSUE_DEFS.weakdc.fix.includes('Server'), 'weakdc návod vysvětluje Server/NMS bonusy');
 }
 
 console.log('\u2550'.repeat(60));
