@@ -18,9 +18,13 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 // PWA service worker registration (no-op v Tauri i v file://)
+// updateViaCache:'none' + update() při každém loadu — jinak prohlížeč držel
+// starý SW (a ten cache-first servíroval staré JS moduly dlouho po deployi).
 if('serviceWorker' in navigator && (location.protocol==='http:' || location.protocol==='https:')){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW reg fail',err));
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'})
+      .then(reg=>{try{reg.update();}catch(e){}})
+      .catch(err=>console.warn('SW reg fail',err));
   });
 }
 </script>

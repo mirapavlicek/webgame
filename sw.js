@@ -1,10 +1,14 @@
 // NetTycoon — Service Worker
 // Strategy:
 //   - navigation (html): network-first, fallback cache
-//   - js/css/svg/png/manifest: cache-first with stale-while-revalidate
-//   - CDN (pixi fallback): cache-first (nechá hru fungovat offline i bez vendor/)
+//   - js/css: NETWORK-FIRST, fallback cache — hra se často aktualizuje a
+//     cache-first servírovala staré moduly ještě dlouho po deployi (hráč pak
+//     neviděl nové funkce, protože main.js byl z cache a nové soubory ne)
+//   - obrázky/vendor: cache-first se stale-while-revalidate
+//
+// VERSION drž v sync s package.json — změna verze zahodí staré cache.
 
-const VERSION = 'nettycoon-v1-2026-04-18';
+const VERSION = 'nettycoon-v0.9.1';
 const CORE = [
   './',
   './index.html',
@@ -70,7 +74,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets — cache-first with background revalidate
+  // JS/CSS — network-first: čerstvý kód má přednost, cache je jen offline záloha
+  const isCode = /\.(js|css)(\?.*)?$/.test(url.pathname);
   event.respondWith((async () => {
     const cache = await caches.open(VERSION);
     const cached = await cache.match(req);
@@ -80,8 +85,12 @@ self.addEventListener('fetch', (event) => {
       }
       return res;
     }).catch(() => null);
+    if (isCode) {
+      const net = await fetchAndUpdate;
+      return net || cached || new Response('Offline', { status: 503 });
+    }
     if (cached) {
-      // stale-while-revalidate
+      // stale-while-revalidate (obrázky, fonty, vendor)
       fetchAndUpdate;
       return cached;
     }
